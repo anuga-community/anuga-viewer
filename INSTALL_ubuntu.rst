@@ -3,7 +3,8 @@ Ubuntu Install
 ==============
 
 
-The following instructions will take you through installing Anuga Viewer on a completely fresh Linux distro, step by step.
+The following instructions will take you through installing Anuga Viewer 
+on a completely fresh Linux distro, step by step.
 
 #. Install linux distro. I used ubuntu - http://www.ubuntu.com/getubuntu/download.
 
@@ -24,6 +25,10 @@ If you are using an old version of OpenSceneGraph (ie the default in Unbuntu 18.
 
          make
          sudo make install
+
+	Note: If you get an error about not finding appropriate include files, then you might
+	be using a conda python environment. I had to deactivate my conda environment 
+	to return to expected system include files.
       
 #. Setup Environment variables in your `.bashrc` file::
     	
