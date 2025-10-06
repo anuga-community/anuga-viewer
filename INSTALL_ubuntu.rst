@@ -27,9 +27,9 @@ If you are using an old version of OpenSceneGraph (ie the default in Unbuntu 18.
          sudo make install
 
 	Note: If you get an error about not finding appropriate include files, then you might
-	be using a conda python environment. I had to deactivate my conda environment 
+	be using a conda python environment. I had to deactivate my conda environment
 	to return to expected system include files.
-      
+
 #. Setup Environment variables in your `.bashrc` file::
     	
     	export SWOLLEN_BINDIR=/home/<<your_ubuntu_user_directory>>/anuga-viewer/bin
