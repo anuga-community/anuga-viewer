@@ -17,8 +17,7 @@ ifeq ($(UNAME), Darwin)
 	# OS X
 	OSX_LIBS        = -framework Carbon -framework OpenGL -lobjc
 	MACOS_SDK       := $(shell xcrun --show-sdk-path 2>/dev/null)
-	CPPFLAGS         =  -F/System/Library/Frameworks \
-		            -isysroot $(MACOS_SDK) \
+	CPPFLAGS         =  -isysroot $(MACOS_SDK) \
 		            -DGL_SILENCE_DEPRECATION \
 		            -Wall -DDARWIN_QUICKTIME \
 		            $(OPTIMIZATION)
