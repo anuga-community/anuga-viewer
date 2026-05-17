@@ -52,7 +52,7 @@ clean :
 
 install :
 	# Linux - create symbolic link for version-independent access
-	mv $(TARGET) $(TARGET_FINAL_DIR)
+	cp $(TARGET) $(TARGET_FINAL_DIR)
 	ln -sf $(TARGET_FINAL_DIR) /usr/local/lib/lib$(NAME).so
 	ldconfig
 

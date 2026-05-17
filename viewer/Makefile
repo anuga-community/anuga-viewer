@@ -6,8 +6,7 @@
 UNAME := $(shell uname)
 TOPDIR           =  ..
 
-#OPTIMIZATION     =  -O2
-OPTIMIZATION     =  -g
+OPTIMIZATION     =  -O2
 
 OSGHOME = /usr/local
 

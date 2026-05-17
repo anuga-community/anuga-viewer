@@ -1,3 +1,5 @@
 *.o
 *.so
+*.dylib
 anuga_viewer
+tests/tests
