@@ -43,7 +43,7 @@ OBJ              =  touchedfiletest.o swwreadertest.o
 
 
 $(TARGET) : $(OBJ)
-	$(COMPILER) $(OPTIMIZATION) $(LIBDIRS) $(LIBS) $(TESTLIBS) $(OBJ) -o $(TARGET)
+	$(COMPILER) $(OPTIMIZATION) $(LIBDIRS) $(OBJ) $(TESTLIBS) $(LIBS) -o $(TARGET)
 
 %.o : %.cpp
 	$(COMPILER) $(OPTIMIZATION) $(CFLAGS) -c $(INCLUDES) $< -o $@
