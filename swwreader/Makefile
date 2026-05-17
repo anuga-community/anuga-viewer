@@ -48,7 +48,7 @@ OBJ              =  filechangedcheck.o swwreader.o
 
 
 $(TARGET) : $(OBJ)
-	$(COMPILER) $(OPTIMIZATION) $(LIB_TYPE) $(LIBDIRS) $(LIBS) $(OBJ) -o $(TARGET)
+	$(COMPILER) $(OPTIMIZATION) $(LIB_TYPE) $(LIBDIRS) $(OBJ) $(LIBS) -o $(TARGET)
 
 %.o : %.cpp
 	$(COMPILER) $(OPTIMIZATION) $(CFLAGS) -c $(INCLUDES) $< -o $@
