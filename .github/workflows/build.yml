@@ -109,7 +109,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install open-scene-graph netcdf gdal dylibbundler create-dmg
+          brew install open-scene-graph netcdf gdal cppunit dylibbundler create-dmg
 
       - name: Build
         run: make OSGHOME="$(brew --prefix)"
