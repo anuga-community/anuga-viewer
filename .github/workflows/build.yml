@@ -145,9 +145,12 @@ jobs:
           </dict></plist>
           EOF
 
-          # Fix the dylib's install name from a relative path to absolute
-          # so dylibbundler can locate and read it
-          install_name_tool -id "$(pwd)/bin/libswwreader.dylib" bin/libswwreader.dylib
+          # Fix the dylib's install name and the viewer's recorded reference
+          # from the relative build-time path to an absolute path so
+          # dylibbundler can locate and read the dylib's own dependencies
+          SWWREADER_ABSPATH="$(pwd)/bin/libswwreader.dylib"
+          install_name_tool -id "$SWWREADER_ABSPATH" bin/libswwreader.dylib
+          install_name_tool -change "../bin/libswwreader.dylib" "$SWWREADER_ABSPATH" "$MACOS/anuga_viewer"
 
           # Copy libswwreader and fix up all dylib paths
           cp "bin/libswwreader.dylib" "$LIBS_DIR/"
