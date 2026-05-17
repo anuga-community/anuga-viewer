@@ -1,14 +1,13 @@
 
 #
-#  Mac OS X / Linux Makefile
+#  Mac OS X / Linux / Windows (MSYS2) Makefile
 #
 
 UNAME := $(shell uname)
 TOPDIR           =  ..
 
 OPTIMIZATION     =  -O2
-
-OSGHOME = /usr/local
+OSGHOME          ?= /usr/local
 
 OSG_INCLUDE      =  ${OSGHOME}/include
 LOCAL_INCLUDE    =  $(TOPDIR)/include
@@ -17,21 +16,23 @@ INCLUDES         =  -I . -I $(LOCAL_INCLUDE) -I $(OSG_INCLUDE) -I/usr/X11R6/incl
 ifeq ($(UNAME), Darwin)
 	# OS X
 	OSX_LIBS        = -framework Carbon -framework OpenGL -lobjc
-	LIB_TYPE	= -dynamiclib
 	CPPFLAGS         =  -F/System/Library/Frameworks -Wall -DDARWIN_QUICKTIME \
 		            $(OPTIMIZATION)
+else ifneq ($(findstring MINGW,$(UNAME)),)
+	# Windows (MSYS2/MinGW)
+	CPPFLAGS         =  -Wall $(OPTIMIZATION)
+	X_LIBS          =
 else
 	# Linux
-#	LIB_TYPE	= -shared
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
 endif
 
-X_LIBS           =  -lX11
+X_LIBS           ?= -lX11
 OTHER_LIBS       =  -lm -lstdc++ -lnetcdf `gdal-config --libs`
 LIBS            +=  -losg -losgText -losgDB -losgUtil -losgGA \
                     -lOpenThreads -losgViewer -lswwreader \
                     $(GL_LIBS) $(X_LIBS) $(OTHER_LIBS) $(OSX_LIBS)
-LIBDIRS          =  -L/usr/lib -L/usr/X11R6/lib -L/sw/lib -L/usr/local/lib64 -L/usr/local/lib -L$(TOPDIR)/bin
+LIBDIRS          =  -L${OSGHOME}/lib -L/usr/lib -L/usr/X11R6/lib -L/usr/local/lib64 -L/usr/local/lib -L$(TOPDIR)/bin
 
 NAME             =  anuga_viewer
 TARGETDIR        =  $(TOPDIR)/bin

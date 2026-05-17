@@ -217,7 +217,7 @@ int main( int argc, char **argv )
 
 	if( !arguments.read("-nosky") )
 	{
-		std::string sky_tex_path = sww->getSwollenDir() + std::string("/../images/sky_small.jpg");
+		std::string sky_tex_path = sww->getSwollenDir() + std::string("/images/sky_small.jpg");
 		std::cout << "sky texture path: " << sky_tex_path << std::endl;
 		
 		// surrounding sky sphere

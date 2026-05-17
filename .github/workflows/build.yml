@@ -1,0 +1,257 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+
+  # -----------------------------------------------------------------------
+  # Linux — produces a portable AppImage
+  # -----------------------------------------------------------------------
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y \
+            build-essential libgdal-dev libnetcdf-dev \
+            libopenscenegraph-dev libcppunit-dev
+
+      - name: Build
+        run: make
+
+      - name: Test
+        run: make test
+
+      - name: Prepare AppDir
+        run: |
+          mkdir -p AppDir/usr/bin/fonts AppDir/usr/bin/images
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cp bin/anuga_viewer          AppDir/usr/bin/
+          cp bin/fonts/arial.ttf       AppDir/usr/bin/fonts/
+          cp bin/images/sky_small.jpg  AppDir/usr/bin/images/
+          cp bin/images/envmap.jpg     AppDir/usr/bin/images/
+          cp distros/icon.png          AppDir/usr/share/icons/hicolor/256x256/apps/anuga_viewer.png
+
+          # Desktop file
+          cat > AppDir/usr/share/applications/anuga_viewer.desktop << 'EOF'
+          [Desktop Entry]
+          Name=ANUGA Viewer
+          Exec=anuga_viewer
+          Icon=anuga_viewer
+          Type=Application
+          Categories=Science;
+          Terminal=true
+          EOF
+
+          # Bundle OSG image/font plugins (dynamically loaded, not caught by ldd)
+          PLUGIN_DIR=$(find /usr/lib -maxdepth 4 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
+          if [ -n "$PLUGIN_DIR" ]; then
+            cp -r "$PLUGIN_DIR" AppDir/usr/lib/
+          fi
+
+      - name: Download linuxdeploy
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+
+      - name: Create AppRun
+        run: |
+          cat > AppRun << 'EOF'
+          #!/bin/bash
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          export APPDIR="${HERE}"
+          export PATH="${HERE}/usr/bin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+          # Point OSG at the bundled plugins directory
+          export OSG_LIBRARY_PATH="${HERE}/usr/lib"
+          # Point the viewer at the bundled fonts/images
+          export SWOLLEN_BINDIR="${HERE}/usr/bin"
+          exec "${HERE}/usr/bin/anuga_viewer" "$@"
+          EOF
+          chmod +x AppRun
+
+      - name: Build AppImage
+        run: |
+          ARCH=x86_64 ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --library bin/libswwreader.so \
+            --desktop-file AppDir/usr/share/applications/anuga_viewer.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/anuga_viewer.png \
+            --custom-apprun AppRun \
+            --output appimage
+
+      - name: Rename AppImage
+        run: mv ANUGA_Viewer*.AppImage anuga-viewer-linux-x86_64.AppImage 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anuga-viewer-linux
+          path: '*.AppImage'
+
+  # -----------------------------------------------------------------------
+  # macOS — produces a .app bundle in a DMG
+  # -----------------------------------------------------------------------
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install open-scene-graph netcdf gdal dylibbundler create-dmg
+
+      - name: Build
+        run: |
+          make OSGHOME="$(brew --prefix)"
+
+      - name: Bundle app
+        run: |
+          APP="ANUGA Viewer.app"
+          MACOS="$APP/Contents/MacOS"
+          LIBS_DIR="$APP/Contents/libs"
+
+          mkdir -p "$MACOS/fonts" "$MACOS/images" "$LIBS_DIR" "$APP/Contents/Resources"
+
+          cp bin/anuga_viewer            "$MACOS/"
+          cp bin/fonts/arial.ttf         "$MACOS/fonts/"
+          cp bin/images/sky_small.jpg    "$MACOS/images/"
+          cp bin/images/envmap.jpg       "$MACOS/images/"
+          cp distros/icon.png            "$APP/Contents/Resources/"
+
+          cat > "$APP/Contents/Info.plist" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleName</key>        <string>ANUGA Viewer</string>
+            <key>CFBundleExecutable</key>  <string>anuga_viewer</string>
+            <key>CFBundleIdentifier</key>  <string>au.gov.ga.anuga-viewer</string>
+            <key>CFBundleIconFile</key>    <string>icon.png</string>
+            <key>CFBundlePackageType</key> <string>APPL</string>
+            <key>CFBundleVersion</key>     <string>1.0</string>
+          </dict></plist>
+          EOF
+
+          # Copy libswwreader and fix up all dylib paths
+          cp "bin/libswwreader.dylib" "$LIBS_DIR/"
+          dylibbundler \
+            --overwrite-dir \
+            --bundle-deps \
+            --fix-file "$MACOS/anuga_viewer" \
+            --dest-dir "$LIBS_DIR" \
+            --install-path "@executable_path/../libs" \
+            --search-path "$(brew --prefix)/lib" \
+            --search-path bin
+
+      - name: Create DMG
+        run: |
+          create-dmg \
+            --volname "ANUGA Viewer" \
+            --window-pos 200 120 \
+            --window-size 600 300 \
+            --icon-size 100 \
+            --icon "ANUGA Viewer.app" 175 120 \
+            --hide-extension "ANUGA Viewer.app" \
+            --app-drop-link 425 120 \
+            "anuga-viewer-macos.dmg" \
+            "ANUGA Viewer.app"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anuga-viewer-macos
+          path: 'anuga-viewer-macos.dmg'
+
+  # -----------------------------------------------------------------------
+  # Windows — produces a self-contained zip via MSYS2/MinGW
+  # -----------------------------------------------------------------------
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-OpenSceneGraph
+            mingw-w64-x86_64-netcdf
+            mingw-w64-x86_64-gdal
+
+      - name: Build
+        run: make OSGHOME=/mingw64
+
+      - name: Bundle
+        run: |
+          DIST=dist/anuga-viewer
+          mkdir -p "$DIST/fonts" "$DIST/images"
+
+          cp bin/anuga_viewer*          "$DIST/"
+          cp bin/fonts/arial.ttf        "$DIST/fonts/"
+          cp bin/images/sky_small.jpg   "$DIST/images/"
+          cp bin/images/envmap.jpg      "$DIST/images/"
+
+          # Copy libswwreader DLL
+          cp bin/libswwreader.dll "$DIST/" 2>/dev/null || true
+
+          # Bundle all MinGW DLL dependencies of the viewer binary
+          ldd "$DIST/anuga_viewer"* | grep -i mingw64 | awk '{print $3}' \
+            | xargs -I{} cp "{}" "$DIST/"
+
+          # Bundle OSG plugins
+          PLUGIN_DIR=$(find /mingw64/lib -maxdepth 2 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
+          if [ -n "$PLUGIN_DIR" ]; then
+            cp -r "$PLUGIN_DIR" "$DIST/"
+          fi
+
+          # Launcher batch file
+          cat > "$DIST/run_viewer.bat" << 'BATCH'
+          @echo off
+          set SWOLLEN_BINDIR=%~dp0
+          "%~dp0anuga_viewer.exe" %*
+          BATCH
+
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path dist/anuga-viewer -DestinationPath anuga-viewer-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anuga-viewer-windows
+          path: anuga-viewer-windows.zip
+
+  # -----------------------------------------------------------------------
+  # Release — upload artifacts to GitHub Release when a version tag is pushed
+  # -----------------------------------------------------------------------
+  release:
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            anuga-viewer-linux/*.AppImage
+            anuga-viewer-macos/*.dmg
+            anuga-viewer-windows/*.zip

@@ -31,7 +31,7 @@ WaterSurface::WaterSurface(SWWReader* sww)
    texture->setDataVariance(osg::Object::DYNAMIC);
    texture->setBorderColor(osg::Vec4(1.0f,1.0f,1.0f,0.5f));
    texture->setWrap(osg::Texture::WRAP_S, osg::Texture::REPEAT);
-   std::string* envmap = new std::string( _sww->getSwollenDir() + std::string("/../images/") + std::string("envmap.jpg") );
+   std::string* envmap = new std::string( _sww->getSwollenDir() + std::string("/images/envmap.jpg") );
    texture->setImage(osgDB::readImageFile( envmap->c_str() ));
    _stateset->setTextureAttributeAndModes( 1, texture, osg::StateAttribute::ON );
    _stateset->setMode( GL_LIGHTING, osg::StateAttribute::ON );
