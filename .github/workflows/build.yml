@@ -145,6 +145,10 @@ jobs:
           </dict></plist>
           EOF
 
+          # Fix the dylib's install name from a relative path to absolute
+          # so dylibbundler can locate and read it
+          install_name_tool -id "$(pwd)/bin/libswwreader.dylib" bin/libswwreader.dylib
+
           # Copy libswwreader and fix up all dylib paths
           cp "bin/libswwreader.dylib" "$LIBS_DIR/"
           dylibbundler \
