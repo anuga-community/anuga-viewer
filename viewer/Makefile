@@ -16,7 +16,11 @@ INCLUDES         =  -I . -I $(LOCAL_INCLUDE) -I $(OSG_INCLUDE) -I/usr/X11R6/incl
 ifeq ($(UNAME), Darwin)
 	# OS X
 	OSX_LIBS        = -framework Carbon -framework OpenGL -lobjc
-	CPPFLAGS         =  -F/System/Library/Frameworks -Wall -DDARWIN_QUICKTIME \
+	MACOS_SDK       := $(shell xcrun --show-sdk-path 2>/dev/null)
+	CPPFLAGS         =  -F/System/Library/Frameworks \
+		            -isysroot $(MACOS_SDK) \
+		            -DGL_SILENCE_DEPRECATION \
+		            -Wall -DDARWIN_QUICKTIME \
 		            $(OPTIMIZATION)
 else ifneq ($(findstring MINGW,$(UNAME)),)
 	# Windows (MSYS2/MinGW)

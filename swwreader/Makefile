@@ -20,6 +20,7 @@ ifeq ($(UNAME), Darwin)
 	OSX_LIBS        = -framework Carbon -framework OpenGL -lobjc
 	LIB_TYPE	= -dynamiclib -F/System/Library/Frameworks
 	TARGET           =  $(TOPDIR)/bin/lib$(NAME).dylib
+	CFLAGS          = -DGL_SILENCE_DEPRECATION
 else ifneq ($(findstring MINGW,$(UNAME)),)
 	# Windows (MSYS2/MinGW)
 	LIB_TYPE	= -shared

@@ -18,6 +18,7 @@ ifeq ($(UNAME), Darwin)
 	# OS X
 	OSX_LIBS        = -framework Carbon -framework OpenGL -lobjc
 	TARGET           =  tests
+	CFLAGS          = -DGL_SILENCE_DEPRECATION
 else ifneq ($(findstring MINGW,$(UNAME)),)
 	# Windows (MSYS2/MinGW)
 	TARGET           =  tests
