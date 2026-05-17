@@ -47,4 +47,4 @@ clean :
 	rm -f *.o *~ $(TARGET)
 
 test : clean $(TARGET)
-	./test
+	./tests
