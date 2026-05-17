@@ -53,4 +53,4 @@ clean :
 	rm -f *.o *~ $(TARGET)
 
 test : clean $(TARGET)
-	./tests
+	LD_LIBRARY_PATH=../bin:$$LD_LIBRARY_PATH DYLD_LIBRARY_PATH=../bin:$$DYLD_LIBRARY_PATH PATH=../bin:$$PATH ./tests
