@@ -112,8 +112,10 @@ jobs:
           brew install open-scene-graph netcdf gdal dylibbundler create-dmg
 
       - name: Build
-        run: |
-          make OSGHOME="$(brew --prefix)"
+        run: make OSGHOME="$(brew --prefix)"
+
+      - name: Test
+        run: make test OSGHOME="$(brew --prefix)"
 
       - name: Bundle app
         run: |

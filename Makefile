@@ -2,10 +2,11 @@
 
 # top-level makefile
 
+OSGHOME ?= /usr/local
 
 all:
-	cd swwreader; make
-	cd viewer; make
+	cd swwreader; make OSGHOME=$(OSGHOME)
+	cd viewer; make OSGHOME=$(OSGHOME)
 
 clean:
 	cd swwreader; make clean
@@ -13,10 +14,9 @@ clean:
 	cd tests; make clean
 
 test:
-	cd tests; make test
-	
-install:
-	cd swwreader; make install
+	cd tests; make test OSGHOME=$(OSGHOME)
 
+install:
+	cd swwreader; make install OSGHOME=$(OSGHOME)
 
 
