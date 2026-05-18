@@ -250,10 +250,17 @@ jobs:
           # Copy libswwreader DLL
           cp bin/libswwreader.dll "$DIST/" 2>/dev/null || true
 
-          # Bundle all MinGW DLL dependencies of the viewer and swwreader
-          ldd "$DIST/anuga_viewer"* "$DIST/libswwreader.dll" \
-            | grep -i mingw64 | awk '{print $3}' | sort -u \
-            | xargs -I{} cp "{}" "$DIST/"
+          # Iteratively bundle all MinGW DLL dependencies (including OSG plugins)
+          # until no new DLLs are added — catches transitive deps of plugins
+          for i in 1 2 3 4 5; do
+            BEFORE=$(find "$DIST" -name "*.dll" | wc -l)
+            find "$DIST" \( -name "*.dll" -o -name "*.exe" \) \
+              | xargs ldd 2>/dev/null \
+              | grep -i mingw64 | awk '{print $3}' | sort -u \
+              | xargs -I{} cp -n "{}" "$DIST/" 2>/dev/null || true
+            AFTER=$(find "$DIST" -name "*.dll" | wc -l)
+            [ "$AFTER" = "$BEFORE" ] && break
+          done
 
           # Bundle OSG plugins
           PLUGIN_DIR=$(find /mingw64/lib -maxdepth 2 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
