@@ -19,7 +19,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef HAVE_GDAL
 #include <gdal_priv.h>
+#endif
 
 #define SAFE_DELETE_ARRAY(x) {if (x) { delete[](x); x=NULL;	}}
 
@@ -128,6 +130,7 @@ void SWWReader::setBedslopeTexture( std::string filename )
 	_state.bedslopetexturefilename = new std::string(filename);
 	_bedslopegeodata.hasData = false;
 
+#ifdef HAVE_GDAL
 	// GDAL Geospatial Image Library
 	GDALDataset *pGDAL;
 	GDALAllRegister();
@@ -137,8 +140,8 @@ void SWWReader::setBedslopeTexture( std::string filename )
 	else
 	{
 		osg::notify(osg::INFO) << "[SWWReader::setBedslopetexture] GDAL Driver: "
-				  << pGDAL->GetDriver()->GetDescription() << "/" 
-				  << pGDAL->GetDriver()->GetMetadataItem( GDAL_DMD_LONGNAME ) 
+				  << pGDAL->GetDriver()->GetDescription() << "/"
+				  << pGDAL->GetDriver()->GetMetadataItem( GDAL_DMD_LONGNAME )
 				  << std::endl;
 
 		_bedslopegeodata.xresolution = pGDAL->GetRasterXSize();
@@ -164,6 +167,7 @@ void SWWReader::setBedslopeTexture( std::string filename )
 			osg::notify(osg::INFO) << "[SWWReader::setBedslopetexture] rotation: " << _bedslopegeodata.rotation <<  std::endl;
 		}
 	}
+#endif
 }
 
 

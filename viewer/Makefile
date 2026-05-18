@@ -32,7 +32,7 @@ else
 endif
 
 X_LIBS           ?= -lX11
-OTHER_LIBS       =  -lm -lstdc++ -lnetcdf `gdal-config --libs`
+OTHER_LIBS       =  -lm -lstdc++ -lnetcdf
 LIBS            +=  -losg -losgText -losgDB -losgUtil -losgGA \
                     -lOpenThreads -losgViewer -lswwreader \
                     $(GL_LIBS) $(X_LIBS) $(OTHER_LIBS) $(OSX_LIBS)

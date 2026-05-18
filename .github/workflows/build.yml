@@ -229,7 +229,6 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-OpenSceneGraph
             mingw-w64-x86_64-netcdf
-            mingw-w64-x86_64-gdal
 
       - name: Build
         run: make OSGHOME=/mingw64

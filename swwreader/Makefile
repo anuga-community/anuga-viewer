@@ -11,33 +11,38 @@ OSGHOME          ?= /usr/local
 
 OSG_INCLUDE      =  ${OSGHOME}/include
 LOCAL_INCLUDE    =  $(TOPDIR)/include
-GDAL_INCLUDE     =  `gdal-config --cflags`
 NETCDF_INCLUDE   := $(shell nc-config --includedir 2>/dev/null || pkg-config --variable=includedir netcdf 2>/dev/null || echo /usr/include)
-INCLUDES         =  -I $(LOCAL_INCLUDE) -I $(NETCDF_INCLUDE) -I $(OSG_INCLUDE) $(GDAL_INCLUDE)
 
 ifeq ($(UNAME), Darwin)
 	# OS X
 	OSX_LIBS        = -framework Carbon -framework OpenGL -lobjc
 	LIB_TYPE	= -dynamiclib -F/System/Library/Frameworks
 	TARGET           =  $(TOPDIR)/bin/lib$(NAME).dylib
-	CFLAGS          = -DGL_SILENCE_DEPRECATION
+	CFLAGS          = -DGL_SILENCE_DEPRECATION -DHAVE_GDAL
+	GDAL_INCLUDE     = $(shell gdal-config --cflags)
+	GDAL_LIBS        = $(shell gdal-config --libs)
 else ifneq ($(findstring MINGW,$(UNAME)),)
-	# Windows (MSYS2/MinGW)
+	# Windows (MSYS2/MinGW) — GDAL omitted: its DLL global constructors throw
+	# on Windows, crashing the process before main() runs
 	LIB_TYPE	= -shared
 	CFLAGS		= -fPIC -fno-strict-aliasing -Wall
 	TARGET           =  $(TOPDIR)/bin/lib$(NAME).dll
 	X_LIBS          =
+	GDAL_INCLUDE     =
+	GDAL_LIBS        =
 else
 	# Linux
 	LIB_TYPE	= -shared
-	CFLAGS		= -fPIC -fno-strict-aliasing -Wall
+	CFLAGS		= -fPIC -fno-strict-aliasing -Wall -DHAVE_GDAL
 	TARGET           =  $(TOPDIR)/bin/lib$(NAME).so
 	TARGET_FINAL_DIR = /usr/local/lib/lib$(NAME).so.1
+	GDAL_INCLUDE     = $(shell gdal-config --cflags)
+	GDAL_LIBS        = $(shell gdal-config --libs)
 endif
 
+INCLUDES         =  -I $(LOCAL_INCLUDE) -I $(NETCDF_INCLUDE) -I $(OSG_INCLUDE) $(GDAL_INCLUDE)
 NETCDF_LIBS      =  $(shell nc-config --libs 2>/dev/null || pkg-config --libs netcdf 2>/dev/null || echo -lnetcdf)
 X_LIBS           ?= -lX11
-GDAL_LIBS        =  `gdal-config --libs`
 OTHER_LIBS       =  -lm -lstdc++
 LIBS            +=  -losg -losgDB -lOpenThreads $(NETCDF_LIBS) $(X_LIBS) $(OTHER_LIBS) $(OSX_LIBS) $(GDAL_LIBS)
 LIBDIRS          =  -L${OSGHOME}/lib -L/usr/lib -L/usr/X11R6/lib -L/usr/local/lib64 -L/usr/local/lib
