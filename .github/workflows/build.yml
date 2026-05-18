@@ -219,8 +219,9 @@ jobs:
           # Copy libswwreader DLL
           cp bin/libswwreader.dll "$DIST/" 2>/dev/null || true
 
-          # Bundle all MinGW DLL dependencies of the viewer binary
-          ldd "$DIST/anuga_viewer"* | grep -i mingw64 | awk '{print $3}' \
+          # Bundle all MinGW DLL dependencies of the viewer and swwreader
+          ldd "$DIST/anuga_viewer"* "$DIST/libswwreader.dll" \
+            | grep -i mingw64 | awk '{print $3}' | sort -u \
             | xargs -I{} cp "{}" "$DIST/"
 
           # Bundle OSG plugins
