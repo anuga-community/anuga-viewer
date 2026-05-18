@@ -8,9 +8,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
 
   # -----------------------------------------------------------------------
@@ -19,7 +16,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
@@ -97,7 +94,7 @@ jobs:
       - name: Rename AppImage
         run: mv ANUGA_Viewer*.AppImage anuga-viewer-linux-x86_64.AppImage 2>/dev/null || true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: anuga-viewer-linux
           path: '*.AppImage'
@@ -108,7 +105,7 @@ jobs:
   build-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
@@ -207,7 +204,7 @@ jobs:
             "anuga-viewer-macos.dmg" \
             "ANUGA Viewer.app"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: anuga-viewer-macos
           path: 'anuga-viewer-macos.dmg'
@@ -221,7 +218,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: msys2/setup-msys2@v2
         with:
@@ -250,7 +247,13 @@ jobs:
           # Copy libswwreader DLL
           cp bin/libswwreader.dll "$DIST/" 2>/dev/null || true
 
-          # Iteratively bundle all MinGW DLL dependencies (including OSG plugins)
+          # Bundle OSG plugins before the DLL loop so their deps are caught too
+          PLUGIN_DIR=$(find /mingw64/lib -maxdepth 2 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
+          if [ -n "$PLUGIN_DIR" ]; then
+            cp -r "$PLUGIN_DIR" "$DIST/"
+          fi
+
+          # Iteratively bundle all MinGW DLL dependencies (exe + DLLs + plugins)
           # until no new DLLs are added — catches transitive deps of plugins
           for i in 1 2 3 4 5; do
             BEFORE=$(find "$DIST" -name "*.dll" | wc -l)
@@ -262,12 +265,6 @@ jobs:
             [ "$AFTER" = "$BEFORE" ] && break
           done
 
-          # Bundle OSG plugins
-          PLUGIN_DIR=$(find /mingw64/lib -maxdepth 2 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
-          if [ -n "$PLUGIN_DIR" ]; then
-            cp -r "$PLUGIN_DIR" "$DIST/"
-          fi
-
           # Launcher batch file
           cat > "$DIST/run_viewer.bat" << 'BATCH'
           @echo off
@@ -275,14 +272,10 @@ jobs:
           "%~dp0anuga_viewer.exe" %*
           BATCH
 
-      - name: Zip
-        shell: pwsh
-        run: Compress-Archive -Path dist/anuga-viewer -DestinationPath anuga-viewer-windows.zip
-
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: anuga-viewer-windows
-          path: anuga-viewer-windows.zip
+          path: dist/anuga-viewer
 
   # -----------------------------------------------------------------------
   # Release — upload artifacts to GitHub Release when a version tag is pushed
@@ -294,7 +287,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
+
+      - name: Zip Windows bundle
+        run: cd anuga-viewer-windows && zip -r ../anuga-viewer-windows.zip .
 
       - uses: softprops/action-gh-release@v2
         with:
@@ -302,4 +298,4 @@ jobs:
           files: |
             anuga-viewer-linux/*.AppImage
             anuga-viewer-macos/*.dmg
-            anuga-viewer-windows/*.zip
+            anuga-viewer-windows.zip

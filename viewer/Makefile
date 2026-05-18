@@ -25,6 +25,7 @@ else ifneq ($(findstring MINGW,$(UNAME)),)
 	# Windows (MSYS2/MinGW)
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
 	X_LIBS          =
+	WIN_LDFLAGS      =  -Wl,-subsystem,console
 else
 	# Linux
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
@@ -53,7 +54,7 @@ OBJ              =  anugahud.o hud.o keyboardeventhandler.o watersurface.o main.
 
 
 $(TARGET) : $(OBJ)
-	$(COMPILER) $(CPPFLAGS) $(LIBDIRS) $(OBJ) $(LIBS) -o $(TARGET)
+	$(COMPILER) $(CPPFLAGS) $(LIBDIRS) $(OBJ) $(LIBS) $(WIN_LDFLAGS) -o $(TARGET)
 
 
 .PHONY : version.cpp
