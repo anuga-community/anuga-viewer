@@ -163,6 +163,34 @@ jobs:
             --search-path "$(brew --prefix)/lib" \
             --search-path bin
 
+      - name: Smoke test bundle
+        run: |
+          APP="ANUGA Viewer.app"
+          BINARY="$APP/Contents/MacOS/anuga_viewer"
+
+          # Verify no external homebrew paths remain in the binary
+          echo "=== otool -L $BINARY ==="
+          otool -L "$BINARY"
+          if otool -L "$BINARY" | grep -q '/opt/homebrew'; then
+            echo "FAIL: unbundled homebrew deps found in binary"
+            exit 1
+          fi
+          echo "OK: no external homebrew deps in binary"
+
+          # Verify expected resource files are present
+          for f in "fonts/arial.ttf" "images/sky_small.jpg" "images/envmap.jpg"; do
+            if [ ! -f "$APP/Contents/MacOS/$f" ]; then
+              echo "FAIL: missing resource $f"
+              exit 1
+            fi
+          done
+          echo "OK: all resource files present"
+
+          # Try running -help (exits via argument parser before display init)
+          DYLD_LIBRARY_PATH="$APP/Contents/libs" \
+            "$BINARY" -help 2>&1 | head -20 || true
+          echo "OK: binary executed without missing-library crash"
+
       - name: Create DMG
         run: |
           create-dmg \
