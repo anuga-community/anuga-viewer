@@ -270,6 +270,7 @@ jobs:
           cat > "$DIST/run_viewer.bat" << 'BATCH'
           @echo off
           set SWOLLEN_BINDIR=%~dp0
+          set OSG_LIBRARY_PATH=%~dp0
           "%~dp0anuga_viewer.exe" %*
           BATCH
 
