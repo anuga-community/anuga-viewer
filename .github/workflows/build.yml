@@ -270,9 +270,10 @@ jobs:
             ls "$PLUGIN_DIR/"
             DEST_PLUGINS="$DIST/$(basename "$PLUGIN_DIR")"
             mkdir -p "$DEST_PLUGINS"
-            for p in osgdb_jpeg osgdb_jpg osgdb_png osgdb_rgb osgdb_tga \
-                     osgdb_bmp osgdb_dds osgdb_tiff osgdb_freetype \
-                     osgdb_osg osgdb_ive osgdb_deprecated_osg; do
+            for p in mingw_osgdb_jpeg mingw_osgdb_png mingw_osgdb_rgb \
+                     mingw_osgdb_tga mingw_osgdb_bmp mingw_osgdb_dds \
+                     mingw_osgdb_tiff mingw_osgdb_freetype \
+                     mingw_osgdb_osg mingw_osgdb_ive mingw_osgdb_deprecated_osg; do
               if [ -f "$PLUGIN_DIR/${p}.dll" ]; then
                 cp "$PLUGIN_DIR/${p}.dll" "$DEST_PLUGINS/"
                 echo "  bundled: ${p}.dll"
