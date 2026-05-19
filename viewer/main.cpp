@@ -502,11 +502,12 @@ int main( int argc, char **argv )
 		viewer.frame();
 	}
 
-	viewer.stopThreading();
 #ifdef _WIN32
-	// ExitProcess bypasses OSG/OpenThreads static destructors that deadlock
-	// trying to rejoin threads during Win32 OpenGL context teardown.
-	ExitProcess(0);
+	// TerminateProcess kills the process immediately without calling DLL detach
+	// handlers or static destructors.  ExitProcess and exit() both trigger DLL
+	// teardown, which hangs in the MinGW/OSG runtime on Windows.  We only read
+	// SWW files so abandoning open handles is safe.
+	TerminateProcess(GetCurrentProcess(), 0);
 #else
 	return 0;
 #endif
