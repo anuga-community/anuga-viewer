@@ -26,6 +26,7 @@ public:
     virtual bool isPaused(){return _paused;}
     virtual void setPaused(bool value){_paused = value;}
 	virtual WireframeMode getWireframeMode()	{	return _wireframeMode;	}
+	virtual ColorMode getColorMode()			{	return _colorMode;		}
     virtual bool toggleCulling();
     virtual bool toggleRecording();
 	virtual GridMode getGridMode()	{	return _gridMode;	}
@@ -67,6 +68,7 @@ private:
 	bool _return_origin;
 	WireframeMode _wireframeMode;	/**< Wireframe mode */
 	GridMode _gridMode;
+	ColorMode _colorMode;
 	int _picked_poly;	/**< Which polygon was picked by the mouse. */
 	bool _mouseclicked;
 	bool _shift_held;	/**< Is the shift key held down. */

@@ -174,11 +174,12 @@ int main( int argc, char **argv )
    float tmpfloat, tps, vscale;
    if( !arguments.read("-tps", tps) || tps <= 0.0 ) tps = DEF_TPS;
    if( !arguments.read("-scale", vscale) ) vscale = 1.0;
-   if( arguments.read("-hmin",tmpfloat) ) sww->setHeightMin( tmpfloat );  
-   if( arguments.read("-hmax",tmpfloat) ) sww->setHeightMax( tmpfloat );      
-   if( arguments.read("-alphamin",tmpfloat) ) sww->setAlphaMin( tmpfloat );   
+   if( arguments.read("-hmin",tmpfloat) ) sww->setHeightMin( tmpfloat );
+   if( arguments.read("-hmax",tmpfloat) ) sww->setHeightMax( tmpfloat );
+   if( arguments.read("-alphamin",tmpfloat) ) sww->setAlphaMin( tmpfloat );
    if( arguments.read("-alphamax",tmpfloat) ) sww->setAlphaMax( tmpfloat );
    if( arguments.read("-cullangle",tmpfloat) ) sww->setCullAngle( tmpfloat );
+   if( arguments.read("-speedmax",tmpfloat) ) sww->setSpeedMax( tmpfloat );
 
    std::string bedslopetexture;
    if( arguments.read("-texture",bedslopetexture) ) sww->setBedslopeTexture( bedslopetexture );
@@ -208,6 +209,7 @@ int main( int argc, char **argv )
 	g_hud->setStatus("filename", swwfile);
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
+	g_hud->setStatus("color", "momentum");
 
    // Lighting
    DirectionalLight* light = new DirectionalLight(rootStateSet);
@@ -343,6 +345,16 @@ int main( int argc, char **argv )
 
 			GridMode ge = event_handler->getGridMode();
 			viewer.setGrid(grid_switch, ge);
+
+			static ColorMode colorMode_last = CM_MOMENTUM;
+			ColorMode colorMode = event_handler->getColorMode();
+			if (colorMode != colorMode_last)
+			{
+				const char* cmnames[] = { "depth", "speed", "momentum" };
+				g_hud->setStatus("color", cmnames[int(colorMode)]);
+				colorMode_last = colorMode;
+			}
+			sww->setColorMode(colorMode);
 
 			if (event_handler->checkMouseClicked())
 			{

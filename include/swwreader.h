@@ -117,6 +117,11 @@ public:
     virtual void toggleCulling() {_state.culling = _state.culling ? false : true;}
     virtual bool getCulling() {return _state.culling;}
     virtual void setCulling(bool value) {_state.culling = value;}
+
+    virtual ColorMode getColorMode() {return _state.colorMode;}
+    virtual void setColorMode(ColorMode m) {_state.colorMode = m;}
+    virtual float getSpeedMax() {return _state.speedmax;}
+    virtual void setSpeedMax(float v) {_state.speedmax = v;}
     
     virtual triangle_list getConnectivity(unsigned int index) {return _connectivity.at(index);}
 
@@ -167,6 +172,9 @@ protected:
 
           float cullangle;  // cull triangles with steepness angle above this value
           bool culling;   // culling is on or off
+
+          ColorMode colorMode;
+          float speedmax;  // m/s at which speed colormap saturates to red
 
           std::string* swwfilename;
           std::string* bedslopetexturefilename;

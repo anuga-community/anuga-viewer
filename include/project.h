@@ -43,6 +43,18 @@
 	};
 
 	/**
+	 * Water colour mode
+	 */
+	enum ColorMode
+	{
+		CM_DEPTH = 0,		/**< White water, transparency shows depth only */
+		CM_SPEED,			/**< Blue-red gradient: flow speed (momentum / depth) */
+		CM_MOMENTUM,		/**< Blue-red gradient: momentum magnitude */
+
+		CM_NUM_OF
+	};
+
+	/**
 	 * Which form of grid to display
 	 */
 	enum GridMode

@@ -24,6 +24,7 @@ KeyboardEventHandler::KeyboardEventHandler( int nTimesteps, float tps)	:
    _tpsorig = tps;
    _timestep = 0;
    _prevtime = 0;
+   _colorMode = CM_MOMENTUM;
    _togglewireframe = false;
    _toggleculling = false;
    _togglerecording = false;
@@ -45,6 +46,7 @@ void KeyboardEventHandler::getAppUsage(osg::ApplicationUsage& usage)
     usage.addKeyboardMouseBinding("1","Toggle recording.");
     usage.addKeyboardMouseBinding("2","Toggle playback of recorded information");
     usage.addKeyboardMouseBinding("3","Save recorded macro to \"movie.swm\"");
+    usage.addKeyboardMouseBinding("v","Cycle water colour mode: momentum / speed / depth");
     usage.addKeyboardMouseBinding("Escape","Quit the application");
 }
 
@@ -163,6 +165,14 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 					else
 					   _direction = -1;
 					return true;
+
+				case 'v':
+				{
+					int cm = int(_colorMode) + 1;
+					cm %= int(CM_NUM_OF);
+					_colorMode = (ColorMode)cm;
+					return true;
+				}
 
 				case 'w':
 				{

@@ -395,10 +395,21 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 				alpha = _state.alphamax;
 		}
 
-	  if (_pxmomentum && _pymomentum)
+	  if (_pxmomentum && _pymomentum && _state.colorMode != CM_DEPTH)
 	  {
-		float intens = min(1, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv])/2);
-		_stagecolors->push_back( osg::Vec4( 1.0f-intens, (0.5f-fabs(intens - 0.5f))*2, intens, alpha ) );
+		float intens;
+		if (_state.colorMode == CM_SPEED)
+		{
+			// true flow speed = |momentum| / depth; guard near-dry cells
+			float depth = max(height, 0.001f);
+			float speed = sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / depth;
+			intens = min(1.0f, speed / _state.speedmax);
+		}
+		else  // CM_MOMENTUM
+		{
+			intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / 2.0f);
+		}
+		_stagecolors->push_back( osg::Vec4( 1.0f-intens, (0.5f-fabs(intens-0.5f))*2, intens, alpha ) );
 	  }
 	  else
 	  {
@@ -734,6 +745,9 @@ bool SWWReader::load()
 	// steepness culling default, can be overridden after construction by command line parameter
 	_state.cullangle = DEFAULT_CULLANGLE;
 	_state.culling = DEFAULT_CULLONSTART;
+
+	_state.colorMode = CM_MOMENTUM;
+	_state.speedmax = 5.0f;  // m/s at which speed colormap saturates
 
 	// loop index
 	size_t iv;
