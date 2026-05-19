@@ -104,7 +104,7 @@ jobs:
       - uses: actions/upload-artifact@v6
         with:
           name: anuga-viewer-linux
-          path: '*.AppImage'
+          path: 'anuga-viewer-linux-x86_64.AppImage'
 
   # -----------------------------------------------------------------------
   # macOS — produces a .app bundle in a DMG
