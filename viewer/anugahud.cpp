@@ -11,6 +11,7 @@ AnugaHUD::AnugaHUD() :
 	addStatusLine("recorder", textnode);
 	addStatusLine("culling", textnode);
 	addStatusLine("grid", textnode);
+	addStatusLine("color", textnode);
 	addStatusLine("filename", textnode);
 
 	_text_switch->addChild(textnode);

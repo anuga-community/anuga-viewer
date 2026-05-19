@@ -21,22 +21,26 @@ ifeq ($(UNAME), Darwin)
 		            -DGL_SILENCE_DEPRECATION \
 		            -Wall -DDARWIN_QUICKTIME \
 		            $(OPTIMIZATION)
+	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
 else ifneq ($(findstring MINGW,$(UNAME)),)
 	# Windows (MSYS2/MinGW)
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
 	X_LIBS          =
 	WIN_LDFLAGS      =  -Wl,-subsystem,console
+	GDAL_LIBS        =
 else
 	# Linux
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
+	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
 endif
 
 X_LIBS           ?= -lX11
 OTHER_LIBS       =  -lm -lstdc++ -lnetcdf
 LIBS            +=  -losg -losgText -losgDB -losgUtil -losgGA \
                     -lOpenThreads -losgViewer -lswwreader \
-                    $(GL_LIBS) $(X_LIBS) $(OTHER_LIBS) $(OSX_LIBS)
-LIBDIRS          =  -L${OSGHOME}/lib -L/usr/lib -L/usr/X11R6/lib -L/usr/local/lib64 -L/usr/local/lib -L$(TOPDIR)/bin
+                    $(GL_LIBS) $(X_LIBS) $(OTHER_LIBS) $(OSX_LIBS) $(GDAL_LIBS)
+# Put $(TOPDIR)/bin first so the freshly built swwreader is preferred over any installed version
+LIBDIRS          =  -L$(TOPDIR)/bin -L${OSGHOME}/lib -L/usr/lib -L/usr/X11R6/lib -L/usr/local/lib64 -L/usr/local/lib
 
 NAME             =  anuga_viewer
 TARGETDIR        =  $(TOPDIR)/bin
