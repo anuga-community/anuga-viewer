@@ -308,7 +308,7 @@ jobs:
       - uses: actions/upload-artifact@v6
         with:
           name: anuga-viewer-windows
-          path: dist/anuga-viewer
+          path: dist
 
   # -----------------------------------------------------------------------
   # Release — upload artifacts to GitHub Release when a version tag is pushed
@@ -324,8 +324,7 @@ jobs:
 
       - name: Zip Windows bundle
         run: |
-          mv anuga-viewer-windows anuga-viewer
-          zip -r anuga-viewer-windows.zip anuga-viewer
+          (cd anuga-viewer-windows && zip -r ../anuga-viewer-windows.zip anuga-viewer)
 
       - uses: softprops/action-gh-release@v2
         with:
