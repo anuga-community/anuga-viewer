@@ -293,6 +293,9 @@ int main( int argc, char **argv )
 	viewer.addEventHandler(new osgViewer::StatsHandler);
 
 	// create the windows and run the threads.
+	// Explicitly use a single screen so fullscreen (f key) stays on one display
+	// rather than spanning all monitors via setUpViewAcrossAllScreens().
+	viewer.setUpViewOnSingleScreen(0);
 	viewer.realize();
 
 	unsigned int timestep = 0;
@@ -481,6 +484,10 @@ int main( int argc, char **argv )
 		// fire off the cull and draw traversals of the scene.
 		viewer.frame();
 	}
-	
+
+	// Stop render threads before exit; without this, OSG threads keep running
+	// on Windows and the process (and any cmd window) hangs indefinitely.
+	viewer.stopThreading();
+
    return 0;
 }
