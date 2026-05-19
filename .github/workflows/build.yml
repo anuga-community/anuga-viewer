@@ -257,16 +257,27 @@ jobs:
           # Copy libswwreader DLL
           cp bin/libswwreader.dll "$DIST/" 2>/dev/null || true
 
-          # Bundle all OSG plugins except osgdb_gdal, which pulls in the full
-          # GDAL dependency chain (~30 MB of extra DLLs) that the viewer never
-          # uses (GDAL is disabled at compile time).
+          # Bundle OSG plugins — whitelist only what anuga-viewer needs:
+          #   jpeg/png/rgb/tga/bmp/dds — image formats for sky & bedslope textures
+          #   freetype                  — TTF font loading via osgText
+          #   osg/ive/deprecated_osg   — OSG native formats (for any bundled data)
+          # Excludes osgdb_ffmpeg (pulls in 50-100 MB of FFmpeg codec DLLs),
+          # osgdb_gdal (large GDAL chain, disabled at compile time), and all
+          # 3D model/network/video plugins the viewer never uses.
           PLUGIN_DIR=$(find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
           if [ -n "$PLUGIN_DIR" ]; then
-            echo "Bundling OSG plugins from: $PLUGIN_DIR"
+            echo "=== All available plugins ==="
+            ls "$PLUGIN_DIR/"
             DEST_PLUGINS="$DIST/$(basename "$PLUGIN_DIR")"
             mkdir -p "$DEST_PLUGINS"
-            find "$PLUGIN_DIR" -maxdepth 1 -name "*.dll" ! -name "osgdb_gdal*" \
-              -exec cp {} "$DEST_PLUGINS/" \;
+            for p in osgdb_jpeg osgdb_jpg osgdb_png osgdb_rgb osgdb_tga \
+                     osgdb_bmp osgdb_dds osgdb_tiff osgdb_freetype \
+                     osgdb_osg osgdb_ive osgdb_deprecated_osg; do
+              if [ -f "$PLUGIN_DIR/${p}.dll" ]; then
+                cp "$PLUGIN_DIR/${p}.dll" "$DEST_PLUGINS/"
+                echo "  bundled: ${p}.dll"
+              fi
+            done
             echo "Plugins bundled: $(ls "$DEST_PLUGINS/" | wc -l)"
           else
             echo "WARNING: no osgPlugins directory found — viewer will start but cannot load images or sky"
