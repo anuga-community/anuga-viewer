@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -y \
-            build-essential libgdal-dev libnetcdf-dev \
+            build-essential libnetcdf-dev \
             libopenscenegraph-dev libcppunit-dev
 
       - name: Build
@@ -54,10 +54,17 @@ jobs:
           Terminal=true
           EOF
 
-          # Bundle OSG image/font plugins (dynamically loaded, not caught by ldd)
+          # Bundle only the OSG plugins anuga-viewer needs (image loading + fonts).
+          # Copying the full plugin directory pulls in deps for 3D format loaders,
+          # ffmpeg, etc. that the viewer never uses, bloating the AppImage.
           PLUGIN_DIR=$(find /usr/lib -maxdepth 4 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
           if [ -n "$PLUGIN_DIR" ]; then
-            cp -r "$PLUGIN_DIR" AppDir/usr/lib/
+            DEST_PLUGINS="AppDir/usr/lib/$(basename "$PLUGIN_DIR")"
+            mkdir -p "$DEST_PLUGINS"
+            for p in osgdb_jpeg osgdb_png osgdb_rgb osgdb_tga osgdb_bmp \
+                     osgdb_dds osgdb_tiff osgdb_freetype; do
+              [ -f "$PLUGIN_DIR/${p}.so" ] && cp "$PLUGIN_DIR/${p}.so" "$DEST_PLUGINS/"
+            done
           fi
 
       - name: Download linuxdeploy
@@ -109,7 +116,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install open-scene-graph netcdf gdal cppunit dylibbundler create-dmg
+          brew install open-scene-graph netcdf cppunit dylibbundler create-dmg
 
       - name: Build
         run: make OSGHOME="$(brew --prefix)"

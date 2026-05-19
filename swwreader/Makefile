@@ -18,9 +18,9 @@ ifeq ($(UNAME), Darwin)
 	OSX_LIBS        = -framework Carbon -framework OpenGL -lobjc
 	LIB_TYPE	= -dynamiclib -F/System/Library/Frameworks
 	TARGET           =  $(TOPDIR)/bin/lib$(NAME).dylib
-	CFLAGS          = -DGL_SILENCE_DEPRECATION -DHAVE_GDAL
-	GDAL_INCLUDE     = $(shell gdal-config --cflags)
-	GDAL_LIBS        = $(shell gdal-config --libs)
+	CFLAGS          = -DGL_SILENCE_DEPRECATION
+	GDAL_INCLUDE     = $(shell gdal-config --cflags 2>/dev/null)
+	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
 else ifneq ($(findstring MINGW,$(UNAME)),)
 	# Windows (MSYS2/MinGW) — GDAL omitted: its DLL global constructors throw
 	# on Windows, crashing the process before main() runs
@@ -33,11 +33,20 @@ else ifneq ($(findstring MINGW,$(UNAME)),)
 else
 	# Linux
 	LIB_TYPE	= -shared
-	CFLAGS		= -fPIC -fno-strict-aliasing -Wall -DHAVE_GDAL
+	CFLAGS		= -fPIC -fno-strict-aliasing -Wall
 	TARGET           =  $(TOPDIR)/bin/lib$(NAME).so
 	TARGET_FINAL_DIR = /usr/local/lib/lib$(NAME).so.1
-	GDAL_INCLUDE     = $(shell gdal-config --cflags)
-	GDAL_LIBS        = $(shell gdal-config --libs)
+	GDAL_INCLUDE     = $(shell gdal-config --cflags 2>/dev/null)
+	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
+endif
+
+# Enable GDAL support only when gdal-config is present (non-Windows).
+# This lets CI builds omit libgdal to keep packages small; local builds
+# with GDAL installed get the georeferenced texture feature automatically.
+ifeq ($(findstring MINGW,$(UNAME)),)
+ifneq ($(GDAL_LIBS),)
+CFLAGS += -DHAVE_GDAL
+endif
 endif
 
 INCLUDES         =  -I $(LOCAL_INCLUDE) -I $(NETCDF_INCLUDE) -I $(OSG_INCLUDE) $(GDAL_INCLUDE)
