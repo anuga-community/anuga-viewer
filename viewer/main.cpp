@@ -308,6 +308,11 @@ int main( int argc, char **argv )
 	// Explicitly use a single screen so fullscreen (f key) stays on one display
 	// rather than spanning all monitors via setUpViewAcrossAllScreens().
 	viewer.setUpViewOnSingleScreen(0);
+	// Single-threaded: draw happens on the main thread in sync with the geometry
+	// update.  Multi-threaded mode causes the draw thread to read vertex arrays
+	// while the main thread is writing them (different timestep), producing the
+	// "jumping between timeslices" flicker seen in fullscreen on Windows.
+	viewer.setThreadingModel(osgViewer::Viewer::SingleThreaded);
 	viewer.realize();
 
 	unsigned int timestep = 0;
@@ -498,7 +503,11 @@ int main( int argc, char **argv )
 	}
 
 	viewer.stopThreading();
-	// exit() instead of return to bypass OSG/Win32 cleanup that can hang
-	// waiting on render threads or the graphics context destructor.
-	exit(0);
+#ifdef _WIN32
+	// ExitProcess bypasses OSG/OpenThreads static destructors that deadlock
+	// trying to rejoin threads during Win32 OpenGL context teardown.
+	ExitProcess(0);
+#else
+	return 0;
+#endif
 }
