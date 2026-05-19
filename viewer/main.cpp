@@ -52,6 +52,18 @@ static const char * S_VIEWER_TITLE = "ANUGA Viewer";
 
 AnugaHUD * g_hud = NULL;
 
+// OSG's StandardManipulator calls home() on every RESIZE event, which causes
+// the view to jump to the home position when toggling fullscreen.  Override
+// handle() to silently drop RESIZE so the camera stays where the user left it.
+class TerrainManipulatorNoHomeOnResize : public osgGA::TerrainManipulator {
+public:
+	bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us) override {
+		if (ea.getEventType() == osgGA::GUIEventAdapter::RESIZE)
+			return false;
+		return osgGA::TerrainManipulator::handle(ea, us);
+	}
+};
+
 
 int main( int argc, char **argv )
 {
@@ -260,7 +272,7 @@ int main( int argc, char **argv )
 	// set up the camera manipulators.
 
 	//osgGA::MatrixManipulator * mman = new osgGA::FlightManipulator();
-	osgGA::TerrainManipulator * mman = new osgGA::TerrainManipulator();
+	TerrainManipulatorNoHomeOnResize * mman = new TerrainManipulatorNoHomeOnResize();
 	mman->setNode(model);
 	mman->setAutoComputeHomePosition( false );
 	mman->setHomePosition(
@@ -485,9 +497,8 @@ int main( int argc, char **argv )
 		viewer.frame();
 	}
 
-	// Stop render threads before exit; without this, OSG threads keep running
-	// on Windows and the process (and any cmd window) hangs indefinitely.
 	viewer.stopThreading();
-
-   return 0;
+	// exit() instead of return to bypass OSG/Win32 cleanup that can hang
+	// waiting on render threads or the graphics context destructor.
+	exit(0);
 }
