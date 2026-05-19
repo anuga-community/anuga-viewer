@@ -198,6 +198,17 @@ jobs:
             "$BINARY" -help 2>&1 | head -20 || true
           echo "OK: binary executed without missing-library crash"
 
+          # Verify the libs directory is populated — dylibbundler rewrites
+          # load paths even if it fails to copy files, so check actual content.
+          LIB_COUNT=$(ls "$APP/Contents/libs/" 2>/dev/null | wc -l)
+          echo "Bundled libs: $LIB_COUNT"
+          du -sh "$APP"
+          du -sh "$APP/Contents/libs" 2>/dev/null || echo "(no libs dir)"
+          if [ "$LIB_COUNT" -lt 10 ]; then
+            echo "FAIL: fewer than 10 libs bundled — dylibbundler likely failed"
+            exit 1
+          fi
+
       - name: Create DMG
         run: |
           create-dmg \
