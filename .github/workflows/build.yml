@@ -257,12 +257,21 @@ jobs:
           # Copy libswwreader DLL
           cp bin/libswwreader.dll "$DIST/" 2>/dev/null || true
 
-          # Bundle OSG plugins before the DLL loop so their deps are caught too.
-          # Use directory-name search — reliable on MSYS2 (/mingw64/bin/osgPlugins-*/)
+          # Bundle only the OSG plugins anuga-viewer actually uses:
+          #   jpeg/png — sky and bedslope textures
+          #   freetype — TTF font loading via osgText
+          # Omitting the full plugin set avoids pulling in GDAL, CURL, and
+          # other large transitive dependencies (~100 MB saved).
           PLUGIN_DIR=$(find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
           if [ -n "$PLUGIN_DIR" ]; then
             echo "Bundling OSG plugins from: $PLUGIN_DIR"
-            cp -r "$PLUGIN_DIR" "$DIST/"
+            DEST_PLUGINS="$DIST/$(basename "$PLUGIN_DIR")"
+            mkdir -p "$DEST_PLUGINS"
+            for plugin in osgdb_jpeg osgdb_png osgdb_freetype osgdb_rgb; do
+              cp "$PLUGIN_DIR/${plugin}.dll" "$DEST_PLUGINS/" 2>/dev/null \
+                && echo "  copied ${plugin}.dll" \
+                || echo "  WARNING: ${plugin}.dll not found"
+            done
           else
             echo "WARNING: no osgPlugins directory found — viewer will start but cannot load images or sky"
           fi
@@ -287,13 +296,10 @@ jobs:
           "%~dp0anuga_viewer.exe" %*
           BATCH
 
-          # Zip with anuga-viewer/ top-level directory so extraction is self-contained
-          (cd dist && zip -r ../anuga-viewer-windows.zip anuga-viewer)
-
       - uses: actions/upload-artifact@v6
         with:
           name: anuga-viewer-windows
-          path: anuga-viewer-windows.zip
+          path: dist/anuga-viewer
 
   # -----------------------------------------------------------------------
   # Release — upload artifacts to GitHub Release when a version tag is pushed
