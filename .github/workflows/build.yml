@@ -228,6 +228,7 @@ jobs:
           update: true
           install: >-
             make
+            zip
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-OpenSceneGraph
             mingw-w64-x86_64-netcdf
