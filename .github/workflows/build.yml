@@ -239,8 +239,9 @@ jobs:
         run: |
           echo "=== osgPlugins directories ==="
           find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null || true
-          echo "=== osgdb_*.dll files ==="
-          find /mingw64 -name 'osgdb_*.dll' 2>/dev/null | head -10 || true
+          echo "=== Contents of osgPlugins dir ==="
+          find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null \
+            | head -1 | xargs ls 2>/dev/null | head -20 || echo "(empty or not found)"
 
       - name: Bundle
         run: |
@@ -256,15 +257,13 @@ jobs:
           cp bin/libswwreader.dll "$DIST/" 2>/dev/null || true
 
           # Bundle OSG plugins before the DLL loop so their deps are caught too.
-          # Locate by finding a known plugin DLL then taking its parent directory,
-          # rather than guessing the directory name or path.
-          PLUGIN_FILE=$(find /mingw64 -name 'osgdb_png.dll' -o -name 'osgdb_jpeg.dll' 2>/dev/null | head -1)
-          if [ -n "$PLUGIN_FILE" ]; then
-            PLUGIN_DIR=$(dirname "$PLUGIN_FILE")
+          # Use directory-name search — reliable on MSYS2 (/mingw64/bin/osgPlugins-*/)
+          PLUGIN_DIR=$(find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
+          if [ -n "$PLUGIN_DIR" ]; then
             echo "Bundling OSG plugins from: $PLUGIN_DIR"
             cp -r "$PLUGIN_DIR" "$DIST/"
           else
-            echo "WARNING: no OSG plugin DLLs found — viewer will start but cannot load images or sky"
+            echo "WARNING: no osgPlugins directory found — viewer will start but cannot load images or sky"
           fi
 
           # Iteratively bundle all MinGW DLL dependencies (exe + DLLs + plugins)
@@ -287,10 +286,13 @@ jobs:
           "%~dp0anuga_viewer.exe" %*
           BATCH
 
+          # Zip with anuga-viewer/ top-level directory so extraction is self-contained
+          (cd dist && zip -r ../anuga-viewer-windows.zip anuga-viewer)
+
       - uses: actions/upload-artifact@v6
         with:
           name: anuga-viewer-windows
-          path: dist/anuga-viewer
+          path: anuga-viewer-windows.zip
 
   # -----------------------------------------------------------------------
   # Release — upload artifacts to GitHub Release when a version tag is pushed
