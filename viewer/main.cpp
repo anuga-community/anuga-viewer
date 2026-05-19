@@ -307,9 +307,11 @@ int main( int argc, char **argv )
 	viewer.addEventHandler(new osgViewer::StatsHandler);
 
 	// create the windows and run the threads.
-	// Explicitly use a single screen so fullscreen (f key) stays on one display
-	// rather than spanning all monitors via setUpViewAcrossAllScreens().
-	viewer.setUpViewOnSingleScreen(0);
+	// setUpViewInWindow starts in a decorated window so the WM applies borders
+	// immediately.  setUpViewOnSingleScreen fills the whole screen at the X11
+	// level, which some WMs don't decorate until the user toggles fullscreen.
+	// The user can still press 'f' to go fullscreen on screen 0.
+	viewer.setUpViewInWindow(50, 50, 1024, 768, 0);
 	// Single-threaded: draw happens on the main thread in sync with the geometry
 	// update.  Multi-threaded mode causes the draw thread to read vertex arrays
 	// while the main thread is writing them (different timestep), producing the
