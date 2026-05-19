@@ -7,6 +7,9 @@
 
 #include <iostream>
 #include <fstream>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include <osg/Group>
 #include <osg/Material>
@@ -52,6 +55,21 @@ AnugaHUD * g_hud = NULL;
 
 int main( int argc, char **argv )
 {
+#ifdef _WIN32
+   // Set OSG_LIBRARY_PATH to the exe's own directory so OSG finds the bundled
+   // osgPlugins-* directory when the exe is launched directly (not via bat file).
+   if (!getenv("OSG_LIBRARY_PATH")) {
+      char exePath[MAX_PATH];
+      if (GetModuleFileNameA(NULL, exePath, MAX_PATH)) {
+         std::string exeDir = osgDB::getFilePath(std::string(exePath));
+         if (!exeDir.empty()) {
+            std::string envStr = "OSG_LIBRARY_PATH=" + exeDir;
+            _putenv(envStr.c_str());
+         }
+      }
+   }
+#endif
+
    // use an ArgumentParser object to manage the program arguments.
    // this custom version detects if the last argument is a macro file
    // and modifies the argument list accordingly so the following code works ...
