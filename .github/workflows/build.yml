@@ -257,21 +257,17 @@ jobs:
           # Copy libswwreader DLL
           cp bin/libswwreader.dll "$DIST/" 2>/dev/null || true
 
-          # Bundle only the OSG plugins anuga-viewer actually uses:
-          #   jpeg/png — sky and bedslope textures
-          #   freetype — TTF font loading via osgText
-          # Omitting the full plugin set avoids pulling in GDAL, CURL, and
-          # other large transitive dependencies (~100 MB saved).
+          # Bundle all OSG plugins except osgdb_gdal, which pulls in the full
+          # GDAL dependency chain (~30 MB of extra DLLs) that the viewer never
+          # uses (GDAL is disabled at compile time).
           PLUGIN_DIR=$(find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
           if [ -n "$PLUGIN_DIR" ]; then
             echo "Bundling OSG plugins from: $PLUGIN_DIR"
             DEST_PLUGINS="$DIST/$(basename "$PLUGIN_DIR")"
             mkdir -p "$DEST_PLUGINS"
-            for plugin in osgdb_jpeg osgdb_png osgdb_freetype osgdb_rgb; do
-              cp "$PLUGIN_DIR/${plugin}.dll" "$DEST_PLUGINS/" 2>/dev/null \
-                && echo "  copied ${plugin}.dll" \
-                || echo "  WARNING: ${plugin}.dll not found"
-            done
+            find "$PLUGIN_DIR" -maxdepth 1 -name "*.dll" ! -name "osgdb_gdal*" \
+              -exec cp {} "$DEST_PLUGINS/" \;
+            echo "Plugins bundled: $(ls "$DEST_PLUGINS/" | wc -l)"
           else
             echo "WARNING: no osgPlugins directory found — viewer will start but cannot load images or sky"
           fi
@@ -295,6 +291,8 @@ jobs:
           set OSG_LIBRARY_PATH=%~dp0
           "%~dp0anuga_viewer.exe" %*
           BATCH
+
+          echo "=== Bundle size ===" && du -sh "$DIST" && du -sh "$DIST"/* | sort -rh | head -20
 
       - uses: actions/upload-artifact@v6
         with:
