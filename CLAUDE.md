@@ -119,7 +119,7 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 | Key | Action |
 |-----|--------|
 | Space | Pause/resume |
-| `v` | Cycle water colour mode: momentum / speed / depth / max depth / max speed / max momentum / max stage |
+| `v` | Cycle water colour mode: stage / depth / speed / momentum / max depth / max speed / max momentum / max stage |
 | `[` / `]` | Decrease/increase colour scale maximum by 20% |
 | `z` / `Z` | Decrease/increase vertical exaggeration by factor of 1.5 |
 | `w` | Cycle wireframe mode (off / water / bed / both) |

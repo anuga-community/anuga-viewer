@@ -425,6 +425,11 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 			// depth in metres mapped to blue->green->red; heightmax is saturation depth
 			intens = (depth_m > 0.001f) ? min(1.0f, depth_m / _state.heightmax) : 0.0f;
 		}
+		else if (cm == CM_STAGE)
+		{
+			// absolute stage elevation; heightmax is saturation value
+			intens = (depth_m > 0.001f) ? min(1.0f, max(0.0f, _pstage[iv]) / _state.heightmax) : 0.0f;
+		}
 		else if (_pxmomentum && _pymomentum)
 		{
 			if (cm == CM_SPEED)

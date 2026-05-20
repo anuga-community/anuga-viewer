@@ -210,7 +210,7 @@ int main( int argc, char **argv )
 	g_hud->setStatus("filename", swwfile);
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
-	g_hud->setStatus("color", "momentum (max 2.00)");
+	g_hud->setStatus("color", "stage (max 1.00 m)");
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "%.2fx", vscale);
@@ -356,7 +356,7 @@ int main( int argc, char **argv )
 			GridMode ge = event_handler->getGridMode();
 			viewer.setGrid(grid_switch, ge);
 
-			static ColorMode colorMode_last = CM_MOMENTUM;
+			static ColorMode colorMode_last = CM_STAGE;
 			ColorMode colorMode = event_handler->getColorMode();
 			bool colorChanged = (colorMode != colorMode_last);
 			colorMode_last = colorMode;
@@ -385,8 +385,9 @@ int main( int argc, char **argv )
 				else
 				{
 					sww->setHeightMax(sww->getHeightMax() * factor);
-					const char* label = (colorMode == CM_MAX_DEPTH) ? "max depth" :
-					                    (colorMode == CM_MAX_STAGE) ? "max stage" : "depth";
+					const char* label = (colorMode == CM_MAX_DEPTH)  ? "max depth" :
+					                    (colorMode == CM_MAX_STAGE)  ? "max stage" :
+					                    (colorMode == CM_STAGE)      ? "stage" : "depth";
 					snprintf(buf, sizeof(buf), "%s (max %.2f m)", label, sww->getHeightMax());
 				}
 				g_hud->setStatus("color", std::string(buf));

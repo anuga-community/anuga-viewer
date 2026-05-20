@@ -60,7 +60,7 @@ Display
    * - Key
      - Action
    * - v
-     - Cycle water colour mode (see :ref:`colour-modes` below)
+     - Cycle water colour mode: stage / depth / speed / momentum / max depth / max speed / max momentum / max stage
    * - ``[``
      - Decrease colour scale maximum by 20%
    * - ``]``
@@ -122,12 +122,14 @@ adjust the saturation scale for the active mode without changing colour mode.
 
    * - Mode
      - Description
-   * - momentum
-     - Current momentum magnitude (m²/s)
-   * - speed
-     - Current flow speed = |momentum| / depth (m/s)
+   * - stage
+     - Current absolute water surface elevation above datum (m)
    * - depth
      - Current water depth above the bed (m)
+   * - speed
+     - Current flow speed = momentum / depth (m/s)
+   * - momentum
+     - Current momentum magnitude (m²/s)
    * - max depth
      - Maximum depth at each point over all timesteps
    * - max speed
