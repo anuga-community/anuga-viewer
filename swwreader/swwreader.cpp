@@ -407,7 +407,7 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		}
 		else  // CM_MOMENTUM
 		{
-			intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / 2.0f);
+			intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / _state.momentummax);
 		}
 		_stagecolors->push_back( osg::Vec4( 1.0f-intens, (0.5f-fabs(intens-0.5f))*2, intens, alpha ) );
 	  }
@@ -747,7 +747,8 @@ bool SWWReader::load()
 	_state.culling = DEFAULT_CULLONSTART;
 
 	_state.colorMode = CM_MOMENTUM;
-	_state.speedmax = 5.0f;  // m/s at which speed colormap saturates
+	_state.speedmax = 5.0f;    // m/s at which speed colormap saturates
+	_state.momentummax = 2.0f; // m²/s at which momentum colormap saturates
 
 	// loop index
 	size_t iv;

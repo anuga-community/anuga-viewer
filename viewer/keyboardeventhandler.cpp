@@ -30,6 +30,7 @@ KeyboardEventHandler::KeyboardEventHandler( int nTimesteps, float tps)	:
    _togglerecording = false;
    _toggleplayback = false;
    _togglesave = false;
+   _scalenudge = 0;
 }
 
 
@@ -47,6 +48,8 @@ void KeyboardEventHandler::getAppUsage(osg::ApplicationUsage& usage)
     usage.addKeyboardMouseBinding("2","Toggle playback of recorded information");
     usage.addKeyboardMouseBinding("3","Save recorded macro to \"movie.swm\"");
     usage.addKeyboardMouseBinding("v","Cycle water colour mode: momentum / speed / depth");
+    usage.addKeyboardMouseBinding("[","Decrease colour scale maximum by 20%");
+    usage.addKeyboardMouseBinding("]","Increase colour scale maximum by 20%");
     usage.addKeyboardMouseBinding("Escape","Quit the application");
 }
 
@@ -173,6 +176,14 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 					_colorMode = (ColorMode)cm;
 					return true;
 				}
+
+				case '[':
+					_scalenudge = -1;
+					return true;
+
+				case ']':
+					_scalenudge = +1;
+					return true;
 
 				case 'w':
 				{

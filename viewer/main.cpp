@@ -180,6 +180,7 @@ int main( int argc, char **argv )
    if( arguments.read("-alphamax",tmpfloat) ) sww->setAlphaMax( tmpfloat );
    if( arguments.read("-cullangle",tmpfloat) ) sww->setCullAngle( tmpfloat );
    if( arguments.read("-speedmax",tmpfloat) ) sww->setSpeedMax( tmpfloat );
+   if( arguments.read("-momentummax",tmpfloat) ) sww->setMomentumMax( tmpfloat );
 
    std::string bedslopetexture;
    if( arguments.read("-texture",bedslopetexture) ) sww->setBedslopeTexture( bedslopetexture );
@@ -209,7 +210,7 @@ int main( int argc, char **argv )
 	g_hud->setStatus("filename", swwfile);
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
-	g_hud->setStatus("color", "momentum");
+	g_hud->setStatus("color", "momentum (max 2.00)");
 
    // Lighting
    DirectionalLight* light = new DirectionalLight(rootStateSet);
@@ -350,13 +351,33 @@ int main( int argc, char **argv )
 
 			static ColorMode colorMode_last = CM_MOMENTUM;
 			ColorMode colorMode = event_handler->getColorMode();
-			if (colorMode != colorMode_last)
-			{
-				const char* cmnames[] = { "depth", "speed", "momentum" };
-				g_hud->setStatus("color", cmnames[int(colorMode)]);
-				colorMode_last = colorMode;
-			}
+			bool colorChanged = (colorMode != colorMode_last);
+			colorMode_last = colorMode;
 			sww->setColorMode(colorMode);
+
+			// [ / ] nudge the colour scale max for the active mode by ±20%
+			int nudge = event_handler->scaleNudge();
+			if (nudge != 0 || colorChanged)
+			{
+				const float factor = (nudge > 0) ? 1.2f : (nudge < 0 ? 1.0f/1.2f : 1.0f);
+				char buf[64];
+				if (colorMode == CM_SPEED)
+				{
+					sww->setSpeedMax(sww->getSpeedMax() * factor);
+					snprintf(buf, sizeof(buf), "speed (max %.2f m/s)", sww->getSpeedMax());
+				}
+				else if (colorMode == CM_MOMENTUM)
+				{
+					sww->setMomentumMax(sww->getMomentumMax() * factor);
+					snprintf(buf, sizeof(buf), "momentum (max %.2f)", sww->getMomentumMax());
+				}
+				else
+				{
+					sww->setHeightMax(sww->getHeightMax() * factor);
+					snprintf(buf, sizeof(buf), "depth (max %.2f m)", sww->getHeightMax());
+				}
+				g_hud->setStatus("color", std::string(buf));
+			}
 
 			if (event_handler->checkMouseClicked())
 			{

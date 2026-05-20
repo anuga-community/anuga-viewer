@@ -122,6 +122,8 @@ public:
     virtual void setColorMode(ColorMode m) {_state.colorMode = m;}
     virtual float getSpeedMax() {return _state.speedmax;}
     virtual void setSpeedMax(float v) {_state.speedmax = v;}
+    virtual float getMomentumMax() {return _state.momentummax;}
+    virtual void setMomentumMax(float v) {_state.momentummax = v;}
     
     virtual triangle_list getConnectivity(unsigned int index) {return _connectivity.at(index);}
 
@@ -174,7 +176,8 @@ protected:
           bool culling;   // culling is on or off
 
           ColorMode colorMode;
-          float speedmax;  // m/s at which speed colormap saturates to red
+          float speedmax;      // m/s at which speed colormap saturates to red
+          float momentummax;   // m²/s at which momentum colormap saturates to red
 
           std::string* swwfilename;
           std::string* bedslopetexturefilename;
