@@ -1,29 +1,25 @@
 Installation
 ============
 
+Pre-built packages for Linux, macOS, and Windows are available on the
+`GitHub Releases page <https://github.com/anuga-community/anuga-viewer/releases>`_.
 
-Linux — AppImage (recommended)
--------------------------------
 
-The easiest way to install ANUGA Viewer on Linux is to download the pre-built
-AppImage from the
-`Releases <https://github.com/anuga-community/anuga-viewer/releases>`_ page.
-An AppImage is a self-contained executable — no installation or root access is
-required.
+Linux — AppImage
+-----------------
 
-.. code-block:: bash
+Download ``anuga-viewer-linux-x86_64.AppImage`` from the
+`Releases page <https://github.com/anuga-community/anuga-viewer/releases>`_,
+make it executable, and run it::
 
-   # Download the AppImage (replace x.y with the version number)
-   wget https://github.com/anuga-community/anuga-viewer/releases/latest/download/ANUGA_Viewer-x86_64.AppImage
-
-   # Make it executable
-   chmod +x ANUGA_Viewer-x86_64.AppImage
+   chmod +x anuga-viewer-linux-x86_64.AppImage
 
    # Run directly
-   ./ANUGA_Viewer-x86_64.AppImage path/to/simulation.sww
+   ./anuga-viewer-linux-x86_64.AppImage path/to/simulation.sww
 
-   # Or install to your PATH
-   cp ANUGA_Viewer-x86_64.AppImage ~/.local/bin/anuga_viewer
+   # Or install to your PATH (no root required)
+   mkdir -p ~/.local/bin
+   cp anuga-viewer-linux-x86_64.AppImage ~/.local/bin/anuga_viewer
    anuga_viewer path/to/simulation.sww
 
 .. note::
@@ -33,12 +29,53 @@ required.
    builds.
 
 
+macOS
+-----
+
+Download ``anuga-viewer-macos.dmg`` from the
+`Releases page <https://github.com/anuga-community/anuga-viewer/releases>`_.
+
+1. Open the ``.dmg`` file.
+2. Drag **ANUGA Viewer** to your **Applications** folder.
+3. Open it from Applications or run from the terminal::
+
+      anuga_viewer path/to/simulation.sww
+
+.. note::
+
+   On first launch macOS may show a security warning because the app is not
+   signed through the App Store.  Right-click the app and choose **Open** to
+   bypass this, or go to **System Settings → Privacy & Security** and click
+   **Open Anyway**.
+
+
+Windows
+-------
+
+Download ``anuga-viewer-windows.zip`` from the
+`Releases page <https://github.com/anuga-community/anuga-viewer/releases>`_.
+
+1. Extract the zip to a convenient location (e.g. ``C:\anuga-viewer``).
+2. Run ``anuga_viewer.exe`` directly, or double-click ``run_viewer.bat``.
+
+To open a simulation file::
+
+   anuga_viewer.exe path\to\simulation.sww
+
+You can also associate ``.sww`` files with ``anuga_viewer.exe`` for
+double-click opening in Windows Explorer.
+
+
 Linux — Build from Source (Ubuntu / Debian)
 --------------------------------------------
 
+If you need to build from source (e.g. to modify the code or for an
+unsupported architecture):
+
 #. Install the required packages::
 
-      sudo apt-get install git build-essential libgdal-dev libcppunit-dev libopenscenegraph-dev libnetcdf-dev
+      sudo apt-get install git build-essential libgdal-dev libcppunit-dev \
+                           libopenscenegraph-dev libnetcdf-dev
 
 #. Clone the source::
 
@@ -47,9 +84,10 @@ Linux — Build from Source (Ubuntu / Debian)
 
    .. note::
 
-      If you have an active conda environment that provides compilers, deactivate
-      it before building — conda's compilers can shadow system headers and
-      produce libraries incompatible with the system OpenSceneGraph::
+      If you have an active conda environment that provides compilers,
+      deactivate it before building — conda's compilers can shadow system
+      headers and produce libraries incompatible with the system
+      OpenSceneGraph::
 
          conda deactivate
 
@@ -58,8 +96,8 @@ Linux — Build from Source (Ubuntu / Debian)
       make
       sudo make install
 
-#. Add the viewer's bin directory to your shell environment by appending the
-   following to ``~/.bashrc``::
+#. Add the viewer's bin directory to your shell environment by appending
+   the following to ``~/.bashrc``::
 
       export SWOLLEN_BINDIR=/path/to/anuga-viewer/bin
       export PATH=$PATH:$SWOLLEN_BINDIR
@@ -73,40 +111,3 @@ Linux — Build from Source (Ubuntu / Debian)
       anuga_viewer ~/anuga-viewer/data/cairns.sww
 
    Press Escape to exit.
-
-
-Windows — Pre-compiled Installer
----------------------------------
-
-A pre-compiled Windows build is available on Sourceforge and works on
-Windows 10 and 11:
-
-`Download anuga_viewer for Windows <https://sourceforge.net/projects/anuga/files/anuga_viewer_windows/>`_
-
-Download ``anuga_viewer.zip``, extract it, and run ``bin/viewer.exe``.
-You can associate ``.sww`` files with ``viewer.exe`` for double-click
-opening.
-
-.. note::
-
-   A modern Windows build using GitHub Actions CI is under development.
-   Check the
-   `Releases <https://github.com/anuga-community/anuga-viewer/releases>`_
-   page for updated packages.
-
-
-Windows — Build from Source
-----------------------------
-
-Building from source on Windows is not actively maintained.  The pre-compiled
-package above is the recommended option.  If you need to build from source,
-the general requirements are:
-
-- Visual Studio 2019 or later
-- `OpenSceneGraph <https://www.openscenegraph.com>`_ (3.6.x recommended)
-- `NetCDF for Windows <https://www.unidata.ucar.edu/software/netcdf/>`_
-- `GDAL <https://gdal.org>`_
-
-Set environment variables ``OSG_ROOT``, ``NETCDF_DIR``, and ``GDAL_DIR``
-to the respective installation roots, then open and build the Visual Studio
-solution in the ``viewer/visualstudio`` subdirectory.
