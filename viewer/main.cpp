@@ -377,7 +377,7 @@ int main( int argc, char **argv )
 				{
 					sww->setHeightMax(sww->getHeightMax() * factor);
 					const char* label = (colorMode == CM_MAX_DEPTH) ? "max depth" :
-					                    (colorMode == CM_MAX_STAGE) ? "max stage depth" : "depth";
+					                    (colorMode == CM_MAX_STAGE) ? "max stage" : "depth";
 					snprintf(buf, sizeof(buf), "%s (max %.2f m)", label, sww->getHeightMax());
 				}
 				g_hud->setStatus("color", std::string(buf));

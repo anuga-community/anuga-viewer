@@ -328,11 +328,15 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 	_stagevertices = new osg::Vec3Array;
 	_stagevertices->reserve(_npoints);
 
+	ColorMode cm0 = _state.colorMode;
+	bool isMaxMode = (cm0 == CM_MAX_DEPTH || cm0 == CM_MAX_SPEED ||
+	                  cm0 == CM_MAX_MOMENTUM || cm0 == CM_MAX_STAGE) && _pmaxstage;
 	for (iv=0; iv < _npoints; iv++)
 	{
-		_stagevertices->push_back( osg::Vec3( (_px[iv]-_xoffset)*_scale - _xcenter, 
-														  (_py[iv]-_yoffset)*_scale - _ycenter, 
-														  (_pstage[iv]-_zoffset)*_scale - _zcenter) );
+		float stage_z = isMaxMode ? _pmaxstage[iv] : _pstage[iv];
+		_stagevertices->push_back( osg::Vec3( (_px[iv]-_xoffset)*_scale - _xcenter,
+														  (_py[iv]-_yoffset)*_scale - _ycenter,
+														  (stage_z-_zoffset)*_scale - _zcenter) );
 	}
 
 	// stage index, per primitive normal and centroid arrays
@@ -405,15 +409,6 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		ColorMode cm = _state.colorMode;
 		if (cm == CM_MAX_DEPTH || cm == CM_MAX_SPEED || cm == CM_MAX_MOMENTUM || cm == CM_MAX_STAGE)
 		{
-			// override alpha: show ever-flooded footprint
-			float maxd = _pmaxdepth ? _pmaxdepth[iv] : 0.0f;
-			if (maxd < _state.heightmin)
-				alpha = 0.0f;
-			else
-			{
-				alpha = alphascale * (maxd - _state.heightmin) + _state.alphamin;
-				if (alpha > _state.alphamax) alpha = _state.alphamax;
-			}
 			if (cm == CM_MAX_DEPTH)
 				intens = _pmaxdepth ? min(1.0f, _pmaxdepth[iv] / _state.heightmax) : 0.0f;
 			else if (cm == CM_MAX_SPEED)
