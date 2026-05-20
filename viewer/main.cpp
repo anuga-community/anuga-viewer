@@ -249,6 +249,8 @@ int main( int argc, char **argv )
 
    // allow vertical scaling from command line parameter
    model->setScale( osg::Vec3(1.0, 1.0, vscale) );
+   // GL_NORMALIZE renormalizes normals after the inverse-transpose of the scale transform
+   model->getOrCreateStateSet()->setMode(GL_NORMALIZE, osg::StateAttribute::ON);
 
 	// Allow us to switch the sky on and off if we don't want photo-realism
 	osg::Switch * sky_switch = new osg::Switch();	
@@ -396,6 +398,9 @@ int main( int argc, char **argv )
 				vscale *= (zNudge > 0) ? 1.5f : (1.0f / 1.5f);
 				if (vscale < 0.01f) vscale = 0.01f;
 				model->setScale(osg::Vec3(1.0, 1.0, vscale));
+				sww->setVScale(vscale);
+				water->forceRefresh();
+				bedslope->forceRefresh();
 				char buf[32];
 				snprintf(buf, sizeof(buf), "%.2fx", vscale);
 				g_hud->setStatus("vscale", std::string(buf));

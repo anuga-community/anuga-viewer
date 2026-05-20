@@ -98,7 +98,8 @@ SWWReader::SWWReader(const std::string& filename) :
 	_pmaxdepth(NULL),
 	_pmaxstage(NULL),
 	_pmaxspeed(NULL),
-	_pmaxmomentum(NULL)
+	_pmaxmomentum(NULL),
+	_vscale(1.0f)
 {
 PROFILE_BEGIN
 
@@ -260,8 +261,11 @@ bool SWWReader::loadBedslopeVertexArray(unsigned int aIndex)
 
 		side1 = v2 - v1;
 		side2 = v3 - v2;
+		side1.z() *= _vscale;
+		side2.z() *= _vscale;
 		nrm = side1^side2;
 		nrm.normalize();
+		nrm.z() *= _vscale;  // pre-correct for GL inverse-transpose of scale(1,1,vscale)
 
 		_bedslopenormals->push_back( nrm );
 		_bedslopecentroids->push_back( (v1+v2+v3)/3.0 );
@@ -361,17 +365,15 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		v2s = _stagevertices->at(v2index);
 		v3s = _stagevertices->at(v3index);
 
-		// current triangle primitive normal
+		// current triangle primitive normal in world-space (z scaled for correct direction)
 		side1 = v2s - v1s;
 		side2 = v3s - v2s;
+		side1.z() *= _vscale;
+		side2.z() *= _vscale;
 		nrm = side1^side2;
-#ifdef USE_FAST_SQRT
-		Math_NormalizeFast(nrm);
-#else
-	nrm.normalize();
-#endif
+		nrm.normalize();
 
-		// store primitive normal
+		// store world-space normal (z pre-correction applied at per-vertex stage)
 		_stageprimitivenormals->push_back( nrm );
 
 		// identify steep triangles, store index
@@ -474,12 +476,8 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		}
 
 		nrm = nrm / num_shared_triangles;  // average
-
-#ifdef USE_FAST_SQRT
-		Math_NormalizeFast(nrm);
-#else
-	nrm.normalize();
-#endif
+		nrm.normalize();
+		nrm.z() *= _vscale;  // pre-correct for GL inverse-transpose of scale(1,1,vscale)
 
 		_stagevertexnormals->push_back(nrm);
 	}

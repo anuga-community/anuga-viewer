@@ -126,6 +126,8 @@ public:
     virtual void setMomentumMax(float v) {_state.momentummax = v;}
 
     virtual bool hasMaxima() { return _pmaxdepth != NULL; }
+
+    virtual void setVScale(float v) { _vscale = v; }
     
     virtual triangle_list getConnectivity(unsigned int index) {return _connectivity.at(index);}
 
@@ -249,6 +251,8 @@ protected:
 	float _xscale, _yscale, _zscale, _scale;
 	float _xoffset, _yoffset, _zoffset;
 	float _xcenter, _ycenter, _zcenter;
+
+	float _vscale;	/**< Viewer vertical exaggeration factor; used to correct normals */
 	
 	// sww file can contain optional global offset attributes
 	float _xllcorner, _yllcorner;
