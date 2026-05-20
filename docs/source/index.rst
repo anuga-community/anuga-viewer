@@ -28,6 +28,7 @@ It is now developed and maintained by a community of volunteers on `github` at h
 
    installation
    introduction
+   release_notes
    
 
 
