@@ -395,35 +395,27 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 				alpha = _state.alphamax;
 		}
 
-	  if (_pxmomentum && _pymomentum && _state.colorMode != CM_DEPTH)
 	  {
-		float intens;
-		if (_state.colorMode == CM_SPEED)
+		float intens = 0.0f;
+		float depth_m = _pstage[iv] - _pz[iv];
+		if (_state.colorMode == CM_DEPTH)
 		{
-			// Use raw depth in metres (stage - bed), not the normalised vertex
-			// height, so that speed = momentum/depth has units of m/s.
-			// height is scaled by _scale (≈1/domain_size), which would inflate
-			// speed by ~domain_size if used directly.
-			float depth_m = _pstage[iv] - _pz[iv];
-			if (depth_m > 0.001f)
-			{
-				float speed = sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / depth_m;
-				intens = min(1.0f, speed / _state.speedmax);
-			}
-			else
-			{
-				intens = 0.0f;
-			}
+			// depth in metres mapped to blue->green->red; heightmax is saturation depth
+			intens = (depth_m > 0.001f) ? min(1.0f, depth_m / _state.heightmax) : 0.0f;
 		}
-		else  // CM_MOMENTUM
+		else if (_pxmomentum && _pymomentum)
 		{
-			intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / _state.momentummax);
+			if (_state.colorMode == CM_SPEED)
+			{
+				if (depth_m > 0.001f)
+					intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / depth_m / _state.speedmax);
+			}
+			else  // CM_MOMENTUM
+			{
+				intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / _state.momentummax);
+			}
 		}
 		_stagecolors->push_back( osg::Vec4( intens, (0.5f-fabs(intens-0.5f))*2, 1.0f-intens, alpha ) );
-	  }
-	  else
-	  {
-		_stagecolors->push_back( osg::Vec4( 1, 1, 1, alpha ) );
 	  }
 	}
 

@@ -374,7 +374,7 @@ int main( int argc, char **argv )
 				else
 				{
 					sww->setHeightMax(sww->getHeightMax() * factor);
-					snprintf(buf, sizeof(buf), "depth (max %.2f m)", sww->getHeightMax());
+					snprintf(buf, sizeof(buf), "depth (max %.2f m, blue→red)", sww->getHeightMax());
 				}
 				g_hud->setStatus("color", std::string(buf));
 			}
