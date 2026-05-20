@@ -409,7 +409,7 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		{
 			intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / _state.momentummax);
 		}
-		_stagecolors->push_back( osg::Vec4( 1.0f-intens, (0.5f-fabs(intens-0.5f))*2, intens, alpha ) );
+		_stagecolors->push_back( osg::Vec4( intens, (0.5f-fabs(intens-0.5f))*2, 1.0f-intens, alpha ) );
 	  }
 	  else
 	  {
