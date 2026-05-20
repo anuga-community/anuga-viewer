@@ -400,10 +400,17 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		float intens;
 		if (_state.colorMode == CM_SPEED)
 		{
-			// true flow speed = |momentum| / depth; guard near-dry cells
-			float depth = max(height, 0.001f);
-			float speed = sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / depth;
-			intens = min(1.0f, speed / _state.speedmax);
+			// only compute speed for wet cells; dry/near-dry cells carry
+			// residual momentum that produces division-by-tiny-depth spikes
+			if (height > _state.heightmin)
+			{
+				float speed = sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / height;
+				intens = min(1.0f, speed / _state.speedmax);
+			}
+			else
+			{
+				intens = 0.0f;
+			}
 		}
 		else  // CM_MOMENTUM
 		{
