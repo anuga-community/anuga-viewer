@@ -94,7 +94,11 @@ SWWReader::SWWReader(const std::string& filename) :
 	_xoffset(0),
 	_yoffset(0),
 	_zoffset(0),
-	_elevationAnimated(false)
+	_elevationAnimated(false),
+	_pmaxdepth(NULL),
+	_pmaxstage(NULL),
+	_pmaxspeed(NULL),
+	_pmaxmomentum(NULL)
 {
 PROFILE_BEGIN
 
@@ -398,14 +402,35 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 	  {
 		float intens = 0.0f;
 		float depth_m = _pstage[iv] - _pz[iv];
-		if (_state.colorMode == CM_DEPTH)
+		ColorMode cm = _state.colorMode;
+		if (cm == CM_MAX_DEPTH || cm == CM_MAX_SPEED || cm == CM_MAX_MOMENTUM || cm == CM_MAX_STAGE)
+		{
+			// override alpha: show ever-flooded footprint
+			float maxd = _pmaxdepth ? _pmaxdepth[iv] : 0.0f;
+			if (maxd < _state.heightmin)
+				alpha = 0.0f;
+			else
+			{
+				alpha = alphascale * (maxd - _state.heightmin) + _state.alphamin;
+				if (alpha > _state.alphamax) alpha = _state.alphamax;
+			}
+			if (cm == CM_MAX_DEPTH)
+				intens = _pmaxdepth ? min(1.0f, _pmaxdepth[iv] / _state.heightmax) : 0.0f;
+			else if (cm == CM_MAX_SPEED)
+				intens = _pmaxspeed ? min(1.0f, _pmaxspeed[iv] / _state.speedmax) : 0.0f;
+			else if (cm == CM_MAX_MOMENTUM)
+				intens = _pmaxmomentum ? min(1.0f, _pmaxmomentum[iv] / _state.momentummax) : 0.0f;
+			else  // CM_MAX_STAGE: depth above bed at peak stage
+				intens = _pmaxstage ? min(1.0f, max(0.0f, _pmaxstage[iv] - _pz[iv]) / _state.heightmax) : 0.0f;
+		}
+		else if (cm == CM_DEPTH)
 		{
 			// depth in metres mapped to blue->green->red; heightmax is saturation depth
 			intens = (depth_m > 0.001f) ? min(1.0f, depth_m / _state.heightmax) : 0.0f;
 		}
 		else if (_pxmomentum && _pymomentum)
 		{
-			if (_state.colorMode == CM_SPEED)
+			if (cm == CM_SPEED)
 			{
 				if (depth_m > 0.001f)
 					intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / depth_m / _state.speedmax);
@@ -589,6 +614,10 @@ void SWWReader::clear()
 	SAFE_DELETE_ARRAY(_ptime);
 	SAFE_DELETE_ARRAY(_pvolumes);
 	SAFE_DELETE_ARRAY(_pstage);
+	SAFE_DELETE_ARRAY(_pmaxdepth);
+	SAFE_DELETE_ARRAY(_pmaxstage);
+	SAFE_DELETE_ARRAY(_pmaxspeed);
+	SAFE_DELETE_ARRAY(_pmaxmomentum);
 }
 
 
@@ -797,7 +826,70 @@ bool SWWReader::load()
 	// Load initial frame
 	loadBedslopeVertexArray(0);
 
+	// Pre-compute per-vertex maxima over all timesteps
+	computeMaxima();
+
 	return true;
+}
+
+
+void SWWReader::computeMaxima()
+{
+	_pmaxdepth    = new float[_npoints]();
+	_pmaxstage    = new float[_npoints];
+	_pmaxspeed    = new float[_npoints]();
+	_pmaxmomentum = new float[_npoints]();
+
+	// Initialise max stage to a very negative value so any real stage wins
+	for (size_t iv = 0; iv < _npoints; iv++)
+		_pmaxstage[iv] = -1e30f;
+
+	size_t start[2] = {0, 0};
+	size_t count[2] = {1, _npoints};
+	const ptrdiff_t stride[2] = {1, 1};
+
+	int ncid;
+	if (nc_open(_state.swwfilename->c_str(), NC_NOWRITE, &ncid) != NC_NOERR)
+		return;
+
+	for (size_t t = 0; t < _ntimesteps; t++)
+	{
+		start[0] = t;
+		nc_get_vars_float(ncid, _stageid, start, count, stride, _pstage);
+
+		bool hasMom = (_pxmomentum && _pymomentum);
+		if (hasMom)
+		{
+			nc_get_vars_float(ncid, _xmomentumid, start, count, stride, _pxmomentum);
+			nc_get_vars_float(ncid, _ymomentumid, start, count, stride, _pymomentum);
+		}
+
+		for (size_t iv = 0; iv < _npoints; iv++)
+		{
+			float depth = _pstage[iv] - _pz[iv];
+			if (depth > _pmaxdepth[iv])    _pmaxdepth[iv] = depth;
+			if (_pstage[iv] > _pmaxstage[iv]) _pmaxstage[iv] = _pstage[iv];
+
+			if (hasMom)
+			{
+				float mom = sqrt(_pxmomentum[iv]*_pxmomentum[iv] + _pymomentum[iv]*_pymomentum[iv]);
+				if (mom > _pmaxmomentum[iv]) _pmaxmomentum[iv] = mom;
+				if (depth > 0.001f)
+				{
+					float spd = mom / depth;
+					if (spd > _pmaxspeed[iv]) _pmaxspeed[iv] = spd;
+				}
+			}
+		}
+	}
+
+	nc_close(ncid);
+
+	// Floor negative max depths at zero (never-flooded cells)
+	for (size_t iv = 0; iv < _npoints; iv++)
+		if (_pmaxdepth[iv] < 0.0f) _pmaxdepth[iv] = 0.0f;
+
+	osg::notify(osg::INFO) << "[SWWReader] computeMaxima done" << std::endl;
 }
 
 

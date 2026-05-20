@@ -124,6 +124,8 @@ public:
     virtual void setSpeedMax(float v) {_state.speedmax = v;}
     virtual float getMomentumMax() {return _state.momentummax;}
     virtual void setMomentumMax(float v) {_state.momentummax = v;}
+
+    virtual bool hasMaxima() { return _pmaxdepth != NULL; }
     
     virtual triangle_list getConnectivity(unsigned int index) {return _connectivity.at(index);}
 
@@ -141,6 +143,12 @@ protected:
 	 * Free all resources associated with this loaded file.
 	 */
 	void clear();
+
+	/**
+	 * Pre-compute per-vertex maxima over all timesteps.
+	 * Populates _pmaxdepth, _pmaxspeed, _pmaxmomentum, _pmaxstage.
+	 */
+	void computeMaxima();
 
 	/**
 	 * Reload all the data from this file.
@@ -204,6 +212,12 @@ protected:
     // netcdf variable values (allocated in constructor)
     float *_px, *_py, *_pz, *_ptime, *_pstage, *_pxmomentum, *_pymomentum;
     unsigned int *_pvolumes;
+
+    // per-vertex maxima over all timesteps (computed once at load)
+    float *_pmaxdepth;      /**< max(stage - bed, 0) */
+    float *_pmaxstage;      /**< max absolute stage */
+    float *_pmaxspeed;      /**< max speed = |momentum|/depth, wet cells only */
+    float *_pmaxmomentum;   /**< max momentum magnitude */
 
     // fixed geometry - this is the land and other objects which are static
     osg::ref_ptr<osg::DrawElementsUInt> _bedslopeindices;

@@ -361,20 +361,24 @@ int main( int argc, char **argv )
 			{
 				const float factor = (nudge > 0) ? 1.2f : (nudge < 0 ? 1.0f/1.2f : 1.0f);
 				char buf[64];
-				if (colorMode == CM_SPEED)
+				if (colorMode == CM_SPEED || colorMode == CM_MAX_SPEED)
 				{
 					sww->setSpeedMax(sww->getSpeedMax() * factor);
-					snprintf(buf, sizeof(buf), "speed (max %.2f m/s)", sww->getSpeedMax());
+					const char* label = (colorMode == CM_MAX_SPEED) ? "max speed" : "speed";
+					snprintf(buf, sizeof(buf), "%s (max %.2f m/s)", label, sww->getSpeedMax());
 				}
-				else if (colorMode == CM_MOMENTUM)
+				else if (colorMode == CM_MOMENTUM || colorMode == CM_MAX_MOMENTUM)
 				{
 					sww->setMomentumMax(sww->getMomentumMax() * factor);
-					snprintf(buf, sizeof(buf), "momentum (max %.2f)", sww->getMomentumMax());
+					const char* label = (colorMode == CM_MAX_MOMENTUM) ? "max momentum" : "momentum";
+					snprintf(buf, sizeof(buf), "%s (max %.2f m²/s)", label, sww->getMomentumMax());
 				}
 				else
 				{
 					sww->setHeightMax(sww->getHeightMax() * factor);
-					snprintf(buf, sizeof(buf), "depth (max %.2f m, blue→red)", sww->getHeightMax());
+					const char* label = (colorMode == CM_MAX_DEPTH) ? "max depth" :
+					                    (colorMode == CM_MAX_STAGE) ? "max stage depth" : "depth";
+					snprintf(buf, sizeof(buf), "%s (max %.2f m)", label, sww->getHeightMax());
 				}
 				g_hud->setStatus("color", std::string(buf));
 			}

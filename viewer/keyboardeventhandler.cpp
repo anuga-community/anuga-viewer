@@ -47,7 +47,7 @@ void KeyboardEventHandler::getAppUsage(osg::ApplicationUsage& usage)
     usage.addKeyboardMouseBinding("1","Toggle recording.");
     usage.addKeyboardMouseBinding("2","Toggle playback of recorded information");
     usage.addKeyboardMouseBinding("3","Save recorded macro to \"movie.swm\"");
-    usage.addKeyboardMouseBinding("v","Cycle water colour mode: momentum / speed / depth");
+    usage.addKeyboardMouseBinding("v","Cycle water colour mode: momentum / speed / depth / max depth / max speed / max momentum / max stage");
     usage.addKeyboardMouseBinding("[","Decrease colour scale maximum by 20%");
     usage.addKeyboardMouseBinding("]","Increase colour scale maximum by 20%");
     usage.addKeyboardMouseBinding("Escape","Quit the application");

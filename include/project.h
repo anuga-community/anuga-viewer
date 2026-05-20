@@ -47,9 +47,13 @@
 	 */
 	enum ColorMode
 	{
-		CM_DEPTH = 0,		/**< White water, transparency shows depth only */
-		CM_SPEED,			/**< Blue-red gradient: flow speed (momentum / depth) */
-		CM_MOMENTUM,		/**< Blue-red gradient: momentum magnitude */
+		CM_DEPTH = 0,		/**< Blue-red gradient: current depth */
+		CM_SPEED,			/**< Blue-red gradient: current flow speed */
+		CM_MOMENTUM,		/**< Blue-red gradient: current momentum magnitude */
+		CM_MAX_DEPTH,		/**< Blue-red gradient: maximum depth over all timesteps */
+		CM_MAX_SPEED,		/**< Blue-red gradient: maximum speed over all timesteps */
+		CM_MAX_MOMENTUM,	/**< Blue-red gradient: maximum momentum over all timesteps */
+		CM_MAX_STAGE,		/**< Blue-red gradient: maximum stage (absolute) over all timesteps */
 
 		CM_NUM_OF
 	};
