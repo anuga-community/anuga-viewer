@@ -400,11 +400,14 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		float intens;
 		if (_state.colorMode == CM_SPEED)
 		{
-			// only compute speed for wet cells; dry/near-dry cells carry
-			// residual momentum that produces division-by-tiny-depth spikes
-			if (height > _state.heightmin)
+			// Use raw depth in metres (stage - bed), not the normalised vertex
+			// height, so that speed = momentum/depth has units of m/s.
+			// height is scaled by _scale (≈1/domain_size), which would inflate
+			// speed by ~domain_size if used directly.
+			float depth_m = _pstage[iv] - _pz[iv];
+			if (depth_m > 0.001f)
 			{
-				float speed = sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / height;
+				float speed = sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / depth_m;
 				intens = min(1.0f, speed / _state.speedmax);
 			}
 			else
