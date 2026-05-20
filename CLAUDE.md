@@ -103,9 +103,11 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 | Parameter | Description |
 |-----------|-------------|
 | `-texture <file>` | Apply image/GDAL texture to bedslope |
-| `-scale <float>` | Vertical exaggeration factor |
+| `-scale <float>` | Initial vertical exaggeration factor (default: 1.0) |
 | `-tps <float>` | Timesteps per second (default: 10) |
-| `-hmin`/`-hmax` | Water height color scale limits |
+| `-hmin`/`-hmax` | Water depth colour scale limits (metres) |
+| `-speedmax <float>` | Speed colour scale maximum (m/s) |
+| `-momentummax <float>` | Momentum colour scale maximum (m²/s) |
 | `-alphamin`/`-alphamax` | Water transparency limits |
 | `-lightpos x,y,z` | Directional light position |
 | `-nosky` | Disable skybox |
@@ -117,11 +119,21 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 | Key | Action |
 |-----|--------|
 | Space | Pause/resume |
-| `1` | Start/stop recording |
+| `v` | Cycle water colour mode: momentum / speed / depth / max depth / max speed / max momentum / max stage |
+| `[` / `]` | Decrease/increase colour scale maximum by 20% |
+| `z` / `Z` | Decrease/increase vertical exaggeration by factor of 1.5 |
+| `w` | Cycle wireframe mode (off / water / bed / both) |
+| `g` | Cycle grid/colorbar overlay |
+| `i` | Toggle information HUD |
+| `l` | Toggle lighting |
+| `t` | Toggle bedslope texture |
+| `b` | Toggle backface culling |
+| `c` | Toggle steep-triangle culling |
+| `x` | Reset camera to default position |
+| `r` | Reset animation to timestep 0 |
+| `1` | Start/stop recording camera path |
 | `2` | Play/stop recorded macro |
 | `3` | Save macro as `movie.swm` |
-| `l` | Toggle lighting |
-| `t` | Toggle texturing |
-| `b` | Toggle backface culling |
 | `O` | Screenshot |
 | Shift+LMB | Show timeseries for clicked polygon |
+| Escape | Quit |

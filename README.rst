@@ -1,101 +1,249 @@
-
-
 ANUGA Viewer
 ============
 
-Application to view `ANUGA <https://github.com/GeoscienceAustralia/anuga_core>`_ sww output 
-files. 
+A 3D viewer for `ANUGA <https://github.com/anuga-community/anuga_core>`_ shallow-water
+simulation output files (``.sww``).  SWW files contain bedslope geometry and per-timestep
+water stage and momentum data.  The viewer renders the animated water surface over the
+terrain and provides interactive controls for exploring the simulation.
 
 
+Quick Start
+-----------
+
+Download the latest AppImage from the
+`Releases <https://github.com/anuga-community/anuga-viewer/releases>`_ page, make it
+executable, and run it::
+
+   chmod +x ANUGA_Viewer-x86_64.AppImage
+   ./ANUGA_Viewer-x86_64.AppImage path/to/simulation.sww
+
+Or install it to your path::
+
+   cp ANUGA_Viewer-x86_64.AppImage ~/.local/bin/anuga_viewer
+   anuga_viewer path/to/simulation.sww
 
 
-Controls
---------
+Mouse Controls
+--------------
 
-Hold the left mouse button and drag to spin the model.
-Hold the right mouse button and drag to change the zoom distance.
-Hold both mouse buttons down or hold the middle button to slide around the model.
-Hold down shift and click on the water with the left mouse button to show a timeseries plot. The data shown depends on the view mode.
-Click on something that is not water, or click without holding shift to hide the timeseries plot.
++--------------------------------------+--------------------------------------+
+| Action                               | Effect                               |
++======================================+======================================+
+| Left-drag                            | Rotate/spin the model                |
++--------------------------------------+--------------------------------------+
+| Right-drag                           | Zoom in/out                          |
++--------------------------------------+--------------------------------------+
+| Middle-drag (or both buttons)        | Pan                                  |
++--------------------------------------+--------------------------------------+
+| Shift + left-click on water          | Show timeseries plot for that        |
+|                                      | triangle                             |
++--------------------------------------+--------------------------------------+
+| Click anywhere else                  | Hide timeseries plot                 |
++--------------------------------------+--------------------------------------+
+
+
+Keyboard Shortcuts
+------------------
+
+Animation
+~~~~~~~~~
+
++------------+-------------------------------------------------------------+
+| Key        | Action                                                      |
++============+=============================================================+
+| Space      | Pause / resume animation                                    |
++------------+-------------------------------------------------------------+
+| Left arrow | Step back one timestep (when paused)                        |
++------------+-------------------------------------------------------------+
+| Right arrow| Step forward one timestep (when paused)                     |
++------------+-------------------------------------------------------------+
+| r          | Reset animation to timestep 0                               |
++------------+-------------------------------------------------------------+
+
+Display
+~~~~~~~
+
++------------+-------------------------------------------------------------+
+| Key        | Action                                                      |
++============+=============================================================+
+| v          | Cycle water colour mode (see `Colour Modes`_ below)         |
++------------+-------------------------------------------------------------+
+| ``[``      | Decrease colour scale maximum by 20%                        |
++------------+-------------------------------------------------------------+
+| ``]``      | Increase colour scale maximum by 20%                        |
++------------+-------------------------------------------------------------+
+| z          | Decrease vertical exaggeration by 33%                       |
++------------+-------------------------------------------------------------+
+| Z          | Increase vertical exaggeration by 50%                       |
++------------+-------------------------------------------------------------+
+| w          | Cycle wireframe mode (off / water / bed / both)             |
++------------+-------------------------------------------------------------+
+| l          | Toggle lighting                                             |
++------------+-------------------------------------------------------------+
+| t          | Toggle bedslope texture                                     |
++------------+-------------------------------------------------------------+
+| b          | Toggle backface culling                                     |
++------------+-------------------------------------------------------------+
+| g          | Cycle grid/colorbar overlay                                 |
++------------+-------------------------------------------------------------+
+| i          | Toggle information HUD                                      |
++------------+-------------------------------------------------------------+
+| x          | Reset camera to default position                            |
++------------+-------------------------------------------------------------+
+| c          | Toggle steep-triangle culling                               |
++------------+-------------------------------------------------------------+
+| O          | Screenshot                                                  |
++------------+-------------------------------------------------------------+
+| Escape     | Quit                                                        |
++------------+-------------------------------------------------------------+
+
+Recording
+~~~~~~~~~
+
++------------+-------------------------------------------------------------+
+| Key        | Action                                                      |
++============+=============================================================+
+| 1          | Start / stop recording camera path                          |
++------------+-------------------------------------------------------------+
+| 2          | Play / stop recorded macro                                  |
++------------+-------------------------------------------------------------+
+| 3          | Save recorded macro to ``movie.swm``                        |
++------------+-------------------------------------------------------------+
+
+
+Colour Modes
+------------
+
+Press ``v`` to cycle through seven water colour modes.  All use a
+blue (low) → green (mid) → red (high) gradient.  Use ``[`` / ``]`` to
+adjust the saturation scale for the active mode.
+
++----------------------+----------------------------------------------------+
+| Mode                 | Description                                        |
++======================+====================================================+
+| momentum             | Current momentum magnitude (m²/s)                  |
++----------------------+----------------------------------------------------+
+| speed                | Current flow speed = |momentum| / depth (m/s)      |
++----------------------+----------------------------------------------------+
+| depth                | Current water depth (m)                            |
++----------------------+----------------------------------------------------+
+| max depth            | Maximum depth at each point over all timesteps     |
++----------------------+----------------------------------------------------+
+| max speed            | Maximum speed at each point over all timesteps     |
++----------------------+----------------------------------------------------+
+| max momentum         | Maximum momentum at each point over all timesteps  |
++----------------------+----------------------------------------------------+
+| max stage            | Depth above bed at the moment of peak stage,       |
+|                      | frozen at the high-water mark                      |
++----------------------+----------------------------------------------------+
+
+The four ``max`` modes display a static snapshot of the worst-case flood
+extent and are independent of the current animation timestep.
+
+
+Vertical Exaggeration
+---------------------
+
+Press ``z`` to flatten or ``Z`` to exaggerate the vertical scale.  Each
+keypress changes the scale by a factor of 1.5.  The current multiplier is
+shown in the HUD.  Lighting normals are recomputed to match the displayed
+geometry, so shading remains correct at any exaggeration level.
+
+The initial vertical scale can also be set on the command line::
+
+   anuga_viewer -scale 5 simulation.sww
 
 
 Applying Textures
 -----------------
 
-Applying images (ie textures) to the bedslope mesh can be done with the --texture command line option. For example:
+Apply an image or georeferenced raster to the bedslope with ``-texture``::
 
-viewer.exe -texture ..\images\bedslope.jpg ..\data\cairns.sww
+   anuga_viewer -texture images/bedslope.jpg simulation.sww
 
-There are two possible ways the texture is mapped onto the bedslope mesh, based on the texture format.
+There are two mapping modes:
 
-   1. If the texture file contains GDAL geodata, this will be used to map the texture onto the mesh.
+1. **Georeferenced** — if the file contains GDAL geodata (e.g. a GeoTIFF),
+   the texture is registered to real-world coordinates automatically.
 
-   2. Otherwise, the texture will be projected directly from above, in a rectangle that exactly bounds the bedslope.
+2. **Projected** — otherwise, the image is draped from above, scaled to
+   exactly cover the bedslope bounding rectangle.
 
-In summary, if you load a GDAL texture, it will map the texture onto the mesh using the data in the texture file. 
-Otherwise (if you are using a jpeg, tiff, etc.) it will naively map the texture onto the mesh, 
-as if a projector beam was pointing directly downwards, situated so that the 
-image would just cover every corner of the bedslope mesh.
+Press ``t`` to toggle the texture on and off at runtime.
 
+
+Command-Line Options
+--------------------
+
+::
+
+   anuga_viewer [options] <file.sww>
+
++-------------------------+--------------------------------------------------+
+| Option                  | Description                                      |
++=========================+==================================================+
+| ``-texture <file>``     | Apply image/GDAL texture to bedslope             |
++-------------------------+--------------------------------------------------+
+| ``-scale <float>``      | Initial vertical exaggeration (default: 1.0)     |
++-------------------------+--------------------------------------------------+
+| ``-tps <float>``        | Timesteps per second (default: 10)               |
++-------------------------+--------------------------------------------------+
+| ``-hmin <float>``       | Water depth colour scale minimum (m)             |
++-------------------------+--------------------------------------------------+
+| ``-hmax <float>``       | Water depth colour scale maximum (m)             |
++-------------------------+--------------------------------------------------+
+| ``-speedmax <float>``   | Speed colour scale maximum (m/s)                 |
++-------------------------+--------------------------------------------------+
+| ``-momentummax <float>``| Momentum colour scale maximum (m²/s)             |
++-------------------------+--------------------------------------------------+
+| ``-alphamin <float>``   | Water minimum opacity (0–1)                      |
++-------------------------+--------------------------------------------------+
+| ``-alphamax <float>``   | Water maximum opacity (0–1)                      |
++-------------------------+--------------------------------------------------+
+| ``-lightpos x,y,z``     | Directional light position (z is up)             |
++-------------------------+--------------------------------------------------+
+| ``-nosky``              | Disable skybox                                   |
++-------------------------+--------------------------------------------------+
+| ``-movie <dir>``        | Export frames to directory (use with ``.swm``)   |
++-------------------------+--------------------------------------------------+
+| ``-- screen <n>``       | Select display screen (OSG standard)             |
++-------------------------+--------------------------------------------------+
 
 
 How to Make a Movie
 -------------------
 
-   1. Anuga viewer can export a movie in a format that is only viewable with the viewer. 
-      Press 1 to begin recording, and 3 to save the movie in Anuga's /bin folder as "movie.sww".
+1. Press ``1`` to start recording the camera path, ``1`` again to stop.
+   Press ``3`` to save the macro as ``movie.swm`` in the viewer's bin folder.
 
-   2. To export the movie as an AVI that can be viewed by anyone, run anuga on the command line like so::
+2. Export the macro as JPEG frames::
 
-         anuga_viewer -movie <mymoviename> movie.swm
+      anuga_viewer -movie myframes movie.swm
 
-      The movie will be saved as a series of JPEG stills in a folder <mymoviename>.
+3. Stitch frames into a video with ffmpeg::
 
-   3a. <WINDOWS ONLY> To stitch these frames into a single AVI movie, 
-        get the `VirtualDub program <http://www.virtualdub.org>`_. It is a video processing 
-        tool which can load JPEG stills as a movie, and then save them as a standard video format.
-
-	    a. select "File/Open video file..." from the menu. 
-               Select frame_0_0.jpg in the folder ./Anuga Viewer/bin/<mymoviename>.
-
-	    b. go to "Video" in the menu. Here you can set the codec format under "Compression..." 
-               and resize or process the output with "Filters...".
-
-	    c. select "File/Save as AVI..." to save the file as an AVI.
-
-   3b. <LINUX ONLY> Use the MEncoder program to stitch the jpegs into a movie. 
-       `Instructions here <http://www.mplayerhq.hu/DOCS/HTML/en/encoding-guide.html>`_
-
-   4. You can now view this .avi file on any computer, or upload to a video site, etc.
+      ffmpeg -framerate 25 -i myframes/frame_%d_%d.jpg output.mp4
 
 
+Building from Source
+--------------------
 
-Lighting
---------
-
-By default, there is a single light in the ANUGA Viewer scene at a default position. 
-To change its position you can use the following command line parameter::
-
-   -lightpos <float>,<float>,<float> - x,y,z of bedslope directional light (z is up)
-
-To remove lighting altogether and just have flat texturing, press 'l' to toggle lighting.
-
-
+See `INSTALL_ubuntu.rst <INSTALL_ubuntu.rst>`_ for Ubuntu/Linux build instructions.
 
 
 Troubleshooting
 ---------------
 
-Q: I can't load TIF images.
-A: Try opening the file in Gimp, or some other image viewer, then re-save it. Some TIF files seem to have a strange format that OSG/ANUGA can't read. Loading very large image files also seems to be dependent on the video card - you could try shrinking the image to 4096x4096 pixels or smaller.
+**I have two monitors and the viewer opens on the wrong one.**
+  Pass ``-- screen 0`` (or ``1``) on the command line::
 
-Q: I have 2 monitors, and the viewer opens a window in each. How do I make it only show in a single monitor?
-A: You need an extra command line option or environment setting to tell it which screen to open into::
+     anuga_viewer -- screen 0 simulation.sww
 
-   -- screen <screen num>
+**TIF textures fail to load.**
+  Re-save the file in GIMP or another image editor.  Very large textures
+  (> 4096 × 4096) may also exceed GPU limits.
 
-ie::
-
-  anuga_viewer.exe --window 64 64 1024 768 --screen 0 -scale 1.5 -texture ..\images\bedslope.jpg ..\data\cairns.sww
-
-
+**The viewer crashes with a GL error on WSL2.**
+  Make sure you are using the system OpenSceneGraph (``libopenscenegraph-dev``)
+  and not one installed in a conda environment.  Conda's ``libGLX.so``
+  conflicts with the WSL2 Intel GPU driver.
