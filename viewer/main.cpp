@@ -354,6 +354,8 @@ int main( int argc, char **argv )
 			bool colorChanged = (colorMode != colorMode_last);
 			colorMode_last = colorMode;
 			sww->setColorMode(colorMode);
+			if (colorChanged)
+				water->forceRefresh();
 
 			// [ / ] nudge the colour scale max for the active mode by ±20%
 			int nudge = event_handler->scaleNudge();

@@ -66,6 +66,12 @@ class MeshObject
 		 */
 		void setTimeStep( unsigned int aTs );
 
+		/**
+		 * Force a full data reload on next update(), regardless of timestep.
+		 * Use when rendering parameters (e.g. color mode) change without a timestep change.
+		 */
+		void forceRefresh() { _dirtydata = true; }
+
 	protected:
 		osg::StateSet* _stateset;
 		osg::Geode* _node;
