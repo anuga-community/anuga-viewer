@@ -31,6 +31,7 @@ KeyboardEventHandler::KeyboardEventHandler( int nTimesteps, float tps)	:
    _toggleplayback = false;
    _togglesave = false;
    _scalenudge = 0;
+   _zNudge = 0;
 }
 
 
@@ -48,6 +49,7 @@ void KeyboardEventHandler::getAppUsage(osg::ApplicationUsage& usage)
     usage.addKeyboardMouseBinding("2","Toggle playback of recorded information");
     usage.addKeyboardMouseBinding("3","Save recorded macro to \"movie.swm\"");
     usage.addKeyboardMouseBinding("v","Cycle water colour mode: momentum / speed / depth / max depth / max speed / max momentum / max stage");
+    usage.addKeyboardMouseBinding("z/Z","Decrease/increase vertical (z) scale by 50%");
     usage.addKeyboardMouseBinding("[","Decrease colour scale maximum by 20%");
     usage.addKeyboardMouseBinding("]","Increase colour scale maximum by 20%");
     usage.addKeyboardMouseBinding("Escape","Quit the application");
@@ -183,6 +185,14 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 
 				case ']':
 					_scalenudge = +1;
+					return true;
+
+				case 'z':
+					_zNudge = -1;
+					return true;
+
+				case 'Z':
+					_zNudge = +1;
 					return true;
 
 				case 'w':

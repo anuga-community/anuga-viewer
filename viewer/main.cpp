@@ -211,6 +211,11 @@ int main( int argc, char **argv )
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
 	g_hud->setStatus("color", "momentum (max 2.00)");
+	{
+		char buf[32];
+		snprintf(buf, sizeof(buf), "%.2fx", vscale);
+		g_hud->setStatus("vscale", std::string(buf));
+	}
 
    // Lighting
    DirectionalLight* light = new DirectionalLight(rootStateSet);
@@ -383,6 +388,17 @@ int main( int argc, char **argv )
 					snprintf(buf, sizeof(buf), "%s (max %.2f m)", label, sww->getHeightMax());
 				}
 				g_hud->setStatus("color", std::string(buf));
+			}
+
+			int zNudge = event_handler->zScaleNudge();
+			if (zNudge != 0)
+			{
+				vscale *= (zNudge > 0) ? 1.5f : (1.0f / 1.5f);
+				if (vscale < 0.01f) vscale = 0.01f;
+				model->setScale(osg::Vec3(1.0, 1.0, vscale));
+				char buf[32];
+				snprintf(buf, sizeof(buf), "%.2fx", vscale);
+				g_hud->setStatus("vscale", std::string(buf));
 			}
 
 			if (event_handler->checkMouseClicked())
