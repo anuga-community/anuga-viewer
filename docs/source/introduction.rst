@@ -25,9 +25,9 @@ Mouse Controls
      - Pan (or use Shift + arrow keys on a touchpad)
    * - ``t`` key
      - Toggle between **colour** mode (water coloured by data) and **landscape** mode (bedslope texture / aerial image)
-   * - Shift + left-click on water
-     - Show timeseries plot for that triangle
-   * - Click anywhere else
+   * - Shift + left-click
+     - Show timeseries plot for the clicked triangle (wet or dry)
+   * - Click anywhere (no Shift)
      - Hide timeseries plot
 
 
@@ -150,6 +150,19 @@ is opened.
 
 The current mode and scale value are shown in the information HUD (press
 ``i`` to toggle).
+
+
+Timeseries Plot
+---------------
+
+Hold **Shift** and left-click any triangle — wet or dry — to display a
+timeseries graph of the active colour quantity at that point over the full
+simulation duration.
+
+The graph updates automatically when you change colour mode with ``v`` or
+``V``, so the plotted quantity always matches the colour you are looking at.
+
+Click anywhere **without** Shift to dismiss the graph.
 
 
 Vertical Exaggeration

@@ -2,6 +2,46 @@ Release Notes
 =============
 
 
+v0.4.0 — 2026-05-21
+---------------------
+
+New Features
+~~~~~~~~~~~~
+
+**Timeseries plot for dry points**
+
+  Shift + left-click now works anywhere on the terrain, not just on wet
+  triangles.  Clicking a dry area shows the timeseries of the selected
+  quantity at that point for the full simulation duration.
+
+**Timeseries quantity matches colour mode**
+
+  The timeseries graph always shows the same quantity as the active colour
+  mode.  Pressing ``v`` or ``V`` to change colour mode now immediately
+  updates the graph — no need to re-click the point.
+
+**Improved timeseries graph appearance**
+
+  The graph panel now uses a semi-transparent navy background that lets the
+  3D scene show through.  The data line is 2.5 px wide and the grid border
+  is 1.5 px wide, making both clearly visible.  Y-axis labels include the
+  quantity unit (m, m/s, m²/s).
+
+Bug Fixes
+~~~~~~~~~
+
+- **Timeseries graph invisible** — the background panel was assigned to
+  OSG's ``TRANSPARENT_BIN``, which caused it to be rendered *after* all
+  opaque geometry and paint over the grid and data line.  Removed the hint
+  so the geode draws in insertion order (background first, then lines on
+  top).
+
+- **AppImage crash on startup** — ``libfreetype.so.6`` was not bundled in
+  the AppImage (linuxdeploy blacklists it as "standard"), but conda
+  environments can expose an incompatible version.  The library is now
+  included explicitly.
+
+
 v0.3.0 — 2026-05-21
 ---------------------
 
