@@ -148,7 +148,7 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 				}
 
 				case osgGA::GUIEventAdapter::KEY_Right:
-					if (_shift_held)
+					if (ea.getModKeyMask() & osgGA::GUIEventAdapter::MODKEY_SHIFT)
 						_panX = +1;
 					else if( _paused )
 					   _timestep = (_timestep+1) % _ntimesteps;
@@ -157,7 +157,7 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 					return true;
 
 				case osgGA::GUIEventAdapter::KEY_Left:
-					if (_shift_held)
+					if (ea.getModKeyMask() & osgGA::GUIEventAdapter::MODKEY_SHIFT)
 						_panX = -1;
 					else if( _paused )
 					{
@@ -169,14 +169,14 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 					return true;
 
 				case osgGA::GUIEventAdapter::KEY_Up:
-					if (_shift_held)
+					if (ea.getModKeyMask() & osgGA::GUIEventAdapter::MODKEY_SHIFT)
 						_panY = +1;
 					else if( !_paused )
 						_tps *= 1.5;
 					return true;
 
 				case osgGA::GUIEventAdapter::KEY_Down:
-					if (_shift_held)
+					if (ea.getModKeyMask() & osgGA::GUIEventAdapter::MODKEY_SHIFT)
 						_panY = -1;
 					else if( !_paused )
 						_tps /= 1.5;
