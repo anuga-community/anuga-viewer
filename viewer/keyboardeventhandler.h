@@ -36,6 +36,7 @@ public:
 	virtual int  zScaleNudge() { int v = _zNudge; _zNudge = 0; return v; }
 	virtual int  getPanX() { int v = _panX; _panX = 0; return v; }
 	virtual int  getPanY() { int v = _panY; _panY = 0; return v; }
+	virtual bool toggleTexture() { bool v = _toggleTexture; _toggleTexture = false; return v; }
 	virtual bool checkWriteFrame() { bool curr = _writeframe; _writeframe = false; return curr;	}
 	virtual bool checkReturnOrigin() { bool curr = _return_origin; _return_origin = false; return curr;	}
 	virtual bool checkMouseClicked() { bool curr = _mouseclicked; _mouseclicked = false; return curr;	}
@@ -82,6 +83,7 @@ private:
 	int  _zNudge;		/**< +1 = z scale up, -1 = z scale down, 0 = no change */
 	int  _panX;			/**< +1 = pan right, -1 = pan left, 0 = no change */
 	int  _panY;			/**< +1 = pan up, -1 = pan down, 0 = no change */
+	bool _toggleTexture;	/**< true = toggle landscape/colour mode */
 };
 
 #endif  // KEYBOARDEVENTHANDLER_H

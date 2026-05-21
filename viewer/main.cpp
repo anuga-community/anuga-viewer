@@ -19,7 +19,8 @@
 #include <osg/StateAttribute>
 #include <osgDB/FileNameUtils>
 #include <osgDB/FileUtils>
-#include <osgViewer/ViewerEventHandlers> 
+#include <osgViewer/ViewerEventHandlers>
+#include <osgText/Text>
 
 #include <osgGA/TrackballManipulator>
 #include <osgGA/FlightManipulator>
@@ -62,6 +63,45 @@ public:
 			return false;
 		return osgGA::TerrainManipulator::handle(ea, us);
 	}
+};
+
+
+// HelpHandler subclass that increases the font size after the overlay is first built.
+class AnugaHelpHandler : public osgViewer::HelpHandler
+{
+public:
+    AnugaHelpHandler() : _fontFixed(false) {}
+
+    virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
+    {
+        bool result = osgViewer::HelpHandler::handle(ea, aa);
+        if (!_fontFixed && getCamera())
+        {
+            fixFont(getCamera());
+            _fontFixed = true;
+        }
+        return result;
+    }
+
+private:
+    bool _fontFixed;
+
+    void fixFont(osg::Node* node)
+    {
+        if (osg::Geode* geode = dynamic_cast<osg::Geode*>(node))
+        {
+            for (unsigned int i = 0; i < geode->getNumDrawables(); ++i)
+            {
+                osgText::Text* t = dynamic_cast<osgText::Text*>(geode->getDrawable(i));
+                if (t) t->setCharacterSize(24.0f);
+            }
+        }
+        if (osg::Group* group = dynamic_cast<osg::Group*>(node))
+        {
+            for (unsigned int i = 0; i < group->getNumChildren(); ++i)
+                fixFont(group->getChild(i));
+        }
+    }
 };
 
 
@@ -211,6 +251,7 @@ int main( int argc, char **argv )
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
 	g_hud->setStatus("color", "stage (max 1.00 m)");
+	g_hud->setStatus("mode", bedslopetexture.empty() ? "colour" : "landscape");
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "%.2fx", vscale);
@@ -297,7 +338,7 @@ int main( int argc, char **argv )
 	osgGA::StateSetManipulator * ssm = new osgGA::StateSetManipulator(viewer.getCamera()->getOrCreateStateSet());
 	ssm->setKeyEventToggleBackfaceCulling('b');
 	ssm->setKeyEventToggleLighting('l');
-	ssm->setKeyEventToggleTexturing('t');
+	ssm->setKeyEventToggleTexturing('\0');  // handled by KeyboardEventHandler
 	ssm->setKeyEventCyclePolygonMode('\0');
 	viewer.addEventHandler( ssm );
 
@@ -306,11 +347,11 @@ int main( int argc, char **argv )
 	viewer.addEventHandler(event_handler);
 
 	// add the help handler
-	viewer.addEventHandler(new osgViewer::HelpHandler);
+	viewer.addEventHandler(new AnugaHelpHandler);
 
-	// add the window size toggle handler
+	// add the window size toggle handler (provides fullscreen toggle on 'f')
 	viewer.addEventHandler(new osgViewer::WindowSizeHandler);
-		
+
 	// add the stats handler
 	viewer.addEventHandler(new osgViewer::StatsHandler);
 
@@ -428,6 +469,13 @@ int main( int argc, char **argv )
 				}
 			}
 
+			if (event_handler->toggleTexture())
+			{
+				bool newState = !ssm->getTextureEnabled();
+				ssm->setTextureEnabled(newState);
+				g_hud->setStatus("mode", newState ? "landscape" : "colour");
+			}
+
 			if (event_handler->checkMouseClicked())
 			{
 				int sp = event_handler->getSelectedPoly();
@@ -508,6 +556,7 @@ int main( int argc, char **argv )
 			g_hud->setVisible(state.getShowHUD());
 			g_hud->setStatus("culling", state.getCulling() ? "on" : "off");
 			g_hud->setWireframe((WireframeMode)state.getWireframe());
+			g_hud->setStatus("mode", state.getShowTexture() ? "landscape" : "colour");
 
 			// loop playback
 			playback_index ++;

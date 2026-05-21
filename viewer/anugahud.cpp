@@ -13,6 +13,7 @@ AnugaHUD::AnugaHUD() :
 	addStatusLine("grid", textnode);
 	addStatusLine("color", textnode);
 	addStatusLine("vscale", textnode);
+	addStatusLine("mode", textnode);
 	addStatusLine("filename", textnode);
 
 	_text_switch->addChild(textnode);

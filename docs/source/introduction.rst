@@ -23,6 +23,8 @@ Mouse Controls
      - Zoom in / out
    * - Middle-drag (or both buttons)
      - Pan (or use Shift + arrow keys on a touchpad)
+   * - ``t`` key
+     - Toggle between **colour** mode (water coloured by data) and **landscape** mode (bedslope texture / aerial image)
    * - Shift + left-click on water
      - Show timeseries plot for that triangle
    * - Click anywhere else
@@ -74,7 +76,7 @@ Display
    * - l
      - Toggle lighting
    * - t
-     - Toggle bedslope texture
+     - Toggle between colour mode and landscape mode (bedslope texture)
    * - b
      - Toggle backface culling
    * - c

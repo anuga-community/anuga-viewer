@@ -34,6 +34,7 @@ KeyboardEventHandler::KeyboardEventHandler( int nTimesteps, float tps)	:
    _zNudge = 0;
    _panX = 0;
    _panY = 0;
+   _toggleTexture = false;
 }
 
 
@@ -50,11 +51,12 @@ void KeyboardEventHandler::getAppUsage(osg::ApplicationUsage& usage)
     usage.addKeyboardMouseBinding("1","Toggle recording.");
     usage.addKeyboardMouseBinding("2","Toggle playback of recorded information");
     usage.addKeyboardMouseBinding("3","Save recorded macro to \"movie.swm\"");
-    usage.addKeyboardMouseBinding("v/V","Cycle water colour mode forward/backward: stage / depth / speed / momentum / max depth / max speed / max momentum / max stage");
+    usage.addKeyboardMouseBinding("v/V","Cycle colour mode forward/backward (stage/depth/speed/momentum/max depth/max speed/max momentum/max stage)");
     usage.addKeyboardMouseBinding("z/Z","Decrease/increase vertical (z) scale by 50%");
     usage.addKeyboardMouseBinding("[","Decrease colour scale maximum by 20%");
     usage.addKeyboardMouseBinding("]","Increase colour scale maximum by 20%");
-    usage.addKeyboardMouseBinding("Shift+Left/Right/Up/Down","Pan camera");
+    usage.addKeyboardMouseBinding("t","Toggle landscape / colour mode");
+    usage.addKeyboardMouseBinding("Shift+arrows","Pan camera");
     usage.addKeyboardMouseBinding("Escape","Quit the application");
 }
 
@@ -225,6 +227,10 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 
 					return true;
 				}
+
+				case 't':
+					_toggleTexture = true;
+					return true;
 
 				case 'c':
 					_toggleculling = true;
