@@ -420,7 +420,7 @@ int main( int argc, char **argv )
 					// Pan step: 3% of eye distance from origin
 					osg::Vec3d eye(m(3,0), m(3,1), m(3,2));
 					double step = eye.length() * 0.03;
-					osg::Vec3d delta = right * (panX * step) + up * (panY * step);
+					osg::Vec3d delta = right * (-panX * step) + up * (-panY * step);
 					m(3,0) += delta.x();
 					m(3,1) += delta.y();
 					m(3,2) += delta.z();
