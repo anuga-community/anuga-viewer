@@ -347,9 +347,11 @@ int KeyboardEventHandler::pick( const double x, const double y, osgViewer::Viewe
 	{
 		osgUtil::LineSegmentIntersector::Intersection intersection = picker->getFirstIntersection();
 
-		if (intersection.nodePath.back()->getName() == "watersurface")
+		const std::string& name = intersection.nodePath.back()->getName();
+		if (name == "watersurface" || name == "bedslope")
 		{
-			// only care if the water surface was clicked
+			// Accept both wet (watersurface) and dry (bedslope) picks —
+			// the two meshes share the same triangle indices.
 			return intersection.primitiveIndex;
 		}
 	}

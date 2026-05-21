@@ -476,7 +476,8 @@ int main( int argc, char **argv )
 				g_hud->setStatus("mode", newState ? "landscape" : "colour");
 			}
 
-			if (event_handler->checkMouseClicked())
+			bool mouseClicked = event_handler->checkMouseClicked();
+			if (mouseClicked || colorChanged)
 			{
 				int sp = event_handler->getSelectedPoly();
 
