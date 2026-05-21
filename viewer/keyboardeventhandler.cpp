@@ -32,6 +32,8 @@ KeyboardEventHandler::KeyboardEventHandler( int nTimesteps, float tps)	:
    _togglesave = false;
    _scalenudge = 0;
    _zNudge = 0;
+   _panX = 0;
+   _panY = 0;
 }
 
 
@@ -52,6 +54,7 @@ void KeyboardEventHandler::getAppUsage(osg::ApplicationUsage& usage)
     usage.addKeyboardMouseBinding("z/Z","Decrease/increase vertical (z) scale by 50%");
     usage.addKeyboardMouseBinding("[","Decrease colour scale maximum by 20%");
     usage.addKeyboardMouseBinding("]","Increase colour scale maximum by 20%");
+    usage.addKeyboardMouseBinding("Shift+Left/Right/Up/Down","Pan camera");
     usage.addKeyboardMouseBinding("Escape","Quit the application");
 }
 
@@ -120,14 +123,6 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 					_paused = _paused ? false : true;
 					return true;
 
-				case osgGA::GUIEventAdapter::KEY_Up:
-					if( !_paused ) _tps *= 1.5;
-					return true;
-
-				case osgGA::GUIEventAdapter::KEY_Down:
-					if( !_paused ) _tps /= 1.5;
-					return true;
-
 				case osgGA::GUIEventAdapter::KEY_Shift_L:
 				case osgGA::GUIEventAdapter::KEY_Shift_R:
 					_shift_held = true;
@@ -153,22 +148,38 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 				}
 
 				case osgGA::GUIEventAdapter::KEY_Right:
-					if( _paused )
-					{
+					if (_shift_held)
+						_panX = +1;
+					else if( _paused )
 					   _timestep = (_timestep+1) % _ntimesteps;
-					}
 					else
 					   _direction = +1;
 					return true;
 
 				case osgGA::GUIEventAdapter::KEY_Left:
-					if( _paused ) 
+					if (_shift_held)
+						_panX = -1;
+					else if( _paused )
 					{
 					   _timestep = _timestep-1;
 					   if( _timestep < 0 ) _timestep = _ntimesteps-1;
 					}
 					else
 					   _direction = -1;
+					return true;
+
+				case osgGA::GUIEventAdapter::KEY_Up:
+					if (_shift_held)
+						_panY = +1;
+					else if( !_paused )
+						_tps *= 1.5;
+					return true;
+
+				case osgGA::GUIEventAdapter::KEY_Down:
+					if (_shift_held)
+						_panY = -1;
+					else if( !_paused )
+						_tps /= 1.5;
 					return true;
 
 				case 'v':

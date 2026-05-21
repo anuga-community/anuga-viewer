@@ -22,7 +22,7 @@ Mouse Controls
    * - Right-drag
      - Zoom in / out
    * - Middle-drag (or both buttons)
-     - Pan
+     - Pan (or use Shift + arrow keys on a touchpad)
    * - Shift + left-click on water
      - Show timeseries plot for that triangle
    * - Click anywhere else
@@ -44,9 +44,9 @@ Animation
    * - Space
      - Pause / resume animation
    * - Left arrow
-     - Step back one timestep (when paused)
+     - Step back one timestep (when paused); speed down (when playing)
    * - Right arrow
-     - Step forward one timestep (when paused)
+     - Step forward one timestep (when paused); speed up (when playing)
    * - r
      - Reset animation to timestep 0
 
@@ -83,6 +83,8 @@ Display
      - Cycle grid / colorbar overlay
    * - i
      - Toggle information HUD
+   * - Shift + arrow keys
+     - Pan camera (useful on touchpads without middle mouse)
    * - x
      - Reset camera to default position
    * - O

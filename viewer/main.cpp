@@ -407,6 +407,27 @@ int main( int argc, char **argv )
 				g_hud->setStatus("vscale", std::string(buf));
 			}
 
+			{
+				int panX = event_handler->getPanX();
+				int panY = event_handler->getPanY();
+				if (panX != 0 || panY != 0)
+				{
+					osgGA::CameraManipulator* manip = viewer.getCameraManipulator();
+					osg::Matrixd m = manip->getMatrix();
+					// Extract right and up vectors from camera matrix (column 0 and 1)
+					osg::Vec3d right(m(0,0), m(0,1), m(0,2));
+					osg::Vec3d up(m(1,0), m(1,1), m(1,2));
+					// Pan step: 3% of eye distance from origin
+					osg::Vec3d eye(m(3,0), m(3,1), m(3,2));
+					double step = eye.length() * 0.03;
+					osg::Vec3d delta = right * (panX * step) + up * (panY * step);
+					m(3,0) += delta.x();
+					m(3,1) += delta.y();
+					m(3,2) += delta.z();
+					manip->setByMatrix(m);
+				}
+			}
+
 			if (event_handler->checkMouseClicked())
 			{
 				int sp = event_handler->getSelectedPoly();
@@ -424,7 +445,7 @@ int main( int argc, char **argv )
 
 			if( event_handler->checkReturnOrigin() )
 			{
-				viewer.home();
+				viewer.getCameraManipulator()->home(0.0);
 			}
 		
 

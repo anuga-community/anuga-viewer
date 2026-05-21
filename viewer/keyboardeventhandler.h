@@ -34,6 +34,8 @@ public:
     virtual bool toggleSave();
 	virtual int  scaleNudge() { int v = _scalenudge; _scalenudge = 0; return v; }
 	virtual int  zScaleNudge() { int v = _zNudge; _zNudge = 0; return v; }
+	virtual int  getPanX() { int v = _panX; _panX = 0; return v; }
+	virtual int  getPanY() { int v = _panY; _panY = 0; return v; }
 	virtual bool checkWriteFrame() { bool curr = _writeframe; _writeframe = false; return curr;	}
 	virtual bool checkReturnOrigin() { bool curr = _return_origin; _return_origin = false; return curr;	}
 	virtual bool checkMouseClicked() { bool curr = _mouseclicked; _mouseclicked = false; return curr;	}
@@ -78,6 +80,8 @@ private:
 	bool _togglesave;
 	int  _scalenudge;	/**< +1 = scale up, -1 = scale down, 0 = no change */
 	int  _zNudge;		/**< +1 = z scale up, -1 = z scale down, 0 = no change */
+	int  _panX;			/**< +1 = pan right, -1 = pan left, 0 = no change */
+	int  _panY;			/**< +1 = pan up, -1 = pan down, 0 = no change */
 };
 
 #endif  // KEYBOARDEVENTHANDLER_H
