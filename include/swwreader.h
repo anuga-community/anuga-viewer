@@ -53,8 +53,10 @@ public:
 	 */
 	enum TimeSeriesType
 	{
-		TSTYPE_MOMENTUM_MAGNITUDE = 0,	/**< Magnitude of momentum */
-		TSTYPE_STAGE,	/** < Water height in absolute metres. */
+		TSTYPE_MOMENTUM_MAGNITUDE = 0,	/**< Magnitude of momentum (m²/s) */
+		TSTYPE_STAGE,					/**< Absolute water surface elevation (m) */
+		TSTYPE_DEPTH,					/**< Water depth above bed (m) */
+		TSTYPE_SPEED,					/**< Flow speed = momentum / depth (m/s) */
 	};
 
 

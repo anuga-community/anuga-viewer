@@ -14,7 +14,7 @@ public:
      * @aMinY the minimum Y value on the graph - this will be subtracted from
      *        all data
 	 */
-	osg::Geode * setUpScene(const std::string & aLabel, const osg::FloatArray * aData, float aTimeLength, const osg::Vec3 & aPos, const osg::Vec2 & aSize);
+	osg::Geode * setUpScene(const std::string & aLabel, const std::string & aUnit, const osg::FloatArray * aData, float aTimeLength, const osg::Vec3 & aPos, const osg::Vec2 & aSize);
 
 	/**
 	 * Get the linegraph's geode
@@ -24,7 +24,7 @@ public:
 protected:
 
 	osg::Geometry* createBackgroundRectangle(const osg::Vec3& pos, const float width, const float height, osg::Vec4& color);
-	osg::Geometry* createGraphGrid(const osg::Vec3& pos, const float width, const float height, osg::Vec4& color, float aXCount, float aYCount);
+	osg::Geometry* createGraphGrid(const osg::Vec3& pos, const float width, const float height, osg::Vec4& color, int numHLines);
     
     /**
      *  Create the actual graphed data.

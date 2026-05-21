@@ -545,8 +545,44 @@ bool SWWReader::getTimeSeries(unsigned int aPolyIndex, TimeSeriesType aPlotType,
 		case TSTYPE_STAGE:
 		default:
 		{
-			// stage heights from netcdf file (x and y are same as bedslope)
 			_status.push_back(nc_get_vars_float (_ncid, _stageid, start, count, stride, (float*)aData->getDataPointer()));
+			break;
+		}
+
+		case TSTYPE_DEPTH:
+		{
+			_status.push_back(nc_get_vars_float (_ncid, _stageid, start, count, stride, (float*)aData->getDataPointer()));
+			float bed_z = _pz[stage_index];
+			for (int i = 0; i < (int)aData->size(); i++)
+				aData->at(i) = osg::maximum(0.0f, aData->at(i) - bed_z);
+			break;
+		}
+
+		case TSTYPE_SPEED:
+		{
+			if (!_pxmomentum || !_pymomentum) break;
+
+			osg::ref_ptr<osg::FloatArray> xmom = new osg::FloatArray;
+			osg::ref_ptr<osg::FloatArray> ymom = new osg::FloatArray;
+			xmom->resize(count[0]);
+			ymom->resize(count[0]);
+
+			_status.push_back(nc_get_vars_float (_ncid, _stageid,     start, count, stride, (float*)aData->getDataPointer()));
+			_status.push_back(nc_get_vars_float (_ncid, _xmomentumid, start, count, stride, (float*)xmom->getDataPointer()));
+			_status.push_back(nc_get_vars_float (_ncid, _ymomentumid, start, count, stride, (float*)ymom->getDataPointer()));
+
+			float bed_z = _pz[stage_index];
+			for (int i = 0; i < (int)aData->size(); i++)
+			{
+				float depth = aData->at(i) - bed_z;
+				if (depth > 0.001f)
+				{
+					float mom = sqrt(xmom->at(i)*xmom->at(i) + ymom->at(i)*ymom->at(i));
+					aData->at(i) = mom / depth;
+				}
+				else
+					aData->at(i) = 0.0f;
+			}
 			break;
 		}
 	}

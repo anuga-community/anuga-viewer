@@ -72,7 +72,7 @@ public:
 		 * Set time series data.
 		 * @param aData 1D timeseries array.
 		 */
-		void setTimeSeriesData(osg::ref_ptr<osg::FloatArray> aData, float aTimeLength, std::string aTitle);
+		void setTimeSeriesData(osg::ref_ptr<osg::FloatArray> aData, float aTimeLength, std::string aTitle, std::string aUnit = "m");
 
 protected:
 	/**
@@ -98,6 +98,7 @@ protected:
 		osg::ref_ptr<osg::FloatArray> _data;
 		float _timelength;
 		std::string _title;
+		std::string _unit;
 	};
 
 	struct StatusData

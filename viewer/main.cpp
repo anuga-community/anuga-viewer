@@ -480,14 +480,30 @@ int main( int argc, char **argv )
 			{
 				int sp = event_handler->getSelectedPoly();
 
-				osg::ref_ptr<osg::FloatArray> time_series = new osg::FloatArray;
-
-				if (sp >= 0)
+				// Map colour mode to timeseries quantity
+				SWWReader::TimeSeriesType tsType;
+				std::string tsTitle, tsUnit;
+				switch (colorMode)
 				{
-					sww->getTimeSeries(sp, ssm->getTextureEnabled() ? SWWReader::TSTYPE_STAGE : SWWReader::TSTYPE_MOMENTUM_MAGNITUDE, time_series);
+					case CM_DEPTH: case CM_MAX_DEPTH:
+						tsType = SWWReader::TSTYPE_DEPTH;
+						tsTitle = "Depth"; tsUnit = "m"; break;
+					case CM_SPEED: case CM_MAX_SPEED:
+						tsType = SWWReader::TSTYPE_SPEED;
+						tsTitle = "Speed"; tsUnit = "m/s"; break;
+					case CM_MOMENTUM: case CM_MAX_MOMENTUM:
+						tsType = SWWReader::TSTYPE_MOMENTUM_MAGNITUDE;
+						tsTitle = "Momentum"; tsUnit = "m\xc2\xb2/s"; break;
+					default: // CM_STAGE, CM_MAX_STAGE
+						tsType = SWWReader::TSTYPE_STAGE;
+						tsTitle = "Stage"; tsUnit = "m"; break;
 				}
 
-				g_hud->setTimeSeriesData(time_series, sww->getTime(sww->getNumberOfTimesteps()-1), ssm->getTextureEnabled() ? std::string("Stage Timeseries") : std::string("Momentum Timeseries"));
+				osg::ref_ptr<osg::FloatArray> time_series = new osg::FloatArray;
+				if (sp >= 0)
+					sww->getTimeSeries(sp, tsType, time_series);
+
+				g_hud->setTimeSeriesData(time_series, sww->getTime(sww->getNumberOfTimesteps()-1), tsTitle, tsUnit);
 			}
 			
 

@@ -216,7 +216,7 @@ void HeadsUpDisplay::update()
 		{
 			// If there is new data, show it.
 			_linegraph = new LineGraph;
-			_xfm->addChild(_linegraph->setUpScene(_graphdata._title, fa, _graphdata._timelength, osg::Vec3(16.0f, ORTHO2D_HEIGHT*0.66f-24.0f, 0), osg::Vec2(ORTHO2D_WIDTH - 400, 400)));
+			_xfm->addChild(_linegraph->setUpScene(_graphdata._title, _graphdata._unit, fa, _graphdata._timelength, osg::Vec3(16.0f, ORTHO2D_HEIGHT*0.66f-24.0f, 0), osg::Vec2(ORTHO2D_WIDTH - 400, 400)));
 		}
 
 		_dirtytimeseries = false;
@@ -236,12 +236,13 @@ void HeadsUpDisplay::update()
 	}
 }
 
-void HeadsUpDisplay::setTimeSeriesData(osg::ref_ptr<osg::FloatArray> aData, float aTimeLength, std::string aTitle)
+void HeadsUpDisplay::setTimeSeriesData(osg::ref_ptr<osg::FloatArray> aData, float aTimeLength, std::string aTitle, std::string aUnit)
 {
 	_dirtytimeseries = true;
 	_graphdata._data = aData;
 	_graphdata._timelength = aTimeLength;
 	_graphdata._title = aTitle;
+	_graphdata._unit = aUnit;
 }
 
 
