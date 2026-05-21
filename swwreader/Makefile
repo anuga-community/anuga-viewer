@@ -6,7 +6,7 @@
 UNAME := $(shell uname)
 TOPDIR           =  ..
 
-OPTIMIZATION     =  -O2
+OPTIMIZATION     =  -O2 -g
 OSGHOME          ?= /usr/local
 
 OSG_INCLUDE      =  ${OSGHOME}/include

@@ -6,6 +6,7 @@
 #include <osg/io_utils>
 #include <osg/Export>
 #include <osg/BlendFunc>
+#include <osg/LineWidth>
 #include <osg/MatrixTransform>
 #include <osgViewer/Renderer>
 #include <osgViewer/Viewer>
@@ -20,11 +21,11 @@
 
 static const char * FONT_NAME = "fonts/arial.ttf";
 
-// Colours — dark navy theme
-static const osg::Vec4 COL_BACKGROUND(0.05f, 0.08f, 0.15f, 0.85f);
-static const osg::Vec4 COL_TEXT(0.92f, 0.92f, 0.92f, 1.0f);
-static const osg::Vec4 COL_GRID(0.28f, 0.30f, 0.38f, 1.0f);
-static const osg::Vec4 COL_LINE(0.22f, 0.74f, 1.0f, 1.0f);
+// Colours — semi-transparent dark theme
+static const osg::Vec4 COL_BACKGROUND(0.15f, 0.20f, 0.35f, 0.82f);
+static const osg::Vec4 COL_TEXT(0.95f, 0.95f, 0.95f, 1.0f);
+static const osg::Vec4 COL_GRID(0.40f, 0.43f, 0.52f, 1.0f);
+static const osg::Vec4 COL_LINE(0.25f, 0.80f, 1.0f, 1.0f);
 
 LineGraph::LineGraph():
 	_geode(NULL)
@@ -53,11 +54,12 @@ osg::Geometry* LineGraph::createBackgroundRectangle(const osg::Vec3& pos, const 
     base->push_back(0); base->push_back(1); base->push_back(2); base->push_back(3);
     geometry->addPrimitiveSet(base);
 
-    // Enable blending so the background is semi-transparent
+    // Enable blending. Do NOT use TRANSPARENT_BIN — that would move the background
+    // to a later render pass and paint it over the grid/data lines that follow it
+    // in the geode. With depth test off (HUD), geode draw order is what matters.
     osg::StateSet* ss = geometry->getOrCreateStateSet();
     ss->setMode(GL_BLEND, osg::StateAttribute::ON);
     ss->setAttribute(new osg::BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    ss->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 
     return geometry;
 }
@@ -211,6 +213,9 @@ osg::Geometry* LineGraph::createGraphGrid(const osg::Vec3& pos, const float widt
     geometry->setVertexArray(vertices);
     geometry->addPrimitiveSet(new osg::DrawArrays(GL_LINES, 0, vertices->size()));
 
+    osg::StateSet* ss = geometry->getOrCreateStateSet();
+    ss->setAttribute(new osg::LineWidth(1.5f));
+
     return geometry;
 }
 
@@ -234,6 +239,9 @@ osg::Geometry* LineGraph::createGraphGeometry(const osg::Vec3& pos, float width,
     geometry->setColorArray(colours);
     geometry->setColorBinding(osg::Geometry::BIND_OVERALL);
     geometry->addPrimitiveSet(new osg::DrawArrays(GL_LINE_STRIP, 0, aData->size()));
+
+    osg::StateSet* ss = geometry->getOrCreateStateSet();
+    ss->setAttribute(new osg::LineWidth(2.5f));
 
     return geometry;
 }
