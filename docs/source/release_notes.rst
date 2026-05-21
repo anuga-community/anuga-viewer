@@ -2,6 +2,37 @@ Release Notes
 =============
 
 
+v0.3.0 — 2026-05-21
+---------------------
+
+`GitHub release (v0.3.0) <https://github.com/anuga-community/anuga-viewer/releases/tag/v0.3.0>`_
+
+New Features
+~~~~~~~~~~~~
+
+**Stage colour mode** — current absolute water surface elevation is now the
+first (default) colour mode.  The full cycle (``v`` / ``V``) is: stage →
+depth → speed → momentum → max depth → max speed → max momentum → max stage.
+
+**Reverse colour mode cycling** (``V``)
+
+  Press ``V`` (Shift+v) to step backwards through the colour modes.
+
+**Keyboard pan for touchpad users** (Shift + arrow keys)
+
+  Hold Shift and press any arrow key to pan the camera.  Each keypress moves
+  the scene by 3 % of the current eye distance, so panning stays proportional
+  at any zoom level.  This provides middle-mouse-button panning for users on
+  touchpads.
+
+Bug Fixes
+~~~~~~~~~
+
+- **Camera reset** (``x`` key) — now reliably resets the view to the default
+  position.  Previously the reset was queued as an event and did not always
+  fire.
+
+
 v0.2.0 — 2026-05-20
 ---------------------
 

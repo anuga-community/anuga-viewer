@@ -50,7 +50,7 @@ void KeyboardEventHandler::getAppUsage(osg::ApplicationUsage& usage)
     usage.addKeyboardMouseBinding("1","Toggle recording.");
     usage.addKeyboardMouseBinding("2","Toggle playback of recorded information");
     usage.addKeyboardMouseBinding("3","Save recorded macro to \"movie.swm\"");
-    usage.addKeyboardMouseBinding("v","Cycle water colour mode: stage / depth / speed / momentum / max depth / max speed / max momentum / max stage");
+    usage.addKeyboardMouseBinding("v/V","Cycle water colour mode forward/backward: stage / depth / speed / momentum / max depth / max speed / max momentum / max stage");
     usage.addKeyboardMouseBinding("z/Z","Decrease/increase vertical (z) scale by 50%");
     usage.addKeyboardMouseBinding("[","Decrease colour scale maximum by 20%");
     usage.addKeyboardMouseBinding("]","Increase colour scale maximum by 20%");
@@ -186,6 +186,14 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 				{
 					int cm = int(_colorMode) + 1;
 					cm %= int(CM_NUM_OF);
+					_colorMode = (ColorMode)cm;
+					return true;
+				}
+
+				case 'V':
+				{
+					int cm = int(_colorMode) - 1;
+					if (cm < 0) cm = int(CM_NUM_OF) - 1;
 					_colorMode = (ColorMode)cm;
 					return true;
 				}

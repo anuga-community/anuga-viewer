@@ -59,8 +59,8 @@ Display
 
    * - Key
      - Action
-   * - v
-     - Cycle water colour mode: stage / depth / speed / momentum / max depth / max speed / max momentum / max stage
+   * - v / V
+     - Cycle water colour mode forward / backward: stage / depth / speed / momentum / max depth / max speed / max momentum / max stage
    * - ``[``
      - Decrease colour scale maximum by 20%
    * - ``]``
