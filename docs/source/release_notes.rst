@@ -2,6 +2,22 @@ Release Notes
 =============
 
 
+v0.5.1 — 2026-05-23
+---------------------
+
+Bug Fixes
+~~~~~~~~~
+
+- **Momentum units garbled** — ``m²/s`` (UTF-8 superscript) has been replaced
+  with ``m^2/s`` (plain ASCII) everywhere it appears: the ``-help`` text, the
+  HUD colour-scale label, and the timeseries plot y-axis.
+
+- **Help screen unreadable** — ``-help`` previously printed hundreds of lines
+  of OSG internal options, burying the viewer's own flags.  It now shows a
+  compact, single-screen summary of viewer options and keyboard shortcuts.
+  The full OSG reference is still accessible via ``--osg-help``.
+
+
 v0.5.0 — 2026-05-23
 ---------------------
 
