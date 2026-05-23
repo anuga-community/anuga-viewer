@@ -86,7 +86,8 @@ void BedSlope::onRefreshData()
     _geom->addPrimitiveSet( _sww->getBedslopeIndexArray().get() );
 
     osg::Vec4Array* color = new osg::Vec4Array(1);
-    (*color)[0] = osg::Vec4( DEF_BEDSLOPE_COLOUR );
+    (*color)[0] = _texture ? osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f)
+                           : osg::Vec4(DEF_BEDSLOPE_COLOUR);
     _geom->setColorArray( color );
     _geom->setColorBinding( osg::Geometry::BIND_OVERALL );
 
@@ -95,6 +96,9 @@ void BedSlope::onRefreshData()
     visitor->smooth( *_geom );
 
 	_loaded = true;
+
+    // Re-apply texture state after geometry refresh (restores tex coords and material)
+    onRefreshTextured(_texture);
 }
 
 void BedSlope::onRefreshTextured(bool aIsTextured)
