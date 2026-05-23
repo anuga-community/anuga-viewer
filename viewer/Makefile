@@ -22,16 +22,23 @@ ifeq ($(UNAME), Darwin)
 		            -Wall -DDARWIN_QUICKTIME \
 		            $(OPTIMIZATION)
 	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
+	GDAL_CFLAGS      = $(shell gdal-config --cflags 2>/dev/null)
 else ifneq ($(findstring MINGW,$(UNAME)),)
 	# Windows (MSYS2/MinGW)
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
 	X_LIBS          =
 	WIN_LDFLAGS      =  -Wl,-subsystem,console
 	GDAL_LIBS        =
+	GDAL_CFLAGS      =
 else
 	# Linux
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
 	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
+	GDAL_CFLAGS      = $(shell gdal-config --cflags 2>/dev/null)
+endif
+
+ifneq ($(GDAL_LIBS),)
+	CPPFLAGS        += -DHAVE_GDAL
 endif
 
 X_LIBS           ?= -lX11
@@ -54,7 +61,7 @@ OBJ              =  anugahud.o hud.o keyboardeventhandler.o watersurface.o main.
 
 
 %.o : %.cpp
-	$(COMPILER) -c $(INCLUDES) $(CPPFLAGS) $< -o $@
+	$(COMPILER) -c $(INCLUDES) $(GDAL_CFLAGS) $(CPPFLAGS) $< -o $@
 
 
 $(TARGET) : $(OBJ)

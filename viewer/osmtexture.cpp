@@ -87,7 +87,7 @@ std::string fetchOSMTexture(SWWReader* sww, const std::string& outputPath)
 
     // Tile cache alongside the output GeoTIFF
     std::string tileCache = outputPath + "_tiles";
-    CPLMakeDir(tileCache.c_str());
+    VSIMkdir(tileCache.c_str(), 0755);
 
     // Build GDAL WMS XML for OSM TMS
     char wmsXML[4096];

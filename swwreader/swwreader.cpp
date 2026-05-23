@@ -99,7 +99,9 @@ SWWReader::SWWReader(const std::string& filename) :
 	_pmaxstage(NULL),
 	_pmaxspeed(NULL),
 	_pmaxmomentum(NULL),
-	_vscale(1.0f)
+	_vscale(1.0f),
+	_zone(-1),
+	_south(false)
 {
 PROFILE_BEGIN
 
@@ -775,6 +777,39 @@ bool SWWReader::load()
 	osg::notify(osg::INFO) << "[SWWReader] number of points: " << _npoints <<  std::endl;
 	osg::notify(osg::INFO) << "[SWWReader] number of timesteps: " << _ntimesteps <<  std::endl;
 
+	// Georeference offset and UTM zone — must be read before nc_close
+	_xllcorner = 0.0;
+	_yllcorner = 0.0;
+	{
+		float xll, yll;
+		if (nc_get_att_float(_ncid, NC_GLOBAL, "xllcorner", &xll) == NC_NOERR &&
+		    nc_get_att_float(_ncid, NC_GLOBAL, "yllcorner", &yll) == NC_NOERR)
+		{
+			_xllcorner = xll;
+			_yllcorner = yll;
+			osg::notify(osg::INFO) << "[SWWReader] xllcorner: " << _xllcorner << std::endl;
+			osg::notify(osg::INFO) << "[SWWReader] yllcorner: " << _yllcorner << std::endl;
+		}
+	}
+
+	_zone = -1;
+	_south = false;
+	{
+		int zoneVal = -1;
+		if (nc_get_att_int(_ncid, NC_GLOBAL, "zone", &zoneVal) == NC_NOERR && zoneVal > 0)
+			_zone = zoneVal;
+
+		size_t hemLen = 0;
+		if (_zone > 0 && nc_inq_attlen(_ncid, NC_GLOBAL, "hemisphere", &hemLen) == NC_NOERR && hemLen > 0)
+		{
+			std::string hem(hemLen, '\0');
+			nc_get_att_text(_ncid, NC_GLOBAL, "hemisphere", &hem[0]);
+			_south = (hem[0] == 'S' || hem[0] == 's');
+		}
+		if (_zone > 0)
+			osg::notify(osg::INFO) << "[SWWReader] UTM zone: " << _zone << (_south ? "S" : "N") << std::endl;
+	}
+
 	// --- close file, we have finished with it
 	_status.push_back( nc_close(_ncid) );
 
@@ -802,39 +837,6 @@ bool SWWReader::load()
 		}
 	}
 
-	// sww file can optionally contain georeference offset
-	int status1 = nc_get_att_float(_ncid, NC_GLOBAL, "xllcorner", &_xllcorner);
-	int status2 = nc_get_att_float(_ncid, NC_GLOBAL, "yllcorner", &_yllcorner);
-	if( status1 == NC_NOERR && status2 == NC_NOERR)
-	{
-		osg::notify(osg::INFO) << "[SWWReader] xllcorner: " << _xllcorner <<  std::endl;
-		osg::notify(osg::INFO) << "[SWWReader] yllcorner: " << _yllcorner <<  std::endl;
-	}
-	else
-	{
-		_xllcorner = 0.0;  // default value
-		_yllcorner = 0.0;
-	}
-
-	// UTM zone and hemisphere
-	_zone = -1;
-	_south = false;
-	{
-		int zoneVal = -1;
-		if (nc_get_att_int(_ncid, NC_GLOBAL, "zone", &zoneVal) == NC_NOERR && zoneVal > 0)
-			_zone = zoneVal;
-
-		size_t hemLen = 0;
-		if (_zone > 0 && nc_inq_attlen(_ncid, NC_GLOBAL, "hemisphere", &hemLen) == NC_NOERR && hemLen > 0)
-		{
-			std::string hem(hemLen, '\0');
-			nc_get_att_text(_ncid, NC_GLOBAL, "hemisphere", &hem[0]);
-			char c = hem[0];
-			_south = (c == 'S' || c == 's');
-		}
-		if (_zone > 0)
-			osg::notify(osg::INFO) << "[SWWReader] UTM zone: " << _zone << (_south ? "S" : "N") << std::endl;
-	}
 
 
 	// alpha-scaling defaults, can be overridden after construction by command line parameters
