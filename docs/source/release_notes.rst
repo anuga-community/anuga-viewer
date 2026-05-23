@@ -2,6 +2,56 @@ Release Notes
 =============
 
 
+v0.5.0 — 2026-05-23
+---------------------
+
+New Features
+~~~~~~~~~~~~
+
+**Automatic OpenStreetMap texture draping**
+
+  When an SWW file contains georeferencing metadata (UTM zone and hemisphere),
+  the viewer automatically downloads OpenStreetMap tiles and drapes them as a
+  texture over the bedslope terrain — no extra flags required.  The resulting
+  GeoTIFF is cached next to the SWW file so subsequent launches use it
+  instantly.
+
+  Attribution: map data © OpenStreetMap contributors —
+  `openstreetmap.org/copyright <https://www.openstreetmap.org/copyright>`_
+
+**Satellite imagery option** (``-maptiles satellite``)
+
+  Pass ``-maptiles satellite`` to use ESRI World Imagery instead of the
+  default OpenStreetMap street map.  Both GeoTIFFs are cached independently,
+  so you can switch between them without re-downloading.
+
+  Attribution: imagery © Esri, Maxar, Earthstar Geographics, and GIS User
+  Community
+
+**Map tile source flag** (``-maptiles osm|satellite|none``)
+
+  ============= =====================================================
+  Value         Effect
+  ============= =====================================================
+  ``osm``       OpenStreetMap street map (default)
+  ``satellite`` ESRI World Imagery
+  ``none``      Skip tile fetch; show bedslope without texture
+  ============= =====================================================
+
+Bug Fixes
+~~~~~~~~~
+
+- **UTM zone not read from SWW** — the zone, hemisphere, and corner-offset
+  attributes were read *after* ``nc_close()``, so all NetCDF calls silently
+  failed and the zone was reported as −1.  Moved all global-attribute reads
+  to before the file is closed.
+
+- **GDAL path compiled out** — the Makefile linked ``-lgdal`` but never
+  defined ``-DHAVE_GDAL``, so ``osmtexture.cpp`` always compiled the no-op
+  stub.  ``GDAL_CFLAGS`` and ``-DHAVE_GDAL`` are now set automatically when
+  ``gdal-config`` is present.
+
+
 v0.4.0 — 2026-05-21
 ---------------------
 
