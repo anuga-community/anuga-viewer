@@ -43,6 +43,7 @@
 #include "anugahud.h"
 #include "linegraph.h"
 #include "customviewer.h"
+#include "osmtexture.h"
 
 // prototypes
 extern const char* version();
@@ -223,7 +224,25 @@ int main( int argc, char **argv )
    if( arguments.read("-momentummax",tmpfloat) ) sww->setMomentumMax( tmpfloat );
 
    std::string bedslopetexture;
-   if( arguments.read("-texture",bedslopetexture) ) sww->setBedslopeTexture( bedslopetexture );
+   if( arguments.read("-texture",bedslopetexture) )
+   {
+      sww->setBedslopeTexture( bedslopetexture );
+   }
+   else if ( sww->getUTMZone() > 0 )
+   {
+      // Auto-fetch OSM tiles when SWW has a valid UTM zone and no -texture given.
+      // Cache the GeoTIFF next to the SWW file for reuse on subsequent launches.
+      std::string swwDir = osgDB::getFilePath( sww->getSWWFilename() );
+      if (swwDir.empty()) swwDir = ".";
+      std::string osmPath = swwDir + "/" +
+          osgDB::getStrippedName( sww->getSWWFilename() ) + "_osm.tif";
+      std::string result = fetchOSMTexture(sww, osmPath);
+      if (!result.empty())
+      {
+         sww->setBedslopeTexture(result);
+         bedslopetexture = result;
+      }
+   }
 
    // root node
    osg::Group* rootnode = new osg::Group;

@@ -136,6 +136,13 @@ public:
     const std::string getSwollenDir() {return *(_state.swollendirectory);}
     virtual void setSwollenDir(const std::string path) {_state.swollendirectory = new std::string(path);}
 
+    const std::string getSWWFilename() {return *(_state.swwfilename);}
+
+    // Geographic info from SWW global attributes (zone = -1 if not present)
+    int  getUTMZone() const { return _zone; }
+    bool isSouthernHemisphere() const { return _south; }
+    void getTerrainBoundsUTM(double& xmin, double& xmax, double& ymin, double& ymax) const;
+
 	virtual bool refresh();
 
 
@@ -258,6 +265,10 @@ protected:
 	
 	// sww file can contain optional global offset attributes
 	float _xllcorner, _yllcorner;
+
+	// UTM zone and hemisphere (zone = -1 if absent or invalid)
+	int  _zone;
+	bool _south;
 	
 	// stack of return values from netcdf function calls
 	std::vector<int> _status;

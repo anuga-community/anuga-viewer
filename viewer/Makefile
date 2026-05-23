@@ -48,7 +48,7 @@ TARGET           =  $(TARGETDIR)/$(NAME)
 
 COMPILER         =  g++
 OBJ              =  anugahud.o hud.o keyboardeventhandler.o watersurface.o main.o version.o \
-                    bedslope.o skybox.o linegraph.o customviewer.o \
+                    bedslope.o skybox.o linegraph.o customviewer.o osmtexture.o \
                     directionallight.o state.o meshobject.o customargumentparser.o
 
 

@@ -208,6 +208,22 @@ osg::ref_ptr<osg::Vec2Array> SWWReader::getBedslopeTextureCoords()
 }
 
 
+void SWWReader::getTerrainBoundsUTM(double& xmin, double& xmax, double& ymin, double& ymax) const
+{
+	xmin = xmax = _px[0] + _xllcorner;
+	ymin = ymax = _py[0] + _yllcorner;
+	for (size_t i = 1; i < _npoints; ++i)
+	{
+		double x = _px[i] + _xllcorner;
+		double y = _py[i] + _yllcorner;
+		if (x < xmin) xmin = x;
+		if (x > xmax) xmax = x;
+		if (y < ymin) ymin = y;
+		if (y > ymax) ymax = y;
+	}
+}
+
+
 bool SWWReader::loadBedslopeVertexArray(unsigned int aIndex)
 {
 	// netcdf open
@@ -798,6 +814,26 @@ bool SWWReader::load()
 	{
 		_xllcorner = 0.0;  // default value
 		_yllcorner = 0.0;
+	}
+
+	// UTM zone and hemisphere
+	_zone = -1;
+	_south = false;
+	{
+		int zoneVal = -1;
+		if (nc_get_att_int(_ncid, NC_GLOBAL, "zone", &zoneVal) == NC_NOERR && zoneVal > 0)
+			_zone = zoneVal;
+
+		size_t hemLen = 0;
+		if (_zone > 0 && nc_inq_attlen(_ncid, NC_GLOBAL, "hemisphere", &hemLen) == NC_NOERR && hemLen > 0)
+		{
+			std::string hem(hemLen, '\0');
+			nc_get_att_text(_ncid, NC_GLOBAL, "hemisphere", &hem[0]);
+			char c = hem[0];
+			_south = (c == 'S' || c == 's');
+		}
+		if (_zone > 0)
+			osg::notify(osg::INFO) << "[SWWReader] UTM zone: " << _zone << (_south ? "S" : "N") << std::endl;
 	}
 
 
