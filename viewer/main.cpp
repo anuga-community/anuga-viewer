@@ -302,6 +302,15 @@ int main( int argc, char **argv )
       }
    }
 
+   // Label shown in HUD when bedslope texture is active
+   std::string landscapeLabel;
+   if (!bedslopetexture.empty())
+   {
+      if      (maptiles == "satellite") landscapeLabel = "landscape (satellite)";
+      else if (maptiles == "osm")       landscapeLabel = "landscape (osm)";
+      else                              landscapeLabel = "landscape";
+   }
+
    // root node
    osg::Group* rootnode = new osg::Group;
 
@@ -328,7 +337,7 @@ int main( int argc, char **argv )
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
 	g_hud->setStatus("color", "stage (max 1.00 m)");
-	g_hud->setStatus("mode", bedslopetexture.empty() ? "colour" : "landscape");
+	g_hud->setStatus("mode", bedslopetexture.empty() ? "colour" : landscapeLabel);
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "%.2fx", vscale);
@@ -550,7 +559,7 @@ int main( int argc, char **argv )
 			{
 				bool newState = !ssm->getTextureEnabled();
 				ssm->setTextureEnabled(newState);
-				g_hud->setStatus("mode", newState ? "landscape" : "colour");
+				g_hud->setStatus("mode", newState ? landscapeLabel : "colour");
 			}
 
 			bool mouseClicked = event_handler->checkMouseClicked();
@@ -650,7 +659,7 @@ int main( int argc, char **argv )
 			g_hud->setVisible(state.getShowHUD());
 			g_hud->setStatus("culling", state.getCulling() ? "on" : "off");
 			g_hud->setWireframe((WireframeMode)state.getWireframe());
-			g_hud->setStatus("mode", state.getShowTexture() ? "landscape" : "colour");
+			g_hud->setStatus("mode", state.getShowTexture() ? landscapeLabel : "colour");
 
 			// loop playback
 			playback_index ++;
