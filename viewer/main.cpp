@@ -302,12 +302,15 @@ int main( int argc, char **argv )
       }
    }
 
-   // Label shown in HUD when bedslope texture is active
+   // Label shown in HUD when bedslope texture is active.
+   // Map tile sources show as "colour (osm/satellite)" — the map is a background
+   // for the water colour visualisation, not a separate landscape view.
+   // A user-supplied -texture file keeps the traditional "landscape" label.
    std::string landscapeLabel;
    if (!bedslopetexture.empty())
    {
-      if      (maptiles == "satellite") landscapeLabel = "landscape (satellite)";
-      else if (maptiles == "osm")       landscapeLabel = "landscape (osm)";
+      if      (maptiles == "satellite") landscapeLabel = "colour (satellite)";
+      else if (maptiles == "osm")       landscapeLabel = "colour (osm)";
       else                              landscapeLabel = "landscape";
    }
 
