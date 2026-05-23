@@ -224,19 +224,26 @@ int main( int argc, char **argv )
    if( arguments.read("-momentummax",tmpfloat) ) sww->setMomentumMax( tmpfloat );
 
    std::string bedslopetexture;
+   std::string maptiles = "osm";
+   arguments.read("-maptiles", maptiles);
+
    if( arguments.read("-texture",bedslopetexture) )
    {
       sww->setBedslopeTexture( bedslopetexture );
    }
-   else if ( sww->getUTMZone() > 0 )
+   else if ( maptiles != "none" && sww->getUTMZone() > 0 )
    {
-      // Auto-fetch OSM tiles when SWW has a valid UTM zone and no -texture given.
+      // Auto-fetch map tiles when SWW has a valid UTM zone and no -texture given.
       // Cache the GeoTIFF next to the SWW file for reuse on subsequent launches.
+      MapTileSource tileSource = (maptiles == "satellite") ? MapTileSource::SATELLITE
+                                                           : MapTileSource::OSM;
+      std::string suffix = (tileSource == MapTileSource::SATELLITE) ? "_satellite.tif"
+                                                                     : "_osm.tif";
       std::string swwDir = osgDB::getFilePath( sww->getSWWFilename() );
       if (swwDir.empty()) swwDir = ".";
-      std::string osmPath = swwDir + "/" +
-          osgDB::getStrippedName( sww->getSWWFilename() ) + "_osm.tif";
-      std::string result = fetchOSMTexture(sww, osmPath);
+      std::string tifPath = swwDir + "/" +
+          osgDB::getStrippedName( sww->getSWWFilename() ) + suffix;
+      std::string result = fetchMapTexture(sww, tifPath, tileSource);
       if (!result.empty())
       {
          sww->setBedslopeTexture(result);

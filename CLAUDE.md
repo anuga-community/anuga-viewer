@@ -102,7 +102,8 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 
 | Parameter | Description |
 |-----------|-------------|
-| `-texture <file>` | Apply image/GDAL texture to bedslope |
+| `-texture <file>` | Apply image/GDAL texture to bedslope (overrides auto tile fetch) |
+| `-maptiles osm\|satellite\|none` | Map tile source when SWW has UTM zone (default: `osm`) |
 | `-scale <float>` | Initial vertical exaggeration factor (default: 1.0) |
 | `-tps <float>` | Timesteps per second (default: 10) |
 | `-hmin`/`-hmax` | Water depth colour scale limits (metres) |

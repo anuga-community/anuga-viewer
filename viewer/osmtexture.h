@@ -5,17 +5,23 @@
 
 class SWWReader;
 
+enum class MapTileSource { OSM, SATELLITE };
+
 /**
- * Fetch OpenStreetMap tiles for the terrain extent and warp them into a
- * georeferenced GeoTIFF in the terrain's UTM coordinate system.
+ * Fetch map tiles for the terrain extent and warp them into a georeferenced
+ * GeoTIFF in the terrain's UTM coordinate system.
+ *
+ * source == OSM:       OpenStreetMap street map (tile.openstreetmap.org)
+ * source == SATELLITE: ESRI World Imagery satellite
  *
  * If outputPath already exists it is reused without re-downloading.
- * Returns outputPath on success, empty string if the SWW has no valid UTM
- * zone or if the network/GDAL call fails.
+ * Returns outputPath on success, empty string on failure.
  *
- * Attribution: map data © OpenStreetMap contributors
- * (https://www.openstreetmap.org/copyright)
+ * Attribution:
+ *   OSM:       map data © OpenStreetMap contributors (openstreetmap.org/copyright)
+ *   Satellite: imagery © Esri, Maxar, Earthstar Geographics, and GIS User Community
  */
-std::string fetchOSMTexture(SWWReader* sww, const std::string& outputPath);
+std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath,
+                            MapTileSource source = MapTileSource::OSM);
 
 #endif // OSMTEXTURE_H
