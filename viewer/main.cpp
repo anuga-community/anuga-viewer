@@ -447,7 +447,7 @@ int main( int argc, char **argv )
 				{
 					sww->setMomentumMax(sww->getMomentumMax() * factor);
 					const char* label = (colorMode == CM_MAX_MOMENTUM) ? "max momentum" : "momentum";
-					snprintf(buf, sizeof(buf), "%s (max %.2f m²/s)", label, sww->getMomentumMax());
+					snprintf(buf, sizeof(buf), "%s (max %.2f m^2/s)", label, sww->getMomentumMax());
 				}
 				else
 				{
@@ -520,7 +520,7 @@ int main( int argc, char **argv )
 						tsTitle = "Speed"; tsUnit = "m/s"; break;
 					case CM_MOMENTUM: case CM_MAX_MOMENTUM:
 						tsType = SWWReader::TSTYPE_MOMENTUM_MAGNITUDE;
-						tsTitle = "Momentum"; tsUnit = "m\xc2\xb2/s"; break;
+						tsTitle = "Momentum"; tsUnit = "m^2/s"; break;
 					default: // CM_STAGE, CM_MAX_STAGE
 						tsType = SWWReader::TSTYPE_STAGE;
 						tsTitle = "Stage"; tsUnit = "m"; break;

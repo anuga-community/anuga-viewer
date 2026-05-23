@@ -110,7 +110,10 @@ void CustomArgumentParser::SetUsage()
 	usage.addCommandLineOption("-loop", "Repeated (looped) playback of .swm files");
 	usage.addCommandLineOption("-nosky", "Omit background sky");
 	usage.addCommandLineOption("-cullangle <float angle 0-90>", "Cull triangles steeper than this value");
-	usage.addCommandLineOption("-texture <file>", "Image to use for bedslope topography");
+	usage.addCommandLineOption("-texture <file>", "Image to use for bedslope topography (overrides auto tile fetch)");
+	usage.addCommandLineOption("-maptiles osm|satellite|none", "Map tile source when SWW has UTM zone (default: osm)");
+	usage.addCommandLineOption("-speedmax <float>", "Speed colour scale maximum (m/s)");
+	usage.addCommandLineOption("-momentummax <float>", "Momentum colour scale maximum (m^2/s)");
 	usage.addCommandLineOption("-version", "Revision number and creation (not compile) date");
 }
 
