@@ -167,11 +167,62 @@ int main( int argc, char **argv )
    osgDB::makeDirectory( moviedir );
    cap_handler->setCaptureOperation(new osgViewer::ScreenCaptureHandler::WriteToFile(moviedir+"/frame", "jpg", osgViewer::ScreenCaptureHandler::WriteToFile::SEQUENTIAL_NUMBER));
 
-   // if user requested help, write it out to cout
+   // Compact viewer help — show our options and key bindings without OSG boilerplate
    if( arguments.read("-help") || arguments.read("--help") || arguments.read("-h") )
    {
-	   arguments.getApplicationUsage()->write(std::cout, osg::ApplicationUsage::HELP_ALL);
-	  return 1;
+      std::cout <<
+         "Usage: anuga_viewer [options] file.sww\n"
+         "       anuga_viewer [options] file.swm\n"
+         "\n"
+         "Options:\n"
+         "  -texture <file>               Bedslope texture image (overrides auto tile fetch)\n"
+         "  -maptiles osm|satellite|none  Map tile source when SWW has UTM zone (default: osm)\n"
+         "  -scale <float>                Initial vertical exaggeration (default: 1.0)\n"
+         "  -tps <float>                  Timesteps per second (default: 10)\n"
+         "  -hmin <float>                 Depth below which water is transparent\n"
+         "  -hmax <float>                 Depth above which water is fully opaque\n"
+         "  -alphamin <float 0-1>         Transparency at hmin\n"
+         "  -alphamax <float 0-1>         Maximum transparency\n"
+         "  -speedmax <float>             Speed colour scale maximum (m/s)\n"
+         "  -momentummax <float>          Momentum colour scale maximum (m^2/s)\n"
+         "  -cullangle <float 0-90>       Cull triangles steeper than this angle\n"
+         "  -lightpos x,y,z              Directional light position (default: 1,1,1)\n"
+         "  -nosky                        Disable skybox\n"
+         "  -movie <dir>                  Export frames to directory (use with .swm)\n"
+         "  -loop                         Loop .swm playback\n"
+         "  -version                      Print revision number\n"
+         "  --osg-help                    Show full OSG options and environment variables\n"
+         "\n"
+         "Keyboard shortcuts:\n"
+         "  Space          Pause / resume\n"
+         "  v / V          Cycle colour mode forward / backward\n"
+         "                   (stage / depth / speed / momentum /\n"
+         "                    max depth / max speed / max momentum / max stage)\n"
+         "  [ / ]          Decrease / increase colour scale maximum by 20%\n"
+         "  z / Z          Decrease / increase vertical exaggeration by 50%\n"
+         "  w              Cycle wireframe modes\n"
+         "  g              Cycle grid / colorbar overlay\n"
+         "  i              Toggle information HUD\n"
+         "  l              Toggle lighting\n"
+         "  t              Toggle bedslope texture\n"
+         "  b              Toggle backface culling\n"
+         "  c              Toggle steep-triangle culling\n"
+         "  x              Reset camera\n"
+         "  r              Reset animation to timestep 0\n"
+         "  1              Start / stop recording camera path\n"
+         "  2              Play / stop recorded macro\n"
+         "  3              Save macro as movie.swm\n"
+         "  O              Screenshot\n"
+         "  Shift+arrows   Pan camera\n"
+         "  Shift+LMB      Show timeseries for clicked point\n"
+         "  Escape         Quit\n";
+      return 0;
+   }
+
+   if( arguments.read("--osg-help") )
+   {
+      arguments.getApplicationUsage()->write(std::cout, osg::ApplicationUsage::HELP_ALL);
+      return 0;
    }
 
 
