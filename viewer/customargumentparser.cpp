@@ -114,6 +114,7 @@ void CustomArgumentParser::SetUsage()
 	usage.addCommandLineOption("-maptiles osm|satellite|none", "Map tile source when SWW has UTM zone (default: osm)");
 	usage.addCommandLineOption("-speedmax <float>", "Speed colour scale maximum (m/s)");
 	usage.addCommandLineOption("-momentummax <float>", "Momentum colour scale maximum (m^2/s)");
+	usage.addCommandLineOption("-stagemin <float>", "Stage colour scale minimum elevation (m, default: domain zmin)");
 	usage.addCommandLineOption("-version", "Revision number and creation (not compile) date");
 }
 

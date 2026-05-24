@@ -185,6 +185,7 @@ int main( int argc, char **argv )
          "  -alphamax <float 0-1>         Maximum transparency\n"
          "  -speedmax <float>             Speed colour scale maximum (m/s)\n"
          "  -momentummax <float>          Momentum colour scale maximum (m^2/s)\n"
+         "  -stagemin <float>             Stage colour scale minimum elevation (m)\n"
          "  -cullangle <float 0-90>       Cull triangles steeper than this angle\n"
          "  -lightpos x,y,z              Directional light position (default: 1,1,1)\n"
          "  -nosky                        Disable skybox\n"
@@ -204,7 +205,7 @@ int main( int argc, char **argv )
          "  g              Cycle grid / colorbar overlay\n"
          "  i              Toggle information HUD\n"
          "  l              Toggle lighting\n"
-         "  t              Toggle bedslope texture\n"
+         "  t              Cycle view mode: landscape (map) → colour (osm) → colour\n"
          "  b              Toggle backface culling\n"
          "  c              Toggle steep-triangle culling\n"
          "  x              Reset camera\n"
@@ -273,6 +274,7 @@ int main( int argc, char **argv )
    if( arguments.read("-cullangle",tmpfloat) ) sww->setCullAngle( tmpfloat );
    if( arguments.read("-speedmax",tmpfloat) ) sww->setSpeedMax( tmpfloat );
    if( arguments.read("-momentummax",tmpfloat) ) sww->setMomentumMax( tmpfloat );
+   if( arguments.read("-stagemin",tmpfloat) ) sww->setStageOffset( tmpfloat );
 
    std::string bedslopetexture;
    std::string maptiles = "osm";
@@ -302,16 +304,29 @@ int main( int argc, char **argv )
       }
    }
 
-   // Label shown in HUD when bedslope texture is active.
-   // Map tile sources show as "colour (osm/satellite)" — the map is a background
-   // for the water colour visualisation, not a separate landscape view.
-   // A user-supplied -texture file keeps the traditional "landscape" label.
-   std::string landscapeLabel;
+   // HUD labels for the three texture modes cycled by the 't' key.
+   // landscapeLabel  (mode 0): OSM/texture on, water hidden — pure map view
+   // colourOsmLabel  (mode 1): OSM/texture on, water coloured — flood analysis with map background
+   // "colour"        (mode 2): no texture, water coloured
+   std::string landscapeLabel;   // mode 0
+   std::string colourOsmLabel;   // mode 1
    if (!bedslopetexture.empty())
    {
-      if      (maptiles == "satellite") landscapeLabel = "colour (satellite)";
-      else if (maptiles == "osm")       landscapeLabel = "colour (osm)";
-      else                              landscapeLabel = "landscape";
+      if (maptiles == "satellite")
+      {
+         landscapeLabel = "landscape (satellite)";
+         colourOsmLabel = "colour (satellite)";
+      }
+      else if (maptiles == "osm")
+      {
+         landscapeLabel = "landscape (osm)";
+         colourOsmLabel = "colour (osm)";
+      }
+      else  // user-supplied -texture file
+      {
+         landscapeLabel = "landscape";
+         colourOsmLabel = "landscape";
+      }
    }
 
    // root node
@@ -340,6 +355,8 @@ int main( int argc, char **argv )
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
 	g_hud->setStatus("color", "stage (max 1.00 m)");
+	// texMode: 0=landscape (water hidden, map visible), 1=colour+osm, 2=colour (no texture)
+	int texMode = bedslopetexture.empty() ? 2 : 0;
 	g_hud->setStatus("mode", bedslopetexture.empty() ? "colour" : landscapeLabel);
 	{
 		char buf[32];
@@ -367,6 +384,10 @@ int main( int argc, char **argv )
    rootnode->addChild(model);
    model->addChild( bedslope->get() );
    model->addChild( water->get() );
+
+   // Start in landscape mode (mode 0): show OSM map without water overlay
+   if (texMode == 0)
+      water->get()->setNodeMask(0);
 
 	// Load the initial frame so we can get grid extents
 	sww->loadBedslopeVertexArray(0);
@@ -560,9 +581,33 @@ int main( int argc, char **argv )
 
 			if (event_handler->toggleTexture())
 			{
-				bool newState = !ssm->getTextureEnabled();
-				ssm->setTextureEnabled(newState);
-				g_hud->setStatus("mode", newState ? landscapeLabel : "colour");
+				if (bedslopetexture.empty())
+				{
+					// No texture: no-op (nothing to toggle)
+				}
+				else
+				{
+					// Cycle: landscape (osm) → colour (osm) → colour → landscape (osm)
+					texMode = (texMode + 1) % 3;
+					if (texMode == 0)       // landscape: map visible, water hidden
+					{
+						ssm->setTextureEnabled(true);
+						water->get()->setNodeMask(0);
+						g_hud->setStatus("mode", landscapeLabel);
+					}
+					else if (texMode == 1)  // colour (osm): water visible, map on terrain
+					{
+						ssm->setTextureEnabled(true);
+						water->get()->setNodeMask(~0u);
+						g_hud->setStatus("mode", colourOsmLabel);
+					}
+					else                    // colour: no texture, water visible
+					{
+						ssm->setTextureEnabled(false);
+						water->get()->setNodeMask(~0u);
+						g_hud->setStatus("mode", "colour");
+					}
+				}
 			}
 
 			bool mouseClicked = event_handler->checkMouseClicked();

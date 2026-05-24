@@ -2,6 +2,44 @@ Release Notes
 =============
 
 
+v0.5.2 — 2026-05-24
+---------------------
+
+New Features
+~~~~~~~~~~~~
+
+**Three-state view mode cycling** (``t`` key)
+
+  With an OSM or satellite texture loaded, pressing ``t`` now cycles through
+  three distinct view modes:
+
+  =================== ================================================
+  Mode                Description
+  =================== ================================================
+  ``landscape (osm)`` Map tiles on terrain, water surface hidden —
+                      pure map view for navigating the domain
+  ``colour (osm)``    Water coloured by quantity, map tile background
+  ``colour``          Water coloured by quantity, plain terrain
+  =================== ================================================
+
+  The viewer opens in ``landscape (osm)`` mode so the terrain map is
+  immediately visible.  Pressing ``t`` once reveals the flood with the
+  map as a background; pressing again hides the map.
+
+**Stage colour scale relative to domain elevation** (``-stagemin``)
+
+  The stage colour mode now shows stage elevation above the domain's
+  lowest bedslope point (auto-detected from the SWW file) rather than
+  above absolute zero.  This makes the default ``heightmax`` of 1.0 m
+  give a meaningful colour range for typical shallow-water simulations
+  even when the domain sits at 600+ m above sea level.
+
+  Use ``-stagemin <float>`` to set a custom reference elevation (e.g.
+  ``-stagemin 620`` for a domain whose lowest point is 620 m ASL).
+  Combine with ``-hmax`` to set the upper bound:
+  ``-stagemin 620 -hmax 10`` colours the range 620–630 m.
+
+
 v0.5.1 — 2026-05-23
 ---------------------
 

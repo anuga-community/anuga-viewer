@@ -127,7 +127,7 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 | `g` | Cycle grid/colorbar overlay |
 | `i` | Toggle information HUD |
 | `l` | Toggle lighting |
-| `t` | Toggle bedslope texture |
+| `t` | Cycle view mode: landscape (map, water hidden) → colour (osm) → colour |
 | `b` | Toggle backface culling |
 | `c` | Toggle steep-triangle culling |
 | `x` | Reset camera to default position |

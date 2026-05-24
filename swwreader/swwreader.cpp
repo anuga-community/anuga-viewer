@@ -109,6 +109,7 @@ PROFILE_BEGIN
 
 	// state initialization
 	_state.bedslopetexturefilename = NULL;
+	_state.stageoffset = 0.0f;
 
 	// netcdf filename
 	_state.swwfilename = new std::string(filename);
@@ -445,8 +446,8 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		}
 		else if (cm == CM_STAGE)
 		{
-			// absolute stage elevation; heightmax is saturation value
-			intens = (depth_m > 0.001f) ? min(1.0f, max(0.0f, _pstage[iv]) / _state.heightmax) : 0.0f;
+			// stage elevation above domain base (stageoffset); heightmax is span in metres
+			intens = (depth_m > 0.001f) ? min(1.0f, max(0.0f, (_pstage[iv] - _state.stageoffset) / _state.heightmax)) : 0.0f;
 		}
 		else if (_pxmomentum && _pymomentum)
 		{
@@ -1011,6 +1012,7 @@ void SWWReader::getBedslopeBoundingVolume(const float * aZ)
 	_xoffset = xmin;
 	_yoffset = ymin;
 	_zoffset = zmin;
+	_state.stageoffset = (float)zmin;  // stage colour starts at domain base; overridable via -stagemin
 	_xcenter = 0.5;
 	_ycenter = 0.5;
 	_zcenter = 0.0;
