@@ -268,13 +268,15 @@ int main( int argc, char **argv )
    if( !arguments.read("-tps", tps) || tps <= 0.0 ) tps = DEF_TPS;
    if( !arguments.read("-scale", vscale) ) vscale = 1.0;
    if( arguments.read("-hmin",tmpfloat) ) sww->setHeightMin( tmpfloat );
-   if( arguments.read("-hmax",tmpfloat) ) sww->setHeightMax( tmpfloat );
+   // -hmax and -stagemin are read now but applied AFTER loadBedslopeVertexArray so they
+   // override the auto-detected values (stageoffset=zmin, stageheightmax=zrange).
+   float userHmax = 1.0f;    bool hasHmax     = arguments.read("-hmax",     userHmax);
+   float userStageMin = 0.0f; bool hasStageMin = arguments.read("-stagemin", userStageMin);
    if( arguments.read("-alphamin",tmpfloat) ) sww->setAlphaMin( tmpfloat );
    if( arguments.read("-alphamax",tmpfloat) ) sww->setAlphaMax( tmpfloat );
    if( arguments.read("-cullangle",tmpfloat) ) sww->setCullAngle( tmpfloat );
    if( arguments.read("-speedmax",tmpfloat) ) sww->setSpeedMax( tmpfloat );
    if( arguments.read("-momentummax",tmpfloat) ) sww->setMomentumMax( tmpfloat );
-   if( arguments.read("-stagemin",tmpfloat) ) sww->setStageOffset( tmpfloat );
 
    std::string bedslopetexture;
    std::string maptiles = "osm";
@@ -305,9 +307,9 @@ int main( int argc, char **argv )
    }
 
    // HUD labels for the three texture modes cycled by the 't' key.
-   // landscapeLabel  (mode 0): OSM/texture on, water hidden — pure map view
-   // colourOsmLabel  (mode 1): OSM/texture on, water coloured — flood analysis with map background
-   // "colour"        (mode 2): no texture, water coloured
+   // landscapeLabel  (mode 0): OSM on bedslope, faint semi-transparent water (flood-on-map view)
+   // colourOsmLabel  (mode 1): OSM on bedslope, water colour prominent, map shows through
+   // "colour"        (mode 2): no texture, fully opaque water colour
    std::string landscapeLabel;   // mode 0
    std::string colourOsmLabel;   // mode 1
    if (!bedslopetexture.empty())
@@ -344,6 +346,7 @@ int main( int argc, char **argv )
 
    // Water geometry
    WaterSurface* water = new WaterSurface(sww);
+   water->setEnvMapEnabled(true);   // CM_BLUE (default) uses sphere map for reflective look
 
    // Heads Up Display (text overlay)
    g_hud = new AnugaHUD();
@@ -354,10 +357,16 @@ int main( int argc, char **argv )
 	g_hud->setStatus("filename", swwfile);
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
-	g_hud->setStatus("color", "stage (max 1.00 m)");
-	// texMode: 0=landscape (water hidden, map visible), 1=colour+osm, 2=colour (no texture)
+	g_hud->setStatus("color", "blue");
+	// texMode: 0=landscape (osm, semi-transparent water), 1=colour+osm, 2=colour (no texture)
 	int texMode = bedslopetexture.empty() ? 2 : 0;
 	g_hud->setStatus("mode", bedslopetexture.empty() ? "colour" : landscapeLabel);
+	// Per-mode water opacity caps (both OSM modes are semi-transparent so the map shows through)
+	const float OSM_ALPHA_LANDSCAPE = 0.4f;  // mode 0: map is primary, flood is a faint overlay
+	const float OSM_ALPHA_COLOUR    = 0.65f; // mode 1: colour data primary, map still visible
+	// Save the user-requested alpha so mode 2 can restore it.
+	const float savedAlphaMin = sww->getAlphaMin();
+	const float savedAlphaMax = sww->getAlphaMax();
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "%.2fx", vscale);
@@ -385,13 +394,22 @@ int main( int argc, char **argv )
    model->addChild( bedslope->get() );
    model->addChild( water->get() );
 
-   // Start in landscape mode (mode 0): show OSM map without water overlay
+   // Start in landscape mode (mode 0): semi-transparent water over OSM map
    if (texMode == 0)
-      water->get()->setNodeMask(0);
+   {
+      sww->setAlphaMin(OSM_ALPHA_LANDSCAPE);
+      sww->setAlphaMax(OSM_ALPHA_LANDSCAPE);
+   }
 
-	// Load the initial frame so we can get grid extents
+	// Load the initial frame so we can get grid extents.
+	// loadBedslopeVertexArray auto-detects stageoffset=zmin and stageheightmax=zrange.
 	sww->loadBedslopeVertexArray(0);
 	bedslope->update();
+	// Apply user command-line overrides after auto-detection.
+	if (hasHmax)     sww->setHeightMax(userHmax);
+	if (hasStageMin) sww->setStageOffset(userStageMin);
+	// stageheightmax is now known (auto-detected from terrain z-range); no HUD update needed
+	// since the default color mode is CM_DEPTH ("depth").
 
 	osg::Switch * grid_switch = new osg::Switch();
 	grid_switch->addChild(Axes_Create(bedslope->getBound()));
@@ -507,13 +525,16 @@ int main( int argc, char **argv )
 			GridMode ge = event_handler->getGridMode();
 			viewer.setGrid(grid_switch, ge);
 
-			static ColorMode colorMode_last = CM_STAGE;
+			static ColorMode colorMode_last = CM_BLUE;
 			ColorMode colorMode = event_handler->getColorMode();
 			bool colorChanged = (colorMode != colorMode_last);
 			colorMode_last = colorMode;
 			sww->setColorMode(colorMode);
 			if (colorChanged)
+			{
+				water->setEnvMapEnabled(colorMode == CM_BLUE);
 				water->forceRefresh();
+			}
 
 			// [ / ] nudge the colour scale max for the active mode by ±20%
 			int nudge = event_handler->scaleNudge();
@@ -521,7 +542,11 @@ int main( int argc, char **argv )
 			{
 				const float factor = (nudge > 0) ? 1.2f : (nudge < 0 ? 1.0f/1.2f : 1.0f);
 				char buf[64];
-				if (colorMode == CM_SPEED || colorMode == CM_MAX_SPEED)
+				if (colorMode == CM_BLUE)
+				{
+					snprintf(buf, sizeof(buf), "blue");
+				}
+				else if (colorMode == CM_SPEED || colorMode == CM_MAX_SPEED)
 				{
 					sww->setSpeedMax(sww->getSpeedMax() * factor);
 					const char* label = (colorMode == CM_MAX_SPEED) ? "max speed" : "speed";
@@ -533,12 +558,16 @@ int main( int argc, char **argv )
 					const char* label = (colorMode == CM_MAX_MOMENTUM) ? "max momentum" : "momentum";
 					snprintf(buf, sizeof(buf), "%s (max %.2f m^2/s)", label, sww->getMomentumMax());
 				}
+				else if (colorMode == CM_STAGE)
+				{
+					sww->setStageHeightMax(sww->getStageHeightMax() * factor);
+					snprintf(buf, sizeof(buf), "stage (max %.2f m)", sww->getStageHeightMax());
+				}
 				else
 				{
 					sww->setHeightMax(sww->getHeightMax() * factor);
 					const char* label = (colorMode == CM_MAX_DEPTH)  ? "max depth" :
-					                    (colorMode == CM_MAX_STAGE)  ? "max stage" :
-					                    (colorMode == CM_STAGE)      ? "stage" : "depth";
+					                    (colorMode == CM_MAX_STAGE)  ? "max stage" : "depth";
 					snprintf(buf, sizeof(buf), "%s (max %.2f m)", label, sww->getHeightMax());
 				}
 				g_hud->setStatus("color", std::string(buf));
@@ -589,22 +618,28 @@ int main( int argc, char **argv )
 				{
 					// Cycle: landscape (osm) → colour (osm) → colour → landscape (osm)
 					texMode = (texMode + 1) % 3;
-					if (texMode == 0)       // landscape: map visible, water hidden
+					if (texMode == 0)       // landscape (osm): map visible, faint water overlay
 					{
 						ssm->setTextureEnabled(true);
-						water->get()->setNodeMask(0);
+						sww->setAlphaMin(OSM_ALPHA_LANDSCAPE);
+						sww->setAlphaMax(OSM_ALPHA_LANDSCAPE);
+						water->forceRefresh();
 						g_hud->setStatus("mode", landscapeLabel);
 					}
-					else if (texMode == 1)  // colour (osm): water visible, map on terrain
+					else if (texMode == 1)  // colour (osm): water colour visible, map shows through
 					{
 						ssm->setTextureEnabled(true);
-						water->get()->setNodeMask(~0u);
+						sww->setAlphaMin(OSM_ALPHA_COLOUR);
+						sww->setAlphaMax(OSM_ALPHA_COLOUR);
+						water->forceRefresh();
 						g_hud->setStatus("mode", colourOsmLabel);
 					}
-					else                    // colour: no texture, water visible
+					else                    // colour: no texture, opaque water
 					{
 						ssm->setTextureEnabled(false);
-						water->get()->setNodeMask(~0u);
+						sww->setAlphaMin(savedAlphaMin);
+						sww->setAlphaMax(savedAlphaMax);
+						water->forceRefresh();
 						g_hud->setStatus("mode", "colour");
 					}
 				}
@@ -620,7 +655,7 @@ int main( int argc, char **argv )
 				std::string tsTitle, tsUnit;
 				switch (colorMode)
 				{
-					case CM_DEPTH: case CM_MAX_DEPTH:
+					case CM_BLUE: case CM_DEPTH: case CM_MAX_DEPTH:
 						tsType = SWWReader::TSTYPE_DEPTH;
 						tsTitle = "Depth"; tsUnit = "m"; break;
 					case CM_SPEED: case CM_MAX_SPEED:

@@ -59,13 +59,14 @@ OBJ              =  anugahud.o hud.o keyboardeventhandler.o watersurface.o main.
                     directionallight.o state.o meshobject.o customargumentparser.o
 
 
-
 %.o : %.cpp
-	$(COMPILER) -c $(INCLUDES) $(GDAL_CFLAGS) $(CPPFLAGS) $< -o $@
+	$(COMPILER) -c -MMD -MP $(INCLUDES) $(GDAL_CFLAGS) $(CPPFLAGS) $< -o $@
 
 
 $(TARGET) : $(OBJ)
 	$(COMPILER) $(CPPFLAGS) $(LIBDIRS) $(OBJ) $(LIBS) $(WIN_LDFLAGS) -o $(TARGET)
+
+-include $(OBJ:.o=.d)
 
 
 .PHONY : version.cpp
@@ -78,5 +79,5 @@ version.cpp:
 
 
 clean :
-	rm -f *.o *~ $(TARGET)
+	rm -f *.o *.d *~ $(TARGET)
 

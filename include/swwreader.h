@@ -128,6 +128,8 @@ public:
     virtual void setMomentumMax(float v) {_state.momentummax = v;}
     virtual float getStageOffset() {return _state.stageoffset;}
     virtual void setStageOffset(float v) {_state.stageoffset = v;}
+    virtual float getStageHeightMax() {return _state.stageheightmax;}
+    virtual void setStageHeightMax(float v) {_state.stageheightmax = v;}
 
     virtual bool hasMaxima() { return _pmaxdepth != NULL; }
 
@@ -199,7 +201,8 @@ protected:
           ColorMode colorMode;
           float speedmax;      // m/s at which speed colormap saturates to red
           float momentummax;   // m²/s at which momentum colormap saturates to red
-          float stageoffset;   // stage (m) at which colour scale starts (default: domain zmin)
+          float stageoffset;     // stage (m) at which colour scale starts (default: domain zmin)
+          float stageheightmax;  // stage colour span (m); auto-set to terrain z-range
 
           std::string* swwfilename;
           std::string* bedslopetexturefilename;

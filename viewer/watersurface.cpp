@@ -68,6 +68,14 @@ WaterSurface::~WaterSurface()
 }
 
 
+void WaterSurface::setEnvMapEnabled(bool enabled)
+{
+    _stateset->setTextureMode(1, GL_TEXTURE_2D,
+        enabled ? osg::StateAttribute::ON
+                : (osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE));
+}
+
+
 void WaterSurface::onRefreshData()
 {
 	// delete if exists

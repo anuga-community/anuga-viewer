@@ -110,6 +110,7 @@ PROFILE_BEGIN
 	// state initialization
 	_state.bedslopetexturefilename = NULL;
 	_state.stageoffset = 0.0f;
+	_state.stageheightmax = 1.0f;
 
 	// netcdf filename
 	_state.swwfilename = new std::string(filename);
@@ -425,43 +426,50 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		}
 
 	  {
-		float intens = 0.0f;
 		float depth_m = _pstage[iv] - _pz[iv];
 		ColorMode cm = _state.colorMode;
-		if (cm == CM_MAX_DEPTH || cm == CM_MAX_SPEED || cm == CM_MAX_MOMENTUM || cm == CM_MAX_STAGE)
+
+		if (cm == CM_BLUE)
 		{
-			if (cm == CM_MAX_DEPTH)
-				intens = _pmaxdepth ? min(1.0f, _pmaxdepth[iv] / _state.heightmax) : 0.0f;
-			else if (cm == CM_MAX_SPEED)
-				intens = _pmaxspeed ? min(1.0f, _pmaxspeed[iv] / _state.speedmax) : 0.0f;
-			else if (cm == CM_MAX_MOMENTUM)
-				intens = _pmaxmomentum ? min(1.0f, _pmaxmomentum[iv] / _state.momentummax) : 0.0f;
-			else  // CM_MAX_STAGE: depth above bed at peak stage
-				intens = _pmaxstage ? min(1.0f, max(0.0f, _pmaxstage[iv] - _pz[iv]) / _state.heightmax) : 0.0f;
+			// flat steel-blue: natural water look, no rainbow gradient
+			_stagecolors->push_back( osg::Vec4( 0.40f, 0.52f, 0.70f, alpha ) );
 		}
-		else if (cm == CM_DEPTH)
+		else
 		{
-			// depth in metres mapped to blue->green->red; heightmax is saturation depth
-			intens = (depth_m > 0.001f) ? min(1.0f, depth_m / _state.heightmax) : 0.0f;
-		}
-		else if (cm == CM_STAGE)
-		{
-			// stage elevation above domain base (stageoffset); heightmax is span in metres
-			intens = (depth_m > 0.001f) ? min(1.0f, max(0.0f, (_pstage[iv] - _state.stageoffset) / _state.heightmax)) : 0.0f;
-		}
-		else if (_pxmomentum && _pymomentum)
-		{
-			if (cm == CM_SPEED)
+			float intens = 0.0f;
+			if (cm == CM_MAX_DEPTH || cm == CM_MAX_SPEED || cm == CM_MAX_MOMENTUM || cm == CM_MAX_STAGE)
 			{
-				if (depth_m > 0.001f)
-					intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / depth_m / _state.speedmax);
+				if (cm == CM_MAX_DEPTH)
+					intens = _pmaxdepth ? min(1.0f, _pmaxdepth[iv] / _state.heightmax) : 0.0f;
+				else if (cm == CM_MAX_SPEED)
+					intens = _pmaxspeed ? min(1.0f, _pmaxspeed[iv] / _state.speedmax) : 0.0f;
+				else if (cm == CM_MAX_MOMENTUM)
+					intens = _pmaxmomentum ? min(1.0f, _pmaxmomentum[iv] / _state.momentummax) : 0.0f;
+				else  // CM_MAX_STAGE
+					intens = _pmaxstage ? min(1.0f, max(0.0f, _pmaxstage[iv] - _pz[iv]) / _state.heightmax) : 0.0f;
 			}
-			else  // CM_MOMENTUM
+			else if (cm == CM_DEPTH)
 			{
-				intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / _state.momentummax);
+				intens = (depth_m > 0.001f) ? min(1.0f, depth_m / _state.heightmax) : 0.0f;
 			}
+			else if (cm == CM_STAGE)
+			{
+				intens = (depth_m > 0.001f) ? min(1.0f, max(0.0f, (_pstage[iv] - _state.stageoffset) / _state.stageheightmax)) : 0.0f;
+			}
+			else if (_pxmomentum && _pymomentum)
+			{
+				if (cm == CM_SPEED)
+				{
+					if (depth_m > 0.001f)
+						intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / depth_m / _state.speedmax);
+				}
+				else  // CM_MOMENTUM
+				{
+					intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / _state.momentummax);
+				}
+			}
+			_stagecolors->push_back( osg::Vec4( intens, (0.5f-fabs(intens-0.5f))*2, 1.0f-intens, alpha ) );
 		}
-		_stagecolors->push_back( osg::Vec4( intens, (0.5f-fabs(intens-0.5f))*2, 1.0f-intens, alpha ) );
 	  }
 	}
 
@@ -1012,7 +1020,8 @@ void SWWReader::getBedslopeBoundingVolume(const float * aZ)
 	_xoffset = xmin;
 	_yoffset = ymin;
 	_zoffset = zmin;
-	_state.stageoffset = (float)zmin;  // stage colour starts at domain base; overridable via -stagemin
+	_state.stageoffset = (float)zmin;       // stage colour starts at domain base; overridable via -stagemin
+	_state.stageheightmax = (zrange > 0.0f) ? zrange : 1.0f;  // spans full terrain elevation range
 	_xcenter = 0.5;
 	_ycenter = 0.5;
 	_zcenter = 0.0;

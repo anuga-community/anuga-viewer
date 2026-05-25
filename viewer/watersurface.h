@@ -28,6 +28,10 @@ public:
 
     WaterSurface(SWWReader *sww);
 
+    // Enable or disable the sphere-map environment texture (unit 1).
+    // Disable it in colour modes so per-vertex stage colours are visible.
+    void setEnvMapEnabled(bool enabled);
+
 protected:
 
     virtual ~WaterSurface();

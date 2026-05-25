@@ -47,7 +47,8 @@
 	 */
 	enum ColorMode
 	{
-		CM_STAGE = 0,		/**< Blue-red gradient: current stage (absolute water surface elevation) */
+		CM_BLUE = 0,		/**< Flat blue: natural water appearance, transparency from depth */
+		CM_STAGE,			/**< Blue-red gradient: current stage (absolute water surface elevation) */
 		CM_DEPTH,			/**< Blue-red gradient: current depth above bed */
 		CM_SPEED,			/**< Blue-red gradient: current flow speed */
 		CM_MOMENTUM,		/**< Blue-red gradient: current momentum magnitude */

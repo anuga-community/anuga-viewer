@@ -64,12 +64,14 @@ OBJ              =  filechangedcheck.o swwreader.o
 $(TARGET) : $(OBJ)
 	$(COMPILER) $(OPTIMIZATION) $(LIB_TYPE) $(LIBDIRS) $(OBJ) $(LIBS) -o $(TARGET)
 
+-include $(OBJ:.o=.d)
+
 %.o : %.cpp
-	$(COMPILER) $(OPTIMIZATION) $(CFLAGS) -c $(INCLUDES) $< -o $@
+	$(COMPILER) $(OPTIMIZATION) $(CFLAGS) -MMD -MP -c $(INCLUDES) $< -o $@
 
 
 clean :
-	rm -f *.o *~ $(TARGET)
+	rm -f *.o *.d *~ $(TARGET)
 
 install :
 	# Linux - create symbolic link for version-independent access

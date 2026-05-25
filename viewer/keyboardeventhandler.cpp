@@ -24,7 +24,7 @@ KeyboardEventHandler::KeyboardEventHandler( int nTimesteps, float tps)	:
    _tpsorig = tps;
    _timestep = 0;
    _prevtime = 0;
-   _colorMode = CM_STAGE;
+   _colorMode = CM_BLUE;
    _togglewireframe = false;
    _toggleculling = false;
    _togglerecording = false;
