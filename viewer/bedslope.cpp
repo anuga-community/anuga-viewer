@@ -110,7 +110,7 @@ void BedSlope::setTextureImage(osg::Image* img)
 			_tex2D->setDataVariance(osg::Object::DYNAMIC);
 			_tex2D->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP);
 			_tex2D->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP);
-			// NPOT_HINT_PLACEHOLDER
+			_tex2D->setResizeNonPowerOfTwoHint(false);  // avoid rescaling NPOT tiles
 		}
 		_tex2D->setImage(img);
 		_tex2D->dirtyTextureObject();
