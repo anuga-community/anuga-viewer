@@ -33,6 +33,7 @@ public:
     virtual bool togglePlayback();
     virtual bool toggleSave();
 	virtual int  scaleNudge() { int v = _scalenudge; _scalenudge = 0; return v; }
+	virtual int  rangeNudge() { int v = _rangeNudge; _rangeNudge = 0; return v; }
 	virtual int  zScaleNudge() { int v = _zNudge; _zNudge = 0; return v; }
 	virtual int  getPanX() { int v = _panX; _panX = 0; return v; }
 	virtual int  getPanY() { int v = _panY; _panY = 0; return v; }
@@ -80,6 +81,7 @@ private:
 	bool _toggleplayback;
 	bool _togglesave;
 	int  _scalenudge;	/**< +1 = scale up, -1 = scale down, 0 = no change */
+	int  _rangeNudge;	/**< +1 = pan range up, -1 = pan range down (CM_STAGE only) */
 	int  _zNudge;		/**< +1 = z scale up, -1 = z scale down, 0 = no change */
 	int  _panX;			/**< +1 = pan right, -1 = pan left, 0 = no change */
 	int  _panY;			/**< +1 = pan up, -1 = pan down, 0 = no change */

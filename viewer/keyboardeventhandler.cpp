@@ -31,6 +31,7 @@ KeyboardEventHandler::KeyboardEventHandler( int nTimesteps, float tps)	:
    _toggleplayback = false;
    _togglesave = false;
    _scalenudge = 0;
+   _rangeNudge = 0;
    _zNudge = 0;
    _panX = 0;
    _panY = 0;
@@ -206,6 +207,14 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 
 				case ']':
 					_scalenudge = +1;
+					return true;
+
+				case ',':
+					_rangeNudge = -1;
+					return true;
+
+				case '.':
+					_rangeNudge = +1;
 					return true;
 
 				case 'z':

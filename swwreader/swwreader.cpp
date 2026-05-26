@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <string>
 #include <fstream>
+#include <vector>
 #include <netcdf.h>
 #include <osg/Notify>
 
@@ -181,6 +182,56 @@ void SWWReader::setBedslopeTexture( std::string filename )
 
 
 
+void SWWReader::getWetStageRange(float& outMin, float& outMax)
+{
+	outMin =  1e30f;
+	outMax = -1e30f;
+
+	if (!_pz || _ntimesteps == 0 || _npoints == 0)
+		goto fallback;
+
+	{
+		std::vector<float> buf(_npoints);
+
+		int ncid;
+		if (nc_open(_state.swwfilename->c_str(), NC_NOWRITE, &ncid) != NC_NOERR)
+			goto fallback;
+
+		// Sample up to 20 evenly-spaced timesteps across the full simulation
+		int nSamples = (int)_ntimesteps < 20 ? (int)_ntimesteps : 20;
+		int step     = (int)_ntimesteps / nSamples;
+		if (step < 1) step = 1;
+
+		for (int ts = 0; ts < (int)_ntimesteps; ts += step)
+		{
+			size_t    start[2]  = {(size_t)ts, 0};
+			size_t    count[2]  = {1, _npoints};
+			ptrdiff_t stride[2] = {1, 1};
+			if (nc_get_vars_float(ncid, _stageid, start, count, stride, buf.data()) != NC_NOERR)
+				continue;
+
+			for (size_t iv = 0; iv < _npoints; iv++)
+			{
+				if (buf[iv] - _pz[iv] > 0.001f)
+				{
+					if (buf[iv] < outMin) outMin = buf[iv];
+					if (buf[iv] > outMax) outMax = buf[iv];
+				}
+			}
+		}
+
+		nc_close(ncid);
+	}
+
+	if (outMin <= outMax)
+		return;
+
+fallback:
+	outMin = _state.stageoffset;
+	outMax = _state.stageoffset + _state.stageheightmax;
+}
+
+
 osg::Image* SWWReader::getBedslopeTexture()
 {
 	return osgDB::readImageFile( _state.bedslopetexturefilename->c_str() );
@@ -227,6 +278,30 @@ void SWWReader::getTerrainBoundsUTM(double& xmin, double& xmax, double& ymin, do
 	}
 }
 
+
+float SWWReader::getActualMaxDepth()
+{
+	if (!_pmaxdepth || _npoints == 0) return 0.0f;
+	float v = 0.0f;
+	for (size_t i = 0; i < _npoints; i++) if (_pmaxdepth[i] > v) v = _pmaxdepth[i];
+	return v;
+}
+
+float SWWReader::getActualMaxSpeed()
+{
+	if (!_pmaxspeed || _npoints == 0) return 0.0f;
+	float v = 0.0f;
+	for (size_t i = 0; i < _npoints; i++) if (_pmaxspeed[i] > v) v = _pmaxspeed[i];
+	return v;
+}
+
+float SWWReader::getActualMaxMomentum()
+{
+	if (!_pmaxmomentum || _npoints == 0) return 0.0f;
+	float v = 0.0f;
+	for (size_t i = 0; i < _npoints; i++) if (_pmaxmomentum[i] > v) v = _pmaxmomentum[i];
+	return v;
+}
 
 bool SWWReader::loadBedslopeVertexArray(unsigned int aIndex)
 {
@@ -445,8 +520,8 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 					intens = _pmaxspeed ? min(1.0f, _pmaxspeed[iv] / _state.speedmax) : 0.0f;
 				else if (cm == CM_MAX_MOMENTUM)
 					intens = _pmaxmomentum ? min(1.0f, _pmaxmomentum[iv] / _state.momentummax) : 0.0f;
-				else  // CM_MAX_STAGE
-					intens = _pmaxstage ? min(1.0f, max(0.0f, _pmaxstage[iv] - _pz[iv]) / _state.heightmax) : 0.0f;
+				else  // CM_MAX_STAGE: absolute elevation mapped to [stageoffset, stageoffset+stageheightmax]
+					intens = _pmaxstage ? min(1.0f, max(0.0f, (_pmaxstage[iv] - _state.stageoffset) / _state.stageheightmax)) : 0.0f;
 			}
 			else if (cm == CM_DEPTH)
 			{

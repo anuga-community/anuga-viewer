@@ -133,6 +133,17 @@ public:
 
     virtual bool hasMaxima() { return _pmaxdepth != NULL; }
 
+    virtual float getActualMaxDepth();
+    virtual float getActualMaxSpeed();
+    virtual float getActualMaxMomentum();
+
+    /**
+     * Scan a sample of timesteps to find the min/max stage over wet cells.
+     * Used to auto-set the CM_STAGE colour range at startup.
+     * Falls back to the current stageoffset/stageheightmax on failure.
+     */
+    virtual void getWetStageRange(float& outMin, float& outMax);
+
     virtual void setVScale(float v) { _vscale = v; }
     
     virtual triangle_list getConnectivity(unsigned int index) {return _connectivity.at(index);}

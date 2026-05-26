@@ -55,6 +55,52 @@ static const char * S_VIEWER_TITLE = "ANUGA Viewer";
 
 AnugaHUD * g_hud = NULL;
 
+// Return a "nice" round step size for a given data range (targets ~8 intervals).
+static float niceStep(float range)
+{
+	if (range <= 0.0f) return 1.0f;
+	float raw  = range / 8.0f;
+	float mag  = powf(10.0f, floorf(log10f(raw)));
+	float norm = raw / mag;
+	float step = (norm < 1.5f) ? 1.0f : (norm < 3.5f) ? 2.0f : (norm < 7.5f) ? 5.0f : 10.0f;
+	return step * mag;
+}
+
+// Smallest value in {1,2,5}×10^n that is >= v (for initial max and zoom-out).
+static float niceUp(float v)
+{
+	if (v <= 0.0f) return 1.0f;
+	float mag  = powf(10.0f, floorf(log10f(v)));
+	float norm = v / mag;
+	if (norm <= 1.0f + 1e-5f) return 1.0f * mag;
+	if (norm <= 2.0f + 1e-5f) return 2.0f * mag;
+	if (norm <= 5.0f + 1e-5f) return 5.0f * mag;
+	return 10.0f * mag;
+}
+
+// Largest value in {1,2,5}×10^n that is < v (for zoom-in). Always makes progress.
+static float niceDown(float v)
+{
+	if (v <= 1e-9f) return 1e-9f;
+	float mag  = powf(10.0f, floorf(log10f(v)));
+	float norm = v / mag;
+	if (norm >= 5.0f - 1e-5f) return 5.0f * mag;
+	if (norm >= 2.0f - 1e-5f) return 2.0f * mag;
+	if (norm >= 1.0f - 1e-5f) return 1.0f * mag;
+	return 5.0f * (mag / 10.0f);
+}
+
+// Round stage range outward to nice values and apply to sww.
+static void applyNiceStageRange(SWWReader* sww, float minWet, float maxWet)
+{
+	float step   = niceStep(maxWet - minWet);
+	float niceMin = floorf(minWet / step) * step;
+	float niceMax = ceilf(maxWet  / step) * step;
+	if (niceMax <= niceMin) niceMax = niceMin + step;
+	sww->setStageOffset(niceMin);
+	sww->setStageHeightMax(niceMax - niceMin);
+}
+
 // OSG's StandardManipulator calls home() on every RESIZE event, which causes
 // the view to jump to the home position when toggling fullscreen.  Override
 // handle() to silently drop RESIZE so the camera stays where the user left it.
@@ -276,8 +322,10 @@ int main( int argc, char **argv )
    if( arguments.read("-alphamin",tmpfloat) ) sww->setAlphaMin( tmpfloat );
    if( arguments.read("-alphamax",tmpfloat) ) sww->setAlphaMax( tmpfloat );
    if( arguments.read("-cullangle",tmpfloat) ) sww->setCullAngle( tmpfloat );
-   if( arguments.read("-speedmax",tmpfloat) ) sww->setSpeedMax( tmpfloat );
-   if( arguments.read("-momentummax",tmpfloat) ) sww->setMomentumMax( tmpfloat );
+   bool hasSpeedMax = arguments.read("-speedmax", tmpfloat);
+   if (hasSpeedMax) sww->setSpeedMax(tmpfloat);
+   bool hasMomMax = arguments.read("-momentummax", tmpfloat);
+   if (hasMomMax) sww->setMomentumMax(tmpfloat);
 
    // t-key texture modes: each entry is an (image, HUD label) pair.
    // Mode 0 is always "colour" (no texture, brown bedslope).
@@ -388,11 +436,36 @@ int main( int argc, char **argv )
 	// loadBedslopeVertexArray auto-detects stageoffset=zmin and stageheightmax=zrange.
 	sww->loadBedslopeVertexArray(0);
 	bedslope->update();
-	// Apply user command-line overrides after auto-detection.
+
+	// Scan a sample of timesteps to set the CM_STAGE colour range from actual
+	// wet-cell stage values rather than the full terrain elevation range.
+	if (!hasStageMin)
+	{
+		float minWet, maxWet;
+		sww->getWetStageRange(minWet, maxWet);
+		applyNiceStageRange(sww, minWet, maxWet);
+	}
+
+	// Auto-set nice initial maxima for positive quantities from per-vertex data.
+	if (sww->hasMaxima())
+	{
+		if (!hasHmax) {
+			float m = sww->getActualMaxDepth();
+			if (m > 0) sww->setHeightMax(niceUp(m));
+		}
+		if (!hasSpeedMax) {
+			float m = sww->getActualMaxSpeed();
+			if (m > 0) sww->setSpeedMax(niceUp(m));
+		}
+		if (!hasMomMax) {
+			float m = sww->getActualMaxMomentum();
+			if (m > 0) sww->setMomentumMax(niceUp(m));
+		}
+	}
+
+	// Apply explicit command-line overrides last.
 	if (hasHmax)     sww->setHeightMax(userHmax);
 	if (hasStageMin) sww->setStageOffset(userStageMin);
-	// stageheightmax is now known (auto-detected from terrain z-range); no HUD update needed
-	// since the default color mode is CM_DEPTH ("depth").
 
 	osg::Switch * grid_switch = new osg::Switch();
 	grid_switch->addChild(Axes_Create(bedslope->getBound()));
@@ -531,28 +604,59 @@ int main( int argc, char **argv )
 				}
 				else if (colorMode == CM_SPEED || colorMode == CM_MAX_SPEED)
 				{
-					sww->setSpeedMax(sww->getSpeedMax() * factor);
+					float raw = sww->getSpeedMax() * factor;
+					sww->setSpeedMax(nudge > 0 ? niceUp(raw) : nudge < 0 ? niceDown(raw) : sww->getSpeedMax());
 					const char* label = (colorMode == CM_MAX_SPEED) ? "max speed" : "speed";
-					snprintf(buf, sizeof(buf), "%s (max %.2f m/s)", label, sww->getSpeedMax());
+					snprintf(buf, sizeof(buf), "%s [0, %g m/s]", label, sww->getSpeedMax());
 				}
 				else if (colorMode == CM_MOMENTUM || colorMode == CM_MAX_MOMENTUM)
 				{
-					sww->setMomentumMax(sww->getMomentumMax() * factor);
+					float raw = sww->getMomentumMax() * factor;
+					sww->setMomentumMax(nudge > 0 ? niceUp(raw) : nudge < 0 ? niceDown(raw) : sww->getMomentumMax());
 					const char* label = (colorMode == CM_MAX_MOMENTUM) ? "max momentum" : "momentum";
-					snprintf(buf, sizeof(buf), "%s (max %.2f m^2/s)", label, sww->getMomentumMax());
+					snprintf(buf, sizeof(buf), "%s [0, %g m^2/s]", label, sww->getMomentumMax());
 				}
-				else if (colorMode == CM_STAGE)
+				else if (colorMode == CM_STAGE || colorMode == CM_MAX_STAGE)
 				{
-					sww->setStageHeightMax(sww->getStageHeightMax() * factor);
-					snprintf(buf, sizeof(buf), "stage (max %.2f m)", sww->getStageHeightMax());
+					// zoom around midpoint; round-to-nearest so zoom always makes progress
+					float mid = sww->getStageOffset() + sww->getStageHeightMax() * 0.5f;
+					float newWidth = sww->getStageHeightMax() * factor;
+					if (newWidth < 0.001f) newWidth = 0.001f;
+					float rawMin = mid - newWidth * 0.5f;
+					float rawMax = mid + newWidth * 0.5f;
+					float step = niceStep(rawMax - rawMin);
+					float nMin = roundf(rawMin / step) * step;
+					float nMax = roundf(rawMax / step) * step;
+					if (nMax <= nMin) nMax = nMin + step;
+					sww->setStageOffset(nMin);
+					sww->setStageHeightMax(nMax - nMin);
+					const char* label = (colorMode == CM_MAX_STAGE) ? "max stage" : "stage";
+					snprintf(buf, sizeof(buf), "%s [%g, %g] m", label,
+					         sww->getStageOffset(), sww->getStageOffset() + sww->getStageHeightMax());
 				}
 				else
 				{
-					sww->setHeightMax(sww->getHeightMax() * factor);
-					const char* label = (colorMode == CM_MAX_DEPTH)  ? "max depth" :
-					                    (colorMode == CM_MAX_STAGE)  ? "max stage" : "depth";
-					snprintf(buf, sizeof(buf), "%s (max %.2f m)", label, sww->getHeightMax());
+					// depth / max depth: positive [0, max] range
+					float raw = sww->getHeightMax() * factor;
+					sww->setHeightMax(nudge > 0 ? niceUp(raw) : nudge < 0 ? niceDown(raw) : sww->getHeightMax());
+					const char* label = (colorMode == CM_MAX_DEPTH) ? "max depth" : "depth";
+					snprintf(buf, sizeof(buf), "%s [0, %g m]", label, sww->getHeightMax());
 				}
+				if (nudge != 0) water->forceRefresh();
+				g_hud->setStatus("color", std::string(buf));
+			}
+
+			int rangeNudge = event_handler->rangeNudge();
+			if (rangeNudge != 0 && (colorMode == CM_STAGE || colorMode == CM_MAX_STAGE))
+			{
+				// shift by one nice step so endpoints stay integer-aligned
+				float step = niceStep(sww->getStageHeightMax()) * rangeNudge;
+				sww->setStageOffset(sww->getStageOffset() + step);
+				water->forceRefresh();
+				char buf[64];
+				const char* label = (colorMode == CM_MAX_STAGE) ? "max stage" : "stage";
+				snprintf(buf, sizeof(buf), "%s [%g, %g] m", label,
+				         sww->getStageOffset(), sww->getStageOffset() + sww->getStageHeightMax());
 				g_hud->setStatus("color", std::string(buf));
 			}
 
