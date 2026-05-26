@@ -15,24 +15,14 @@
 // constructor
 BedSlope::BedSlope(SWWReader* sww)
 	: MeshObject("bedslope"),
+	_tex2D(NULL),
 	_loaded(false)
 {
     // persistent
     _sww = sww;
 
-	osg::Texture2D* texture = NULL;
-
-    // bedslope texture
+    // bedslope starts untextured; caller uses setTextureImage() to apply a tile
 	_texture = false;
-	if( sww->hasBedslopeTexture() )
-	{
-	    _texture = true;
-		texture = new osg::Texture2D;
-		texture->setDataVariance( osg::Object::DYNAMIC );
-		texture->setWrap( osg::Texture::WRAP_S, osg::Texture::CLAMP );
-		texture->setWrap( osg::Texture::WRAP_T, osg::Texture::CLAMP );
-		texture->setImage( _sww->getBedslopeTexture() );
-	}
 
 	// material
 	_material = new osg::Material();
@@ -50,12 +40,7 @@ BedSlope::BedSlope(SWWReader* sww)
 	_stateset->setAttributeAndModes( _material, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE );
 	_stateset->setMode( GL_BLEND, osg::StateAttribute::ON );
 	_stateset->setMode( GL_LIGHTING, osg::StateAttribute::ON );
-	if (texture)
-	{
-		_stateset->setTextureAttributeAndModes( 0, texture, osg::StateAttribute::ON );
-	}
-
-	onRefreshTextured(texture!=NULL);
+	onRefreshTextured(false);
 }
 
 
@@ -113,4 +98,31 @@ void BedSlope::onRefreshTextured(bool aIsTextured)
 	{
 		_material->setDiffuse( osg::Material::FRONT_AND_BACK, osg::Vec4(DEF_BEDSLOPE_COLOUR) );
 	}
+}
+
+void BedSlope::setTextureImage(osg::Image* img)
+{
+	if (img)
+	{
+		if (!_tex2D)
+		{
+			_tex2D = new osg::Texture2D;
+			_tex2D->setDataVariance(osg::Object::DYNAMIC);
+			_tex2D->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP);
+			_tex2D->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP);
+			// NPOT_HINT_PLACEHOLDER
+		}
+		_tex2D->setImage(img);
+		_tex2D->dirtyTextureObject();
+		_stateset->setTextureAttributeAndModes(0, _tex2D, osg::StateAttribute::ON);
+		_texture = true;
+	}
+	else
+	{
+		if (_tex2D)
+			_stateset->setTextureAttributeAndModes(0, _tex2D, osg::StateAttribute::OFF);
+		_texture = false;
+	}
+	_loaded = false;   // force onRefreshData to rebuild geometry with correct tex coords / vertex colour
+	forceRefresh();
 }

@@ -19,6 +19,7 @@
 #include <osg/StateAttribute>
 #include <osgDB/FileNameUtils>
 #include <osgDB/FileUtils>
+#include <osgDB/ReadFile>
 #include <osgViewer/ViewerEventHandlers>
 #include <osgText/Text>
 
@@ -278,56 +279,51 @@ int main( int argc, char **argv )
    if( arguments.read("-speedmax",tmpfloat) ) sww->setSpeedMax( tmpfloat );
    if( arguments.read("-momentummax",tmpfloat) ) sww->setMomentumMax( tmpfloat );
 
-   std::string bedslopetexture;
+   // t-key texture modes: each entry is an (image, HUD label) pair.
+   // Mode 0 is always "colour" (no texture, brown bedslope).
+   // Modes 1+ are map tiles or user-supplied textures, populated below.
+   struct TexEntry { osg::ref_ptr<osg::Image> img; std::string label; };
+   std::vector<TexEntry> texModes;
+   texModes.push_back({nullptr, "colour"});   // mode 0: brown bedslope, always available
+
    std::string maptiles = "osm";
    arguments.read("-maptiles", maptiles);
 
-   if( arguments.read("-texture",bedslopetexture) )
+   std::string userTexture;
+   if( arguments.read("-texture", userTexture) )
    {
-      sww->setBedslopeTexture( bedslopetexture );
+      // User-supplied static texture: single extra mode.
+      sww->setBedslopeTexture(userTexture);   // sets up UV coords via GDAL
+      osg::ref_ptr<osg::Image> img = osgDB::readImageFile(userTexture);
+      if (img.valid())
+         texModes.push_back({img, "map"});
    }
    else if ( maptiles != "none" && sww->getUTMZone() > 0 )
    {
-      // Auto-fetch map tiles when SWW has a valid UTM zone and no -texture given.
-      // Cache the GeoTIFF next to the SWW file for reuse on subsequent launches.
-      MapTileSource tileSource = (maptiles == "satellite") ? MapTileSource::SATELLITE
-                                                           : MapTileSource::OSM;
-      std::string suffix = (tileSource == MapTileSource::SATELLITE) ? "_satellite.tif"
-                                                                     : "_osm.tif";
-      std::string swwDir = osgDB::getFilePath( sww->getSWWFilename() );
+      // Auto-fetch OSM and/or satellite tiles.  Both share the same UTM extent
+      // so UV coords computed from the first successful fetch apply to both.
+      std::string swwDir = osgDB::getFilePath(sww->getSWWFilename());
       if (swwDir.empty()) swwDir = ".";
-      std::string tifPath = swwDir + "/" +
-          osgDB::getStrippedName( sww->getSWWFilename() ) + suffix;
-      std::string result = fetchMapTexture(sww, tifPath, tileSource);
-      if (!result.empty())
-      {
-         sww->setBedslopeTexture(result);
-         bedslopetexture = result;
-      }
-   }
+      std::string base = swwDir + "/" + osgDB::getStrippedName(sww->getSWWFilename());
 
-   // HUD labels for the three texture modes cycled by the 't' key.
-   // landscapeLabel  (mode 0): OSM on bedslope, faint semi-transparent water (flood-on-map view)
-   // colourOsmLabel  (mode 1): OSM on bedslope, water colour prominent, map shows through
-   // "colour"        (mode 2): no texture, fully opaque water colour
-   std::string landscapeLabel;   // mode 0
-   std::string colourOsmLabel;   // mode 1
-   if (!bedslopetexture.empty())
-   {
-      if (maptiles == "satellite")
+      std::string osmPath = fetchMapTexture(sww, base + "_osm.tif", MapTileSource::OSM);
+      std::string satPath = fetchMapTexture(sww, base + "_satellite.tif", MapTileSource::SATELLITE);
+
+      // Register whichever tile arrived first to populate UV coords in swwreader.
+      if (!osmPath.empty())
+         sww->setBedslopeTexture(osmPath);
+      else if (!satPath.empty())
+         sww->setBedslopeTexture(satPath);
+
+      if (!osmPath.empty())
       {
-         landscapeLabel = "landscape (satellite)";
-         colourOsmLabel = "colour (satellite)";
+         osg::ref_ptr<osg::Image> img = osgDB::readImageFile(osmPath);
+         if (img.valid()) texModes.push_back({img, "osm"});
       }
-      else if (maptiles == "osm")
+      if (!satPath.empty())
       {
-         landscapeLabel = "landscape (osm)";
-         colourOsmLabel = "colour (osm)";
-      }
-      else  // user-supplied -texture file
-      {
-         landscapeLabel = "landscape";
-         colourOsmLabel = "landscape";
+         osg::ref_ptr<osg::Image> img = osgDB::readImageFile(satPath);
+         if (img.valid()) texModes.push_back({img, "satellite"});
       }
    }
 
@@ -358,15 +354,9 @@ int main( int argc, char **argv )
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
 	g_hud->setStatus("color", "blue");
-	// texMode: 0=landscape (osm, semi-transparent water), 1=colour+osm, 2=colour (no texture)
-	int texMode = bedslopetexture.empty() ? 2 : 0;
-	g_hud->setStatus("mode", bedslopetexture.empty() ? "colour" : landscapeLabel);
-	// Per-mode water opacity caps (both OSM modes are semi-transparent so the map shows through)
-	const float OSM_ALPHA_LANDSCAPE = 0.4f;  // mode 0: map is primary, flood is a faint overlay
-	const float OSM_ALPHA_COLOUR    = 0.65f; // mode 1: colour data primary, map still visible
-	// Save the user-requested alpha so mode 2 can restore it.
-	const float savedAlphaMin = sww->getAlphaMin();
-	const float savedAlphaMax = sww->getAlphaMax();
+	// texMode indexes into texModes[]; always start at 0 (colour, no bedslope texture).
+	int texMode = 0;
+	g_hud->setStatus("mode", texModes[0].label);
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "%.2fx", vscale);
@@ -393,13 +383,6 @@ int main( int argc, char **argv )
    rootnode->addChild(model);
    model->addChild( bedslope->get() );
    model->addChild( water->get() );
-
-   // Start in landscape mode (mode 0): semi-transparent water over OSM map
-   if (texMode == 0)
-   {
-      sww->setAlphaMin(OSM_ALPHA_LANDSCAPE);
-      sww->setAlphaMax(OSM_ALPHA_LANDSCAPE);
-   }
 
 	// Load the initial frame so we can get grid extents.
 	// loadBedslopeVertexArray auto-detects stageoffset=zmin and stageheightmax=zrange.
@@ -610,38 +593,12 @@ int main( int argc, char **argv )
 
 			if (event_handler->toggleTexture())
 			{
-				if (bedslopetexture.empty())
+				if (texModes.size() > 1)
 				{
-					// No texture: no-op (nothing to toggle)
-				}
-				else
-				{
-					// Cycle: landscape (osm) → colour (osm) → colour → landscape (osm)
-					texMode = (texMode + 1) % 3;
-					if (texMode == 0)       // landscape (osm): map visible, faint water overlay
-					{
-						ssm->setTextureEnabled(true);
-						sww->setAlphaMin(OSM_ALPHA_LANDSCAPE);
-						sww->setAlphaMax(OSM_ALPHA_LANDSCAPE);
-						water->forceRefresh();
-						g_hud->setStatus("mode", landscapeLabel);
-					}
-					else if (texMode == 1)  // colour (osm): water colour visible, map shows through
-					{
-						ssm->setTextureEnabled(true);
-						sww->setAlphaMin(OSM_ALPHA_COLOUR);
-						sww->setAlphaMax(OSM_ALPHA_COLOUR);
-						water->forceRefresh();
-						g_hud->setStatus("mode", colourOsmLabel);
-					}
-					else                    // colour: no texture, opaque water
-					{
-						ssm->setTextureEnabled(false);
-						sww->setAlphaMin(savedAlphaMin);
-						sww->setAlphaMax(savedAlphaMax);
-						water->forceRefresh();
-						g_hud->setStatus("mode", "colour");
-					}
+					// Cycle bedslope texture: colour -> osm -> satellite -> colour ...
+					texMode = (texMode + 1) % (int)texModes.size();
+					bedslope->setTextureImage(texModes[texMode].img.get());
+					g_hud->setStatus("mode", texModes[texMode].label);
 				}
 			}
 
@@ -742,7 +699,7 @@ int main( int argc, char **argv )
 			g_hud->setVisible(state.getShowHUD());
 			g_hud->setStatus("culling", state.getCulling() ? "on" : "off");
 			g_hud->setWireframe((WireframeMode)state.getWireframe());
-			g_hud->setStatus("mode", state.getShowTexture() ? landscapeLabel : "colour");
+			g_hud->setStatus("mode", texModes[texMode].label);
 
 			// loop playback
 			playback_index ++;
