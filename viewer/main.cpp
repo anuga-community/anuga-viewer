@@ -78,18 +78,6 @@ static float niceUp(float v)
 	return 10.0f * mag;
 }
 
-// Largest value in {1,2,5}×10^n that is < v (for zoom-in). Always makes progress.
-static float niceDown(float v)
-{
-	if (v <= 1e-9f) return 1e-9f;
-	float mag  = powf(10.0f, floorf(log10f(v)));
-	float norm = v / mag;
-	if (norm >= 5.0f - 1e-5f) return 5.0f * mag;
-	if (norm >= 2.0f - 1e-5f) return 2.0f * mag;
-	if (norm >= 1.0f - 1e-5f) return 1.0f * mag;
-	return 5.0f * (mag / 10.0f);
-}
-
 // Round stage range outward to nice values and apply to sww.
 static void applyNiceStageRange(SWWReader* sww, float minWet, float maxWet)
 {
@@ -592,11 +580,11 @@ int main( int argc, char **argv )
 				water->forceRefresh();
 			}
 
-			// [ / ] nudge the colour scale max for the active mode by ±20%
-			int nudge = event_handler->scaleNudge();
-			if (nudge != 0 || colorChanged)
+			// [/] moves right endpoint; {/} moves left endpoint (stage only); ,/. pans range (stage only)
+			int nudge    = event_handler->scaleNudge();
+			int minNudge = event_handler->minNudge();
+			if (nudge != 0 || minNudge != 0 || colorChanged)
 			{
-				const float factor = (nudge > 0) ? 1.2f : (nudge < 0 ? 1.0f/1.2f : 1.0f);
 				char buf[64];
 				if (colorMode == CM_BLUE)
 				{
@@ -604,52 +592,73 @@ int main( int argc, char **argv )
 				}
 				else if (colorMode == CM_SPEED || colorMode == CM_MAX_SPEED)
 				{
-					float raw = sww->getSpeedMax() * factor;
-					sww->setSpeedMax(nudge > 0 ? niceUp(raw) : nudge < 0 ? niceDown(raw) : sww->getSpeedMax());
+					if (nudge != 0)
+					{
+						float step = niceStep(sww->getSpeedMax());
+						float newMax = sww->getSpeedMax() + step * nudge;
+						if (sww->getSpeedMax() > 0.0f && newMax <= 0.0f) newMax = step;
+						sww->setSpeedMax(newMax);
+					}
 					const char* label = (colorMode == CM_MAX_SPEED) ? "max speed" : "speed";
 					snprintf(buf, sizeof(buf), "%s [0, %g m/s]", label, sww->getSpeedMax());
 				}
 				else if (colorMode == CM_MOMENTUM || colorMode == CM_MAX_MOMENTUM)
 				{
-					float raw = sww->getMomentumMax() * factor;
-					sww->setMomentumMax(nudge > 0 ? niceUp(raw) : nudge < 0 ? niceDown(raw) : sww->getMomentumMax());
+					if (nudge != 0)
+					{
+						float step = niceStep(sww->getMomentumMax());
+						float newMax = sww->getMomentumMax() + step * nudge;
+						if (sww->getMomentumMax() > 0.0f && newMax <= 0.0f) newMax = step;
+						sww->setMomentumMax(newMax);
+					}
 					const char* label = (colorMode == CM_MAX_MOMENTUM) ? "max momentum" : "momentum";
 					snprintf(buf, sizeof(buf), "%s [0, %g m^2/s]", label, sww->getMomentumMax());
 				}
 				else if (colorMode == CM_STAGE || colorMode == CM_MAX_STAGE)
 				{
-					// zoom around midpoint; round-to-nearest so zoom always makes progress
-					float mid = sww->getStageOffset() + sww->getStageHeightMax() * 0.5f;
-					float newWidth = sww->getStageHeightMax() * factor;
-					if (newWidth < 0.001f) newWidth = 0.001f;
-					float rawMin = mid - newWidth * 0.5f;
-					float rawMax = mid + newWidth * 0.5f;
-					float step = niceStep(rawMax - rawMin);
-					float nMin = roundf(rawMin / step) * step;
-					float nMax = roundf(rawMax / step) * step;
-					if (nMax <= nMin) nMax = nMin + step;
-					sww->setStageOffset(nMin);
-					sww->setStageHeightMax(nMax - nMin);
+					float lo   = sww->getStageOffset();
+					float hi   = lo + sww->getStageHeightMax();
+					float step = niceStep(hi - lo);
+					if (nudge != 0)
+					{
+						float newHi = hi + step * nudge;
+						if (hi > 0.0f && newHi <= 0.0f) newHi = step;
+						if (newHi <= lo + step * 0.1f)  newHi = lo + step * 0.1f;
+						hi = newHi;
+					}
+					if (minNudge != 0)
+					{
+						float newLo = lo + step * minNudge;
+						if (lo < 0.0f && newLo > 0.0f) newLo = 0.0f;
+						if (lo > 0.0f && newLo < 0.0f) newLo = 0.0f;
+						if (newLo >= hi - step * 0.1f)  newLo = hi - step * 0.1f;
+						lo = newLo;
+					}
+					sww->setStageOffset(lo);
+					sww->setStageHeightMax(hi - lo);
 					const char* label = (colorMode == CM_MAX_STAGE) ? "max stage" : "stage";
-					snprintf(buf, sizeof(buf), "%s [%g, %g] m", label,
-					         sww->getStageOffset(), sww->getStageOffset() + sww->getStageHeightMax());
+					snprintf(buf, sizeof(buf), "%s [%g, %g] m", label, lo, hi);
 				}
 				else
 				{
-					// depth / max depth: positive [0, max] range
-					float raw = sww->getHeightMax() * factor;
-					sww->setHeightMax(nudge > 0 ? niceUp(raw) : nudge < 0 ? niceDown(raw) : sww->getHeightMax());
+					// depth / max depth: [0, max]
+					if (nudge != 0)
+					{
+						float step = niceStep(sww->getHeightMax());
+						float newMax = sww->getHeightMax() + step * nudge;
+						if (sww->getHeightMax() > 0.0f && newMax <= 0.0f) newMax = step;
+						sww->setHeightMax(newMax);
+					}
 					const char* label = (colorMode == CM_MAX_DEPTH) ? "max depth" : "depth";
 					snprintf(buf, sizeof(buf), "%s [0, %g m]", label, sww->getHeightMax());
 				}
-				if (nudge != 0) water->forceRefresh();
+				if (nudge != 0 || minNudge != 0) water->forceRefresh();
 				g_hud->setStatus("color", std::string(buf));
 			}
 
 			int rangeNudge = event_handler->rangeNudge();
 			if (rangeNudge != 0 && (colorMode == CM_STAGE || colorMode == CM_MAX_STAGE))
 			{
-				// shift by one nice step so endpoints stay integer-aligned
 				float step = niceStep(sww->getStageHeightMax()) * rangeNudge;
 				sww->setStageOffset(sww->getStageOffset() + step);
 				water->forceRefresh();
