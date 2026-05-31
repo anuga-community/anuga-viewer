@@ -982,9 +982,87 @@ bool SWWReader::load()
 	// Load initial frame
 	loadBedslopeVertexArray(0);
 
-	// Pre-compute per-vertex maxima over all timesteps
-	computeMaxima();
+	// Pre-compute per-vertex maxima — use precomputed centroid values from
+	// the SWW file if available, otherwise scan all timesteps.
+	if (!tryLoadCentroidMaxima())
+		computeMaxima();
 
+	return true;
+}
+
+
+bool SWWReader::tryLoadCentroidMaxima()
+{
+	int ncid;
+	if (nc_open(_state.swwfilename->c_str(), NC_NOWRITE, &ncid) != NC_NOERR)
+		return false;
+
+	// All four centroid max variables must be present; bail if any is missing.
+	int id_ms, id_md, id_msp, id_mu;
+	if (nc_inq_varid(ncid, "max_stage_c", &id_ms)  != NC_NOERR ||
+	    nc_inq_varid(ncid, "max_depth_c", &id_md)  != NC_NOERR ||
+	    nc_inq_varid(ncid, "max_speed_c", &id_msp) != NC_NOERR ||
+	    nc_inq_varid(ncid, "max_uh_c",    &id_mu)  != NC_NOERR)
+	{
+		nc_close(ncid);
+		return false;
+	}
+
+	// Read one value per triangle (centroid quantities).
+	std::vector<float> cstage(_nvolumes);
+	std::vector<float> cdepth(_nvolumes);
+	std::vector<float> cspeed(_nvolumes);
+	std::vector<float> cuh(_nvolumes);
+
+	if (nc_get_var_float(ncid, id_ms,  cstage.data()) != NC_NOERR ||
+	    nc_get_var_float(ncid, id_md,  cdepth.data()) != NC_NOERR ||
+	    nc_get_var_float(ncid, id_msp, cspeed.data()) != NC_NOERR ||
+	    nc_get_var_float(ncid, id_mu,  cuh.data())    != NC_NOERR)
+	{
+		nc_close(ncid);
+		return false;
+	}
+	nc_close(ncid);
+
+	// Expand centroid values to per-vertex by averaging over the triangles
+	// that share each vertex (uses _connectivity built just before this call).
+	_pmaxstage    = new float[_npoints]();
+	_pmaxdepth    = new float[_npoints]();
+	_pmaxspeed    = new float[_npoints]();
+	_pmaxmomentum = new float[_npoints]();
+
+	std::vector<int> cnt(_npoints, 0);
+	for (size_t tri = 0; tri < _nvolumes; tri++)
+	{
+		for (int k = 0; k < 3; k++)
+		{
+			unsigned int vi = _pvolumes[3*tri + k];
+			if (vi < _npoints)
+			{
+				_pmaxstage[vi]    += cstage[tri];
+				_pmaxdepth[vi]    += cdepth[tri];
+				_pmaxspeed[vi]    += cspeed[tri];
+				_pmaxmomentum[vi] += cuh[tri];
+				cnt[vi]++;
+			}
+		}
+	}
+
+	for (size_t iv = 0; iv < _npoints; iv++)
+	{
+		if (cnt[iv] > 0)
+		{
+			float inv = 1.0f / cnt[iv];
+			_pmaxstage[iv]    *= inv;
+			_pmaxdepth[iv]    *= inv;
+			_pmaxspeed[iv]    *= inv;
+			_pmaxmomentum[iv] *= inv;
+		}
+		if (_pmaxdepth[iv] < 0.0f)
+			_pmaxdepth[iv] = 0.0f;
+	}
+
+	osg::notify(osg::INFO) << "[SWWReader] loaded precomputed centroid maxima from SWW file" << std::endl;
 	return true;
 }
 

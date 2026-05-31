@@ -177,6 +177,16 @@ protected:
 	void computeMaxima();
 
 	/**
+	 * Try to load precomputed centroid maxima (max_stage_c, max_depth_c,
+	 * max_speed_c, max_uh_c) from the SWW file.  If all four variables are
+	 * present, expands them to per-vertex arrays via centroid averaging and
+	 * returns true, skipping the full timestep scan in computeMaxima().
+	 * Returns false if any variable is missing (caller should fall back to
+	 * computeMaxima()).
+	 */
+	bool tryLoadCentroidMaxima();
+
+	/**
 	 * Reload all the data from this file.
 	 */
 	bool load();
