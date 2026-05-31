@@ -116,7 +116,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install open-scene-graph netcdf cppunit dylibbundler create-dmg
+          brew install open-scene-graph netcdf gdal cppunit dylibbundler create-dmg
 
       - name: Build
         run: make OSGHOME="$(brew --prefix)"
@@ -248,6 +248,7 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-OpenSceneGraph
             mingw-w64-x86_64-netcdf
+            mingw-w64-x86_64-gdal
 
       - name: Build
         run: make OSGHOME=/mingw64
@@ -278,8 +279,8 @@ jobs:
           #   freetype                  — TTF font loading via osgText
           #   osg/ive/deprecated_osg   — OSG native formats (for any bundled data)
           # Excludes osgdb_ffmpeg (pulls in 50-100 MB of FFmpeg codec DLLs),
-          # osgdb_gdal (large GDAL chain, disabled at compile time), and all
-          # 3D model/network/video plugins the viewer never uses.
+          # osgdb_gdal (OSG raster plugin — viewer calls GDAL directly, doesn't need it),
+          # and all 3D model/network/video plugins the viewer never uses.
           PLUGIN_DIR=$(find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
           if [ -n "$PLUGIN_DIR" ]; then
             echo "=== All available plugins ==="
