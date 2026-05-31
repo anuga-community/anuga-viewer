@@ -2,6 +2,77 @@ Release Notes
 =============
 
 
+v0.5.4 — 2026-05-31
+---------------------
+
+New Features
+~~~~~~~~~~~~
+
+**Precomputed max quantities** (faster startup for large simulations)
+
+  When an SWW file was produced with ANUGA's ``Collect_max_quantities_operator``
+  (or ``set_collect_max_quantities``), the viewer reads the pre-stored centroid
+  arrays (``max_stage_c``, ``max_depth_c``, ``max_speed_c``, ``max_uh_c``)
+  directly instead of scanning every timestep.  This can reduce startup time
+  significantly for large multi-processor simulations.  For SWW files without
+  these variables the viewer falls back to scanning all timesteps as before.
+
+**Independent bedslope texture cycling** (``t`` key)
+
+  The ``t`` key now controls only the bedslope texture, independently of the
+  water colour mode and transparency.  The available modes cycle in sequence
+  (only modes with tiles present are offered):
+
+  ============= =====================================================
+  Mode          Bedslope appearance
+  ============= =====================================================
+  ``colour``    Terrain shaded by elevation (no texture)
+  ``osm``       OpenStreetMap tiles draped over terrain
+  ``satellite`` ESRI satellite imagery draped over terrain
+  ============= =====================================================
+
+  A ``-texture`` file on the command line adds a ``map`` mode alongside
+  ``colour``.  Water transparency is now fully independent of ``t``.
+
+**Smarter colour range defaults**
+
+  Colour scale limits are now initialised from actual data values:
+
+  - Stage and max-stage ranges are detected from the wet-cell values at
+    startup, not the full terrain elevation span.
+  - Depth, speed, and momentum limits are set from the per-vertex maxima.
+  - All limits are rounded to a *nice* ``{1, 2, 5} × 10ⁿ`` boundary.
+    The ``[`` / ``]`` nudge keys also snap to nice values.
+
+**Stage range pan** (``,`` / ``.`` keys)
+
+  Press ``,`` to shift the stage / max-stage colour window downward by one
+  step, or ``.`` to shift it upward.  Combined with ``[`` / ``]`` this lets
+  you zoom and pan the colour range without leaving the viewer.
+
+Bug Fixes
+~~~~~~~~~
+
+- **Map texture distorted at startup** — OSG's default power-of-two
+  requirement was silently downscaling GeoTIFFs with non-power-of-two
+  dimensions (e.g. 2048 × 1392 → 2048 × 1024, a 26 % height loss).
+  Fixed with ``setResizeNonPowerOfTwoHint(false)``; modern OpenGL handles
+  non-power-of-two textures natively.
+
+- **Map tile reloaded unnecessarily at startup** — the bedslope constructor
+  called ``sww->getBedslopeTexture()`` even when the viewer starts in
+  untextured mode, triggering a redundant disk read on every launch.
+
+- **CM_MAX_STAGE colour scale wrong** — was mapping max-depth values through
+  the depth colour scale instead of mapping absolute max-stage elevation
+  through the stage scale.  Now uses the same ``stageoffset`` /
+  ``stageheightmax`` reference as ``CM_STAGE``.
+
+- **``[`` / ``]`` keys did not repaint water surface** — nudging the colour
+  scale required waiting for the next timestep change before the new range
+  was visible.  A forced refresh is now triggered immediately.
+
+
 v0.5.2 — 2026-05-24
 ---------------------
 
@@ -38,6 +109,45 @@ New Features
   ``-stagemin 620`` for a domain whose lowest point is 620 m ASL).
   Combine with ``-hmax`` to set the upper bound:
   ``-stagemin 620 -hmax 10`` colours the range 620–630 m.
+
+
+Bug Fixes
+~~~~~~~~~
+
+- **Bedslope texture suppressed after file refresh** — ``onRefreshData()``
+  was unconditionally setting the geometry colour array to the default brown,
+  which in ``GL_MODULATE`` mode multiplied against the active map tile
+  texture and made it nearly invisible.  The colour is now white when a
+  texture is active, and ``onRefreshTextured()`` is called at the end of
+  every refresh to restore the correct tex-coord array and material diffuse.
+
+
+v0.5.3 — 2026-05-25
+---------------------
+
+New Features
+~~~~~~~~~~~~
+
+**Natural water colour mode** (``CM_BLUE``)
+
+  A new ``CM_BLUE`` mode renders the water surface as a flat steel blue with
+  a sphere-mapped environment reflection, giving a realistic water appearance
+  without heat-map colouring.  This is now the first (default) colour mode.
+  Press ``v`` to advance to the existing stage / depth / speed / momentum /
+  max-* modes.
+
+Bug Fixes
+~~~~~~~~~
+
+- **AppImage resources not found** — ``fonts/`` and ``images/`` were not
+  bundled inside the AppImage.  They are now included under ``usr/bin/`` and
+  located via ``SWOLLEN_BINDIR=$APPDIR/usr/bin`` in a custom ``AppRun``
+  script, so the AppImage works from any working directory.
+
+- **Makefile default target rebuilt only one object** — placing
+  ``-include $(OBJ:.o=.d)`` before the ``$(TARGET)`` rule allowed ``.d``
+  dependency files to hijack the default target.  Moved to after the target
+  rule; ``make`` now rebuilds the full binary as expected.
 
 
 v0.5.1 — 2026-05-23
