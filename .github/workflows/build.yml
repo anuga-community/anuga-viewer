@@ -318,12 +318,31 @@ jobs:
           mkdir -p "$DIST/etc/fonts"
           echo '<fontconfig></fontconfig>' > "$DIST/etc/fonts/fonts.conf"
 
+          # GDAL data files — GDAL reads these at startup for datum/unit definitions.
+          [ -d /mingw64/share/gdal ] && cp -r /mingw64/share/gdal "$DIST/gdal-data"
+
+          # PROJ coordinate database — required for importFromEPSG() (UTM/WGS84 transforms).
+          # proj.db is a SQLite3 file; the rest of the share/proj directory is grid-shift
+          # data for high-accuracy datum transforms that the viewer does not need.
+          mkdir -p "$DIST/proj-data"
+          [ -f /mingw64/share/proj/proj.db ] && cp /mingw64/share/proj/proj.db "$DIST/proj-data/"
+
+          # CA certificate bundle — libcurl needs this to verify HTTPS tile server certs.
+          for f in /mingw64/ssl/certs/ca-bundle.crt /mingw64/etc/ssl/certs/ca-bundle.crt \
+                   /usr/ssl/certs/ca-bundle.crt; do
+            [ -f "$f" ] && cp "$f" "$DIST/ca-bundle.crt" && break
+          done
+
           # Launcher batch file
           cat > "$DIST/run_viewer.bat" << 'BATCH'
           @echo off
           set SWOLLEN_BINDIR=%~dp0
           set OSG_LIBRARY_PATH=%~dp0
           set FONTCONFIG_FILE=%~dp0etc\fonts\fonts.conf
+          set GDAL_DATA=%~dp0gdal-data
+          set PROJ_DATA=%~dp0proj-data
+          set PROJ_LIB=%~dp0proj-data
+          set CURL_CA_BUNDLE=%~dp0ca-bundle.crt
           "%~dp0anuga_viewer.exe" %*
           BATCH
 

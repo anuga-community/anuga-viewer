@@ -50,11 +50,14 @@ Section "ANUGA Viewer" SecMain
   SetOutPath "$INSTDIR"
   File /r "..\dist\anuga-viewer\*.*"
 
-  ; SWOLLEN_BINDIR — viewer locates bundled fonts and images relative to this.
-  ; FONTCONFIG_FILE — points libfontconfig at the bundled minimal config so it
-  ;                   doesn't emit "Cannot load default config file" warnings.
+  ; Runtime environment variables — set for the current user so that both
+  ; shortcuts and command-line invocations find the bundled data files.
   WriteRegExpandStr HKCU "Environment" "SWOLLEN_BINDIR"   "$INSTDIR"
   WriteRegExpandStr HKCU "Environment" "FONTCONFIG_FILE"  "$INSTDIR\etc\fonts\fonts.conf"
+  WriteRegExpandStr HKCU "Environment" "GDAL_DATA"        "$INSTDIR\gdal-data"
+  WriteRegExpandStr HKCU "Environment" "PROJ_DATA"        "$INSTDIR\proj-data"
+  WriteRegExpandStr HKCU "Environment" "PROJ_LIB"         "$INSTDIR\proj-data"
+  WriteRegExpandStr HKCU "Environment" "CURL_CA_BUNDLE"   "$INSTDIR\ca-bundle.crt"
   ; Broadcast so already-running Explorer sessions pick up the new values.
   SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
@@ -111,6 +114,10 @@ Section "Uninstall"
   DeleteRegKey   HKLM "${UNINSTALL_KEY}"
   DeleteRegValue HKCU "Environment" "SWOLLEN_BINDIR"
   DeleteRegValue HKCU "Environment" "FONTCONFIG_FILE"
+  DeleteRegValue HKCU "Environment" "GDAL_DATA"
+  DeleteRegValue HKCU "Environment" "PROJ_DATA"
+  DeleteRegValue HKCU "Environment" "PROJ_LIB"
+  DeleteRegValue HKCU "Environment" "CURL_CA_BUNDLE"
   SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   DeleteRegKey HKCU "Software\Classes\.sww"
