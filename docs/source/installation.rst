@@ -52,18 +52,26 @@ Download ``anuga-viewer-macos.dmg`` from the
 Windows
 -------
 
-Download ``anuga-viewer-windows.zip`` from the
+Download ``anuga-viewer-windows-setup.exe`` from the
 `Releases page <https://github.com/anuga-community/anuga-viewer/releases>`_.
 
-1. Extract the zip to a convenient location (e.g. ``C:\anuga-viewer``).
-2. Run ``anuga_viewer.exe`` directly, or double-click ``run_viewer.bat``.
+1. Run the installer.
+2. Launch **ANUGA Viewer** from the Start Menu or Desktop shortcut, or
+   from the command line::
 
-To open a simulation file::
+      anuga_viewer.exe path\to\simulation.sww
 
-   anuga_viewer.exe path\to\simulation.sww
+``.sww`` files are associated with ANUGA Viewer during installation, so
+you can also double-click a simulation file in Windows Explorer.
 
-You can also associate ``.sww`` files with ``anuga_viewer.exe`` for
-double-click opening in Windows Explorer.
+.. note::
+
+   Windows may display a **SmartScreen** warning ("Windows protected your
+   PC") when running the installer because it is not yet signed with a
+   commercial certificate.  Click **More info** then **Run anyway** to
+   proceed.  The installer is built directly from the open-source code on
+   GitHub Actions — you can inspect the build workflow at
+   ``.github/workflows/build.yml`` in the repository.
 
 
 Linux — Build from Source (Ubuntu / Debian)
@@ -74,7 +82,7 @@ unsupported architecture):
 
 #. Install the required packages::
 
-      sudo apt-get install git build-essential libgdal-dev libcppunit-dev \
+      sudo apt-get install git build-essential libcurl4-openssl-dev libcppunit-dev \
                            libopenscenegraph-dev libnetcdf-dev
 
 #. Clone the source::
