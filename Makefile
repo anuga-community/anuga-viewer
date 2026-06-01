@@ -19,4 +19,16 @@ test:
 install:
 	cd swwreader; make install OSGHOME=$(OSGHOME)
 
+# AppImage build — requires linuxdeploy-x86_64.AppImage in the project root.
+# env -i strips any active conda environment to prevent ABI mismatches that
+# cause the resulting AppImage to segfault on launch.
+LINUXDEPLOY ?= ./linuxdeploy-x86_64.AppImage
+
+appimage:
+	env -i HOME=$(HOME) PATH=/usr/bin:/bin:/usr/local/bin $(MAKE) OSGHOME=/usr
+	cp bin/anuga_viewer AppDir/usr/bin/anuga_viewer
+	cp bin/libswwreader.so AppDir/usr/lib/libswwreader.so
+	env -i HOME=$(HOME) PATH=/usr/bin:/bin:/usr/local/bin DISPLAY=$(DISPLAY) \
+	    LD_LIBRARY_PATH=$(CURDIR)/bin \
+	    $(LINUXDEPLOY) --appdir AppDir --executable bin/anuga_viewer --output appimage
 
