@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <string>
@@ -291,7 +292,7 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTi
     int zoom = chooseZoom((lonMax-lonMin)*180/M_PI, (latMax-latMin)*180/M_PI, src.maxZoom);
     std::cout << "[" << src.label << "] bbox ["
               << lonMin*180/M_PI << ", " << latMin*180/M_PI << ", "
-              << lonMax*180/M_PI << ", " << latMax*180/M_PI << "] deg  zoom=" << zoom << "\n";
+              << lonMax*180/M_PI << ", " << latMax*180/M_PI << "] deg\n";
 
     // Tile index range covering bbox (latMax → smaller ty since tiles go top-down)
     int txMin, tyMin, txMax, tyMax; double dummy;
@@ -306,8 +307,9 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTi
     if (tyMax >= n) tyMax = n-1;
 
     int tileCount = (txMax-txMin+1) * (tyMax-tyMin+1);
-    std::cout << "[" << src.label << "] fetching " << tileCount
-              << " tiles (" << (txMax-txMin+1) << "x" << (tyMax-tyMin+1) << ")\n";
+    std::cout << "[" << src.label << "] " << tileCount
+              << " tiles (" << (txMax-txMin+1) << "x" << (tyMax-tyMin+1)
+              << ")  zoom=" << zoom << "\n";
     if (tileCount > 400) {
         std::cerr << "[" << src.label << "] Too many tiles (" << tileCount << ") — aborting.\n";
         return "";
@@ -316,18 +318,45 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTi
     std::string cacheDir = outputPath + "_tiles";
     MAKE_DIR(cacheDir.c_str());
 
+    // Pre-fetch all tiles with per-tile progress, then stitch.
+    std::map<std::pair<int,int>, osg::ref_ptr<osg::Image>> tileCache;
+    int done = 0, failed = 0;
+    for (int ty = tyMin; ty <= tyMax; ty++)
+    {
+        for (int tx = txMin; tx <= txMax; tx++)
+        {
+            ++done;
+            std::cout << "\r[" << src.label << "] tile "
+                      << std::setw(3) << done << "/" << tileCount
+                      << "  " << std::flush;
+            std::string url  = buildUrl(src.urlTmpl, zoom, tx, ty);
+            std::string path = fetchTile(cacheDir, url, zoom, tx, ty);
+            osg::ref_ptr<osg::Image> img;
+            if (!path.empty()) img = osgDB::readImageFile(path);
+            if (!img) failed++;
+            tileCache[std::make_pair(tx, ty)] = img;
+        }
+    }
+    std::cout << "\r[" << src.label << "] tiles done (" << (done - failed) << "/" << done << " ok)"
+              << "  \n";
+
+    if (failed == done) {
+        std::cerr << "[" << src.label << "] All tile fetches failed — aborting.\n";
+        return "";
+    }
+
     // Output image: 2048 px wide
     int pixW = 2048;
     int pixH = std::max(1, (int)(pixW * oH / oW + 0.5));
     double pixelW = oW / pixW;
     double pixelH = oH / pixH;   // positive step downward in UTM
 
+    std::cout << "[" << src.label << "] stitching " << pixW << "x" << pixH << " px...\n" << std::flush;
+
     osg::ref_ptr<osg::Image> outImg = new osg::Image();
     outImg->allocateImage(pixW, pixH, 1, GL_RGB, GL_UNSIGNED_BYTE);
 
-    std::map<std::pair<int,int>, osg::ref_ptr<osg::Image>> tileCache;
     int misses = 0;
-
     for (int j = 0; j < pixH; j++)
     {
         // j=0 → north (oymax), increasing j → south
