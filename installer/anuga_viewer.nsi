@@ -25,8 +25,8 @@ RequestExecutionLevel admin
 ; ---------------------------------------------------------------------------
 ; MUI appearance
 ; ---------------------------------------------------------------------------
-!define MUI_ICON   "distros\icon.ico"
-!define MUI_UNICON "distros\icon.ico"
+!define MUI_ICON   "..\distros\icon.ico"
+!define MUI_UNICON "..\distros\icon.ico"
 !define MUI_ABORTWARNING
 !define MUI_FINISHPAGE_RUN        "$INSTDIR\${APP_EXE}"
 !define MUI_FINISHPAGE_RUN_TEXT   "Launch ANUGA Viewer now"
