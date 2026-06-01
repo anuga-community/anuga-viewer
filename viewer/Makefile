@@ -46,8 +46,10 @@ OTHER_LIBS       =  -lm -lstdc++ -lnetcdf
 LIBS            +=  -losg -losgText -losgDB -losgUtil -losgGA \
                     -lOpenThreads -losgViewer -lswwreader \
                     $(GL_LIBS) $(X_LIBS) $(OTHER_LIBS) $(OSX_LIBS) $(GDAL_LIBS)
-# Put $(TOPDIR)/bin first so the freshly built swwreader is preferred over any installed version
+# Put $(TOPDIR)/bin first so the freshly built swwreader is preferred over any installed version.
+# Embed $ORIGIN rpath so the binary finds libswwreader.so next to itself at runtime (no sudo install needed).
 LIBDIRS          =  -L$(TOPDIR)/bin -L${OSGHOME}/lib -L/usr/lib -L/usr/X11R6/lib -L/usr/local/lib64 -L/usr/local/lib
+RPATH_FLAGS      = -Wl,-rpath,\$$ORIGIN -Wl,-rpath,/usr/local/lib
 
 NAME             =  anuga_viewer
 TARGETDIR        =  $(TOPDIR)/bin
@@ -64,7 +66,7 @@ OBJ              =  anugahud.o hud.o keyboardeventhandler.o watersurface.o main.
 
 
 $(TARGET) : $(OBJ)
-	$(COMPILER) $(CPPFLAGS) $(LIBDIRS) $(OBJ) $(LIBS) $(WIN_LDFLAGS) -o $(TARGET)
+	$(COMPILER) $(CPPFLAGS) $(LIBDIRS) $(RPATH_FLAGS) $(OBJ) $(LIBS) $(WIN_LDFLAGS) -o $(TARGET)
 
 -include $(OBJ:.o=.d)
 

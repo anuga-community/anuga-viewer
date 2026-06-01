@@ -95,11 +95,12 @@ SWWReader::SWWReader(const std::string& filename) :
 	_xoffset(0),
 	_yoffset(0),
 	_zoffset(0),
-	_elevationAnimated(false),
 	_pmaxdepth(NULL),
 	_pmaxstage(NULL),
 	_pmaxspeed(NULL),
 	_pmaxmomentum(NULL),
+	_elevationAnimated(false),
+	_bedslopeLoaded(false),
 	_vscale(1.0f),
 	_zone(-1),
 	_south(false)
@@ -730,8 +731,19 @@ bool SWWReader::refresh()
 {
 	if (_fileChanged.isChanged())
 	{
+		// Preserve user-adjusted colour range across reload; load() calls
+		// loadBedslopeVertexArray(0) with _bedslopeLoaded=false which would
+		// otherwise overwrite stageoffset/stageheightmax with raw terrain bounds.
+		float savedOffset    = _state.stageoffset;
+		float savedHeightMax = _state.stageheightmax;
 		clear();
-		return load();
+		bool result = load();
+		if (result)
+		{
+			_state.stageoffset    = savedOffset;
+			_state.stageheightmax = savedHeightMax;
+		}
+		return result;
 	}
 
 	return true;
@@ -741,6 +753,7 @@ bool SWWReader::refresh()
 void SWWReader::clear()
 {
 	_valid = false;
+	_bedslopeLoaded = false;
 
 	SAFE_DELETE_ARRAY(_pxmomentum);
 	SAFE_DELETE_ARRAY(_pymomentum);
@@ -1173,8 +1186,14 @@ void SWWReader::getBedslopeBoundingVolume(const float * aZ)
 	_xoffset = xmin;
 	_yoffset = ymin;
 	_zoffset = zmin;
-	_state.stageoffset = (float)zmin;       // stage colour starts at domain base; overridable via -stagemin
-	_state.stageheightmax = (zrange > 0.0f) ? zrange : 1.0f;  // spans full terrain elevation range
+	if (!_bedslopeLoaded)
+	{
+		// Only set on first load; subsequent calls (e.g. bedslope texture change) must not
+		// overwrite stageoffset/stageheightmax that the user has already adjusted.
+		_state.stageoffset = (float)zmin;
+		_state.stageheightmax = (zrange > 0.0f) ? zrange : 1.0f;
+	}
+	_bedslopeLoaded = true;
 	_xcenter = 0.5;
 	_ycenter = 0.5;
 	_zcenter = 0.0;

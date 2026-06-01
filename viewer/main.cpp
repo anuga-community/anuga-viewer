@@ -78,6 +78,37 @@ static float niceUp(float v)
 	return 10.0f * mag;
 }
 
+// Next value in {1,2,5}×10^n strictly above v.
+static float niceNext(float v)
+{
+	if (v <= 0.0f) return 0.1f;
+	float mag  = powf(10.0f, floorf(log10f(v)));
+	float norm = v / mag;
+	if (norm < 1.0f - 1e-5f) return 1.0f * mag;
+	if (norm < 2.0f - 1e-5f) return 2.0f * mag;
+	if (norm < 5.0f - 1e-5f) return 5.0f * mag;
+	return 10.0f * mag;
+}
+
+// Previous value in {1,2,5}×10^n strictly below v.
+static float nicePrev(float v)
+{
+	if (v <= 0.1f + 1e-6f) return 0.1f;
+	float mag  = powf(10.0f, floorf(log10f(v)));
+	float norm = v / mag;
+	if (norm > 5.0f + 1e-5f) return 5.0f * mag;
+	if (norm > 2.0f + 1e-5f) return 2.0f * mag;
+	if (norm > 1.0f + 1e-5f) return 1.0f * mag;
+	return 5.0f * (mag * 0.1f);
+}
+
+// Snap v to the nearest multiple of step (avoids float drift after repeated nudges).
+static float snapToStep(float v, float step)
+{
+	if (step <= 0.0f) return v;
+	return roundf(v / step) * step;
+}
+
 // Round stage range outward to nice values and apply to sww.
 static void applyNiceStageRange(SWWReader* sww, float minWet, float maxWet)
 {
@@ -455,6 +486,12 @@ int main( int argc, char **argv )
 	if (hasHmax)     sww->setHeightMax(userHmax);
 	if (hasStageMin) sww->setStageOffset(userStageMin);
 
+	// Authoritative stage range — owned here in main so that loadBedslopeVertexArray
+	// (called on texture-mode switches and animated bedslopesl) cannot silently clobber
+	// values the user has adjusted.  Re-synced to sww at the top of every frame.
+	float stageLo = sww->getStageOffset();
+	float stageHi = stageLo + sww->getStageHeightMax();
+
 	osg::Switch * grid_switch = new osg::Switch();
 	grid_switch->addChild(Axes_Create(bedslope->getBound()));
 	grid_switch->setAllChildrenOff();
@@ -544,6 +581,11 @@ int main( int argc, char **argv )
 
 	while( !viewer.done() )
 	{
+		// Re-apply authoritative stage range before any geometry update so that
+		// loadBedslopeVertexArray (animated bedslope / texture switch) cannot corrupt it.
+		sww->setStageOffset(stageLo);
+		sww->setStageHeightMax(stageHi - stageLo);
+
 		if( !playbackmode )
 		{
 			 // current time in seconds
@@ -594,11 +636,12 @@ int main( int argc, char **argv )
 				{
 					if (nudge != 0)
 					{
-						float step = niceStep(sww->getSpeedMax());
-						float newMax = sww->getSpeedMax() + step * nudge;
-						if (sww->getSpeedMax() > 0.0f && newMax <= 0.0f) newMax = step;
+						float newMax = (nudge > 0) ? niceNext(sww->getSpeedMax())
+						                           : nicePrev(sww->getSpeedMax());
 						sww->setSpeedMax(newMax);
 					}
+					else if (colorChanged)
+						sww->setSpeedMax(niceUp(sww->getSpeedMax()));
 					const char* label = (colorMode == CM_MAX_SPEED) ? "max speed" : "speed";
 					snprintf(buf, sizeof(buf), "%s [0, %g m/s]", label, sww->getSpeedMax());
 				}
@@ -606,34 +649,42 @@ int main( int argc, char **argv )
 				{
 					if (nudge != 0)
 					{
-						float step = niceStep(sww->getMomentumMax());
-						float newMax = sww->getMomentumMax() + step * nudge;
-						if (sww->getMomentumMax() > 0.0f && newMax <= 0.0f) newMax = step;
+						float newMax = (nudge > 0) ? niceNext(sww->getMomentumMax())
+						                           : nicePrev(sww->getMomentumMax());
 						sww->setMomentumMax(newMax);
 					}
+					else if (colorChanged)
+						sww->setMomentumMax(niceUp(sww->getMomentumMax()));
 					const char* label = (colorMode == CM_MAX_MOMENTUM) ? "max momentum" : "momentum";
 					snprintf(buf, sizeof(buf), "%s [0, %g m^2/s]", label, sww->getMomentumMax());
 				}
 				else if (colorMode == CM_STAGE || colorMode == CM_MAX_STAGE)
 				{
-					float lo   = sww->getStageOffset();
-					float hi   = lo + sww->getStageHeightMax();
+					float lo   = stageLo;
+					float hi   = stageHi;
 					float step = niceStep(hi - lo);
+					if (colorChanged && nudge == 0 && minNudge == 0)
+					{
+						lo = snapToStep(lo, step);
+						hi = snapToStep(hi, step);
+						if (hi <= lo) hi = lo + step;
+					}
 					if (nudge != 0)
 					{
-						float newHi = hi + step * nudge;
-						if (hi > 0.0f && newHi <= 0.0f) newHi = step;
-						if (newHi <= lo + step * 0.1f)  newHi = lo + step * 0.1f;
+						float newHi = snapToStep(hi + step * nudge, step);
+						if (newHi <= lo + step * 0.5f) newHi = lo + step;
 						hi = newHi;
 					}
 					if (minNudge != 0)
 					{
-						float newLo = lo + step * minNudge;
+						float newLo = snapToStep(lo + step * minNudge, step);
 						if (lo < 0.0f && newLo > 0.0f) newLo = 0.0f;
 						if (lo > 0.0f && newLo < 0.0f) newLo = 0.0f;
-						if (newLo >= hi - step * 0.1f)  newLo = hi - step * 0.1f;
+						if (newLo >= hi - step * 0.5f)  newLo = hi - step;
 						lo = newLo;
 					}
+					stageLo = lo;
+					stageHi = hi;
 					sww->setStageOffset(lo);
 					sww->setStageHeightMax(hi - lo);
 					const char* label = (colorMode == CM_MAX_STAGE) ? "max stage" : "stage";
@@ -644,11 +695,12 @@ int main( int argc, char **argv )
 					// depth / max depth: [0, max]
 					if (nudge != 0)
 					{
-						float step = niceStep(sww->getHeightMax());
-						float newMax = sww->getHeightMax() + step * nudge;
-						if (sww->getHeightMax() > 0.0f && newMax <= 0.0f) newMax = step;
+						float newMax = (nudge > 0) ? niceNext(sww->getHeightMax())
+						                           : nicePrev(sww->getHeightMax());
 						sww->setHeightMax(newMax);
 					}
+					else if (colorChanged)
+						sww->setHeightMax(niceUp(sww->getHeightMax()));
 					const char* label = (colorMode == CM_MAX_DEPTH) ? "max depth" : "depth";
 					snprintf(buf, sizeof(buf), "%s [0, %g m]", label, sww->getHeightMax());
 				}
@@ -659,13 +711,17 @@ int main( int argc, char **argv )
 			int rangeNudge = event_handler->rangeNudge();
 			if (rangeNudge != 0 && (colorMode == CM_STAGE || colorMode == CM_MAX_STAGE))
 			{
-				float step = niceStep(sww->getStageHeightMax()) * rangeNudge;
-				sww->setStageOffset(sww->getStageOffset() + step);
+				float step   = niceStep(stageHi - stageLo);
+				float newOff = snapToStep(stageLo + step * rangeNudge, step);
+				float width  = stageHi - stageLo;
+				stageLo = newOff;
+				stageHi = newOff + width;
+				sww->setStageOffset(stageLo);
+				sww->setStageHeightMax(stageHi - stageLo);
 				water->forceRefresh();
 				char buf[64];
 				const char* label = (colorMode == CM_MAX_STAGE) ? "max stage" : "stage";
-				snprintf(buf, sizeof(buf), "%s [%g, %g] m", label,
-				         sww->getStageOffset(), sww->getStageOffset() + sww->getStageHeightMax());
+				snprintf(buf, sizeof(buf), "%s [%g, %g] m", label, stageLo, stageHi);
 				g_hud->setStatus("color", std::string(buf));
 			}
 

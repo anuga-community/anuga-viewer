@@ -32,7 +32,7 @@ osg::Vec4 COLORBAR_TEXT_COL(0.8, 0.8, 0.8, 1.0);
 HeadsUpDisplay::HeadsUpDisplay()
 	: _linegraph(NULL),
 	_font(NULL),
-	_status_pos(256, 32),
+	_status_pos(400, 32),
 	_status_visible(true),
 	_status_visible_dirty(false)
 {
@@ -257,10 +257,10 @@ void HeadsUpDisplay::addStatusLine(const std::string & aLabel, osg::Geode* aPare
 	aParentGeode->addDrawable( data._drawable );
    _dirtystatus = true;
 
-   if (_status_pos.x() >= 768)
+   if (_status_pos.x() >= 800)
    {
 	   _status_pos.set(0, _status_pos.y()+40);
    }
 
-   _status_pos += osg::Vec2(256, 0);
+   _status_pos += osg::Vec2(400, 0);
 }

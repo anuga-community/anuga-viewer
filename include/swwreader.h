@@ -301,6 +301,7 @@ protected:
 	std::vector<int> _status;
 
 	bool _elevationAnimated;	/**< True if the elevation data is animated */
+	bool _bedslopeLoaded;		/**< True after first bedslope load; prevents stageoffset reset on texture-mode switches */
 
 	// error checker (iterates through _status stack)
 	bool _statusHasError();

@@ -188,17 +188,15 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 					return true;
 
 				case 'v':
-				{
-					int cm = int(_colorMode) + 1;
-					cm %= int(CM_NUM_OF);
-					_colorMode = (ColorMode)cm;
-					return true;
-				}
-
 				case 'V':
 				{
-					int cm = int(_colorMode) - 1;
-					if (cm < 0) cm = int(CM_NUM_OF) - 1;
+					bool backward = (ea.getModKeyMask() & osgGA::GUIEventAdapter::MODKEY_SHIFT) != 0
+					             || _shift_held;
+					int cm = int(_colorMode);
+					if (backward)
+						cm = (cm - 1 + int(CM_NUM_OF)) % int(CM_NUM_OF);
+					else
+						cm = (cm + 1) % int(CM_NUM_OF);
 					_colorMode = (ColorMode)cm;
 					return true;
 				}
