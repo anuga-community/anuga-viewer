@@ -323,6 +323,10 @@ jobs:
 
           echo "=== Bundle size ===" && du -sh "$DIST" && du -sh "$DIST"/* | sort -rh | head -20
 
+      - name: Install NSIS
+        shell: cmd
+        run: choco install nsis -y --no-progress
+
       - name: Build installer
         shell: cmd
         run: |
