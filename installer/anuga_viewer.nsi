@@ -50,11 +50,12 @@ Section "ANUGA Viewer" SecMain
   SetOutPath "$INSTDIR"
   File /r "..\dist\anuga-viewer\*.*"
 
-  ; SWOLLEN_BINDIR tells the viewer where to find bundled fonts and images.
-  ; Write it as a persistent user environment variable so command-line
-  ; invocations (not just shortcuts) also work.
-  WriteRegExpandStr HKCU "Environment" "SWOLLEN_BINDIR" "$INSTDIR"
-  ; Broadcast the change so already-running processes (Explorer) pick it up.
+  ; SWOLLEN_BINDIR — viewer locates bundled fonts and images relative to this.
+  ; FONTCONFIG_FILE — points libfontconfig at the bundled minimal config so it
+  ;                   doesn't emit "Cannot load default config file" warnings.
+  WriteRegExpandStr HKCU "Environment" "SWOLLEN_BINDIR"   "$INSTDIR"
+  WriteRegExpandStr HKCU "Environment" "FONTCONFIG_FILE"  "$INSTDIR\etc\fonts\fonts.conf"
+  ; Broadcast so already-running Explorer sessions pick up the new values.
   SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   ; Remember install location for the uninstaller and future upgrades.
@@ -109,6 +110,7 @@ Section "Uninstall"
   DeleteRegKey   HKCU "${APP_REGKEY}"
   DeleteRegKey   HKLM "${UNINSTALL_KEY}"
   DeleteRegValue HKCU "Environment" "SWOLLEN_BINDIR"
+  DeleteRegValue HKCU "Environment" "FONTCONFIG_FILE"
   SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   DeleteRegKey HKCU "Software\Classes\.sww"

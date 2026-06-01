@@ -313,11 +313,22 @@ jobs:
             [ "$AFTER" = "$BEFORE" ] && break
           done
 
+          # Minimal Fontconfig config — suppresses "Cannot load default config file"
+          # warnings from the bundled libfontconfig without scanning system fonts.
+          mkdir -p "$DIST/etc/fonts"
+          cat > "$DIST/etc/fonts/fonts.conf" << 'EOF'
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+</fontconfig>
+EOF
+
           # Launcher batch file
           cat > "$DIST/run_viewer.bat" << 'BATCH'
           @echo off
           set SWOLLEN_BINDIR=%~dp0
           set OSG_LIBRARY_PATH=%~dp0
+          set FONTCONFIG_FILE=%~dp0etc\fonts\fonts.conf
           "%~dp0anuga_viewer.exe" %*
           BATCH
 

@@ -569,7 +569,15 @@ int main( int argc, char **argv )
 	// immediately.  setUpViewOnSingleScreen fills the whole screen at the X11
 	// level, which some WMs don't decorate until the user toggles fullscreen.
 	// The user can still press 'f' to go fullscreen on screen 0.
-	viewer.setUpViewInWindow(50, 50, 1024, 768, 0);
+	{
+		unsigned int sw = 1024, sh = 768;
+		osg::GraphicsContext::WindowingSystemInterface* wsi =
+			osg::GraphicsContext::getWindowingSystemInterface();
+		if (wsi)
+			wsi->getScreenResolution(osg::GraphicsContext::ScreenIdentifier(0), sw, sh);
+		unsigned int w = sw * 3 / 4, h = sh * 3 / 4;
+		viewer.setUpViewInWindow((sw - w) / 2, (sh - h) / 2, w, h, 0);
+	}
 	// Single-threaded: draw happens on the main thread in sync with the geometry
 	// update.  Multi-threaded mode causes the draw thread to read vertex arrays
 	// while the main thread is writing them (different timestep), producing the
