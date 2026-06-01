@@ -28,8 +28,8 @@ else ifneq ($(findstring MINGW,$(UNAME)),)
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
 	X_LIBS          =
 	WIN_LDFLAGS      =  -Wl,-subsystem,console
-	GDAL_LIBS        =
-	GDAL_CFLAGS      =
+	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
+	GDAL_CFLAGS      = $(shell gdal-config --cflags 2>/dev/null)
 else
 	# Linux
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
