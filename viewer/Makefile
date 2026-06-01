@@ -25,11 +25,15 @@ ifeq ($(UNAME), Darwin)
 	GDAL_CFLAGS      = $(shell gdal-config --cflags 2>/dev/null)
 else ifneq ($(findstring MINGW,$(UNAME)),)
 	# Windows (MSYS2/MinGW)
+	# GDAL is intentionally excluded: linking it pulls in ~70 transitive DLLs
+	# (HDF5, GEOS, SQLite, …) that cause DLL init failures on the target machine.
+	# Tile fetching on Windows is handled by the lightweight libcurl path in
+	# osmtexture.cpp instead.
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
 	X_LIBS          =
 	WIN_LDFLAGS      =  -Wl,-subsystem,console
-	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
-	GDAL_CFLAGS      = $(shell gdal-config --cflags 2>/dev/null)
+	GDAL_LIBS        =
+	GDAL_CFLAGS      =
 else
 	# Linux
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
