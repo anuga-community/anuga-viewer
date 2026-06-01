@@ -19,35 +19,29 @@ ifeq ($(UNAME), Darwin)
 	LIB_TYPE	= -dynamiclib -F/System/Library/Frameworks
 	TARGET           =  $(TOPDIR)/bin/lib$(NAME).dylib
 	CFLAGS          = -DGL_SILENCE_DEPRECATION
-	GDAL_INCLUDE     = $(shell gdal-config --cflags 2>/dev/null)
-	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
 else ifneq ($(findstring MINGW,$(UNAME)),)
-	# Windows (MSYS2/MinGW) — GDAL omitted: its DLL global constructors throw
-	# on Windows, crashing the process before main() runs
+	# Windows (MSYS2/MinGW)
 	LIB_TYPE	= -shared
 	CFLAGS		= -fPIC -fno-strict-aliasing -Wall
 	TARGET           =  $(TOPDIR)/bin/lib$(NAME).dll
 	X_LIBS          =
-	GDAL_INCLUDE     =
-	GDAL_LIBS        =
 else
 	# Linux
 	LIB_TYPE	= -shared
 	CFLAGS		= -fPIC -fno-strict-aliasing -Wall
 	TARGET           =  $(TOPDIR)/bin/lib$(NAME).so
 	TARGET_FINAL_DIR = /usr/local/lib/lib$(NAME).so.1
-	GDAL_INCLUDE     = $(shell gdal-config --cflags 2>/dev/null)
-	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
 endif
 
-# Enable GDAL support only when gdal-config is present (non-Windows).
-# This lets CI builds omit libgdal to keep packages small; local builds
-# with GDAL installed get the georeferenced texture feature automatically.
-ifeq ($(findstring MINGW,$(UNAME)),)
+# GDAL is omitted by default — tile textures use a .georef sidecar instead.
+# To build with GDAL (enables geotransform reading from user-supplied GeoTIFFs):
+#   make GDAL_LIBS="$(gdal-config --libs)" GDAL_CFLAGS="$(gdal-config --cflags)"
+GDAL_LIBS   ?=
+GDAL_CFLAGS ?=
 ifneq ($(GDAL_LIBS),)
 CFLAGS += -DHAVE_GDAL
 endif
-endif
+GDAL_INCLUDE = $(GDAL_CFLAGS)
 
 INCLUDES         =  -I $(LOCAL_INCLUDE) -I $(NETCDF_INCLUDE) -I $(OSG_INCLUDE) $(GDAL_INCLUDE)
 NETCDF_LIBS      =  $(shell nc-config --libs 2>/dev/null || pkg-config --libs netcdf 2>/dev/null || echo -lnetcdf)

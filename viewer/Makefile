@@ -21,26 +21,21 @@ ifeq ($(UNAME), Darwin)
 		            -DGL_SILENCE_DEPRECATION \
 		            -Wall -DDARWIN_QUICKTIME \
 		            $(OPTIMIZATION)
-	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
-	GDAL_CFLAGS      = $(shell gdal-config --cflags 2>/dev/null)
 else ifneq ($(findstring MINGW,$(UNAME)),)
 	# Windows (MSYS2/MinGW)
-	# GDAL is intentionally excluded: linking it pulls in ~70 transitive DLLs
-	# (HDF5, GEOS, SQLite, …) that cause DLL init failures on the target machine.
-	# Tile fetching on Windows is handled by the lightweight libcurl path in
-	# osmtexture.cpp instead.
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
 	X_LIBS          =
 	WIN_LDFLAGS      =  -Wl,-subsystem,console
-	GDAL_LIBS        =
-	GDAL_CFLAGS      =
 else
 	# Linux
 	CPPFLAGS         =  -Wall $(OPTIMIZATION)
-	GDAL_LIBS        = $(shell gdal-config --libs 2>/dev/null)
-	GDAL_CFLAGS      = $(shell gdal-config --cflags 2>/dev/null)
 endif
 
+# GDAL omitted by default — tile textures use libcurl + .georef sidecar instead.
+# Build with GDAL (enables geotransform reading from user-supplied GeoTIFFs):
+#   make GDAL_LIBS="$(gdal-config --libs)" GDAL_CFLAGS="$(gdal-config --cflags)"
+GDAL_LIBS   ?=
+GDAL_CFLAGS ?=
 ifneq ($(GDAL_LIBS),)
 	CPPFLAGS        += -DHAVE_GDAL
 endif

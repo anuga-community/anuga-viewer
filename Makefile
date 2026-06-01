@@ -27,6 +27,8 @@ LINUXDEPLOY ?= ./linuxdeploy-x86_64.AppImage
 appimage:
 	env -i HOME=$(HOME) PATH=/usr/bin:/bin:/usr/local/bin $(MAKE) OSGHOME=/usr
 	cp bin/anuga_viewer AppDir/usr/bin/anuga_viewer
+	# Clear bundled libs so stale deps from previous builds are not carried forward.
+	rm -rf AppDir/usr/lib && mkdir -p AppDir/usr/lib
 	cp bin/libswwreader.so AppDir/usr/lib/libswwreader.so
 	env -i HOME=$(HOME) PATH=/usr/bin:/bin:/usr/local/bin DISPLAY=$(DISPLAY) \
 	    LD_LIBRARY_PATH=$(CURDIR)/bin \
