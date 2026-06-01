@@ -7,20 +7,61 @@ water stage and momentum data.  The viewer renders the animated water surface ov
 terrain and provides interactive controls for exploring the simulation.
 
 
-Quick Start
------------
+Installation
+------------
 
-Download the latest AppImage from the
-`Releases <https://github.com/anuga-community/anuga-viewer/releases>`_ page, make it
-executable, and run it::
+Pre-built packages for Linux, macOS, and Windows are available on the
+`Releases <https://github.com/anuga-community/anuga-viewer/releases>`_ page.
 
-   chmod +x ANUGA_Viewer-x86_64.AppImage
-   ./ANUGA_Viewer-x86_64.AppImage path/to/simulation.sww
+**Linux — AppImage**
 
-Or install it to your path::
+Download ``anuga-viewer-linux-x86_64.AppImage``, make it executable, and run it::
 
-   cp ANUGA_Viewer-x86_64.AppImage ~/.local/bin/anuga_viewer
+   chmod +x anuga-viewer-linux-x86_64.AppImage
+
+   # Run directly
+   ./anuga-viewer-linux-x86_64.AppImage path/to/simulation.sww
+
+   # Or install to your PATH (no root required)
+   cp anuga-viewer-linux-x86_64.AppImage ~/.local/bin/anuga_viewer
    anuga_viewer path/to/simulation.sww
+
+**macOS**
+
+Download ``anuga-viewer-macos.dmg``, open it, and drag **ANUGA Viewer** to
+**Applications**.  On first launch macOS may show a security warning — right-click
+the app and choose **Open** to bypass it.
+
+**Windows**
+
+Download and run ``anuga-viewer-windows-setup.exe``.  The installer adds Start Menu
+and Desktop shortcuts and registers ``.sww`` file associations.
+
+.. note::
+
+   Windows may show a **SmartScreen** warning because the installer is not yet signed
+   with a commercial certificate.  Click **More info** → **Run anyway** to proceed.
+
+**Build from source (Ubuntu / Debian)**
+
+::
+
+   sudo apt-get install git build-essential libcurl4-openssl-dev libcppunit-dev \
+                        libopenscenegraph-dev libnetcdf-dev
+   git clone https://github.com/anuga-community/anuga-viewer.git
+   cd anuga-viewer
+   make
+   sudo make install
+
+Add to ``~/.bashrc``::
+
+   export SWOLLEN_BINDIR=/path/to/anuga-viewer/bin
+   export PATH=$PATH:$SWOLLEN_BINDIR
+
+.. note::
+
+   If the build fails with missing includes, deactivate any active conda environment
+   first — conda can shadow system include paths.
 
 
 Mouse Controls
@@ -29,16 +70,16 @@ Mouse Controls
 +--------------------------------------+--------------------------------------+
 | Action                               | Effect                               |
 +======================================+======================================+
-| Left-drag                            | Rotate/spin the model                |
+| Left-drag                            | Rotate / spin the model              |
 +--------------------------------------+--------------------------------------+
-| Right-drag                           | Zoom in/out                          |
+| Right-drag                           | Zoom in / out                        |
 +--------------------------------------+--------------------------------------+
 | Middle-drag (or both buttons)        | Pan                                  |
 +--------------------------------------+--------------------------------------+
-| Shift + left-click on water          | Show timeseries plot for that        |
-|                                      | triangle                             |
+| Shift + left-click                   | Show timeseries plot for that        |
+|                                      | triangle (wet or dry)                |
 +--------------------------------------+--------------------------------------+
-| Click anywhere else                  | Hide timeseries plot                 |
+| Click anywhere (no Shift)            | Hide timeseries plot                 |
 +--------------------------------------+--------------------------------------+
 
 
@@ -48,54 +89,58 @@ Keyboard Shortcuts
 Animation
 ~~~~~~~~~
 
-+------------+-------------------------------------------------------------+
-| Key        | Action                                                      |
-+============+=============================================================+
-| Space      | Pause / resume animation                                    |
-+------------+-------------------------------------------------------------+
-| Left arrow | Step back one timestep (when paused)                        |
-+------------+-------------------------------------------------------------+
-| Right arrow| Step forward one timestep (when paused)                     |
-+------------+-------------------------------------------------------------+
-| r          | Reset animation to timestep 0                               |
-+------------+-------------------------------------------------------------+
++-------------+-------------------------------------------------------------+
+| Key         | Action                                                      |
++=============+=============================================================+
+| Space       | Pause / resume animation                                    |
++-------------+-------------------------------------------------------------+
+| Left arrow  | Step back one timestep (paused) / speed down (playing)      |
++-------------+-------------------------------------------------------------+
+| Right arrow | Step forward one timestep (paused) / speed up (playing)     |
++-------------+-------------------------------------------------------------+
+| r           | Reset animation to timestep 0                               |
++-------------+-------------------------------------------------------------+
 
 Display
 ~~~~~~~
 
-+------------+-------------------------------------------------------------+
-| Key        | Action                                                      |
-+============+=============================================================+
-| v          | Cycle water colour mode (see `Colour Modes`_ below)         |
-+------------+-------------------------------------------------------------+
-| ``[``      | Decrease colour scale maximum by 20%                        |
-+------------+-------------------------------------------------------------+
-| ``]``      | Increase colour scale maximum by 20%                        |
-+------------+-------------------------------------------------------------+
-| z          | Decrease vertical exaggeration by 33%                       |
-+------------+-------------------------------------------------------------+
-| Z          | Increase vertical exaggeration by 50%                       |
-+------------+-------------------------------------------------------------+
-| w          | Cycle wireframe mode (off / water / bed / both)             |
-+------------+-------------------------------------------------------------+
-| l          | Toggle lighting                                             |
-+------------+-------------------------------------------------------------+
-| t          | Toggle bedslope texture                                     |
-+------------+-------------------------------------------------------------+
-| b          | Toggle backface culling                                     |
-+------------+-------------------------------------------------------------+
-| g          | Cycle grid/colorbar overlay                                 |
-+------------+-------------------------------------------------------------+
-| i          | Toggle information HUD                                      |
-+------------+-------------------------------------------------------------+
-| x          | Reset camera to default position                            |
-+------------+-------------------------------------------------------------+
-| c          | Toggle steep-triangle culling                               |
-+------------+-------------------------------------------------------------+
-| O          | Screenshot                                                  |
-+------------+-------------------------------------------------------------+
-| Escape     | Quit                                                        |
-+------------+-------------------------------------------------------------+
++--------------------+--------------------------------------------------------+
+| Key                | Action                                                 |
++====================+========================================================+
+| v / V              | Cycle water colour mode forward / backward             |
++--------------------+--------------------------------------------------------+
+| ``[`` / ``]``      | Decrease / increase colour scale right endpoint (max)  |
++--------------------+--------------------------------------------------------+
+| ``{`` / ``}``      | Decrease / increase colour scale left endpoint (min)   |
+|                    | — stage modes only                                     |
++--------------------+--------------------------------------------------------+
+| ``,`` / ``.``      | Pan the entire colour range left / right               |
+|                    | — stage modes only                                     |
++--------------------+--------------------------------------------------------+
+| z / Z              | Decrease / increase vertical exaggeration by 1.5×      |
++--------------------+--------------------------------------------------------+
+| w                  | Cycle wireframe mode (off / water / bed / both)        |
++--------------------+--------------------------------------------------------+
+| l                  | Toggle lighting                                        |
++--------------------+--------------------------------------------------------+
+| t                  | Cycle view: landscape → colour (osm) → colour          |
++--------------------+--------------------------------------------------------+
+| b                  | Toggle backface culling                                |
++--------------------+--------------------------------------------------------+
+| c                  | Toggle steep-triangle culling                          |
++--------------------+--------------------------------------------------------+
+| g                  | Cycle grid / colorbar overlay                          |
++--------------------+--------------------------------------------------------+
+| i                  | Toggle information HUD                                 |
++--------------------+--------------------------------------------------------+
+| Shift + arrows     | Pan camera (useful on touchpads)                       |
++--------------------+--------------------------------------------------------+
+| x                  | Reset camera to default position                       |
++--------------------+--------------------------------------------------------+
+| O                  | Screenshot                                             |
++--------------------+--------------------------------------------------------+
+| Escape             | Quit                                                   |
++--------------------+--------------------------------------------------------+
 
 Recording
 ~~~~~~~~~
@@ -114,18 +159,22 @@ Recording
 Colour Modes
 ------------
 
-Press ``v`` to cycle through seven water colour modes.  All use a
-blue (low) → green (mid) → red (high) gradient.  Use ``[`` / ``]`` to
-adjust the saturation scale for the active mode.
+Press ``v`` to cycle through water colour modes.  Use ``[`` / ``]`` to adjust
+the right endpoint of the colour scale without changing mode.  In stage modes
+``{`` / ``}`` move the left endpoint and ``,`` / ``.`` pan the whole range.
 
 +----------------------+----------------------------------------------------+
 | Mode                 | Description                                        |
 +======================+====================================================+
+| natural blue         | Solid blue water (default — no data colouring)     |
++----------------------+----------------------------------------------------+
+| stage                | Current absolute water surface elevation (m)       |
++----------------------+----------------------------------------------------+
+| depth                | Current water depth above the bed (m)              |
++----------------------+----------------------------------------------------+
+| speed                | Current flow speed = momentum / depth (m/s)        |
++----------------------+----------------------------------------------------+
 | momentum             | Current momentum magnitude (m²/s)                  |
-+----------------------+----------------------------------------------------+
-| speed                | Current flow speed = |momentum| / depth (m/s)      |
-+----------------------+----------------------------------------------------+
-| depth                | Current water depth (m)                            |
 +----------------------+----------------------------------------------------+
 | max depth            | Maximum depth at each point over all timesteps     |
 +----------------------+----------------------------------------------------+
@@ -138,7 +187,7 @@ adjust the saturation scale for the active mode.
 +----------------------+----------------------------------------------------+
 
 The four ``max`` modes display a static snapshot of the worst-case flood
-extent and are independent of the current animation timestep.
+extent and do not animate with the timestep.
 
 
 Vertical Exaggeration
@@ -157,19 +206,16 @@ The initial vertical scale can also be set on the command line::
 Applying Textures
 -----------------
 
-Apply an image or georeferenced raster to the bedslope with ``-texture``::
+Apply an image to the bedslope with ``-texture``::
 
    anuga_viewer -texture images/bedslope.jpg simulation.sww
 
-There are two mapping modes:
+If the SWW file contains UTM zone metadata, OpenStreetMap or ESRI satellite
+tiles are fetched automatically and draped over the terrain.  Use
+``-maptiles satellite`` to select satellite imagery or ``-maptiles none`` to
+disable tile fetching.
 
-1. **Georeferenced** — if the file contains GDAL geodata (e.g. a GeoTIFF),
-   the texture is registered to real-world coordinates automatically.
-
-2. **Projected** — otherwise, the image is draped from above, scaled to
-   exactly cover the bedslope bounding rectangle.
-
-Press ``t`` to toggle the texture on and off at runtime.
+Press ``t`` to cycle between landscape (textured) and colour (data) view modes.
 
 
 Command-Line Options
@@ -179,42 +225,45 @@ Command-Line Options
 
    anuga_viewer [options] <file.sww>
 
-+-------------------------+--------------------------------------------------+
-| Option                  | Description                                      |
-+=========================+==================================================+
-| ``-texture <file>``     | Apply image/GDAL texture to bedslope             |
-+-------------------------+--------------------------------------------------+
-| ``-scale <float>``      | Initial vertical exaggeration (default: 1.0)     |
-+-------------------------+--------------------------------------------------+
-| ``-tps <float>``        | Timesteps per second (default: 10)               |
-+-------------------------+--------------------------------------------------+
-| ``-hmin <float>``       | Water depth colour scale minimum (m)             |
-+-------------------------+--------------------------------------------------+
-| ``-hmax <float>``       | Water depth colour scale maximum (m)             |
-+-------------------------+--------------------------------------------------+
-| ``-speedmax <float>``   | Speed colour scale maximum (m/s)                 |
-+-------------------------+--------------------------------------------------+
-| ``-momentummax <float>``| Momentum colour scale maximum (m²/s)             |
-+-------------------------+--------------------------------------------------+
-| ``-alphamin <float>``   | Water minimum opacity (0–1)                      |
-+-------------------------+--------------------------------------------------+
-| ``-alphamax <float>``   | Water maximum opacity (0–1)                      |
-+-------------------------+--------------------------------------------------+
-| ``-lightpos x,y,z``     | Directional light position (z is up)             |
-+-------------------------+--------------------------------------------------+
-| ``-nosky``              | Disable skybox                                   |
-+-------------------------+--------------------------------------------------+
-| ``-movie <dir>``        | Export frames to directory (use with ``.swm``)   |
-+-------------------------+--------------------------------------------------+
-| ``-- screen <n>``       | Select display screen (OSG standard)             |
-+-------------------------+--------------------------------------------------+
++---------------------------+------------------------------------------------+
+| Option                    | Description                                    |
++===========================+================================================+
+| ``-texture <file>``       | Apply image texture to bedslope                |
++---------------------------+------------------------------------------------+
+| ``-maptiles osm|sat|none``| Map tile source when SWW has UTM zone          |
+|                           | (default: ``osm``)                             |
++---------------------------+------------------------------------------------+
+| ``-scale <float>``        | Initial vertical exaggeration (default: 1.0)   |
++---------------------------+------------------------------------------------+
+| ``-tps <float>``          | Timesteps per second (default: 10)             |
++---------------------------+------------------------------------------------+
+| ``-hmin <float>``         | Water depth colour scale minimum (m)           |
++---------------------------+------------------------------------------------+
+| ``-hmax <float>``         | Water depth colour scale maximum (m)           |
++---------------------------+------------------------------------------------+
+| ``-speedmax <float>``     | Speed colour scale maximum (m/s)               |
++---------------------------+------------------------------------------------+
+| ``-momentummax <float>``  | Momentum colour scale maximum (m²/s)           |
++---------------------------+------------------------------------------------+
+| ``-alphamin <float>``     | Water minimum opacity (0–1)                    |
++---------------------------+------------------------------------------------+
+| ``-alphamax <float>``     | Water maximum opacity (0–1)                    |
++---------------------------+------------------------------------------------+
+| ``-lightpos x,y,z``       | Directional light position (z is up)           |
++---------------------------+------------------------------------------------+
+| ``-nosky``                | Disable skybox                                 |
++---------------------------+------------------------------------------------+
+| ``-movie <dir>``          | Export frames to directory (use with ``.swm``) |
++---------------------------+------------------------------------------------+
+| ``-- screen <n>``         | Select display screen (OSG standard)           |
++---------------------------+------------------------------------------------+
 
 
 How to Make a Movie
 -------------------
 
 1. Press ``1`` to start recording the camera path, ``1`` again to stop.
-   Press ``3`` to save the macro as ``movie.swm`` in the viewer's bin folder.
+   Press ``3`` to save the macro as ``movie.swm``.
 
 2. Export the macro as JPEG frames::
 
@@ -225,25 +274,19 @@ How to Make a Movie
       ffmpeg -framerate 25 -i myframes/frame_%d_%d.jpg output.mp4
 
 
-Building from Source
---------------------
-
-See `INSTALL_ubuntu.rst <INSTALL_ubuntu.rst>`_ for Ubuntu/Linux build instructions.
-
-
 Troubleshooting
 ---------------
 
-**I have two monitors and the viewer opens on the wrong one.**
+**The viewer opens on the wrong monitor.**
   Pass ``-- screen 0`` (or ``1``) on the command line::
 
      anuga_viewer -- screen 0 simulation.sww
 
 **TIF textures fail to load.**
   Re-save the file in GIMP or another image editor.  Very large textures
-  (> 4096 × 4096) may also exceed GPU limits.
+  (> 4096 × 4096) may also exceed GPU limits — try resizing first.
 
-**The viewer crashes with a GL error on WSL2.**
+**The viewer crashes with a GL / segfault error on WSL2.**
   Make sure you are using the system OpenSceneGraph (``libopenscenegraph-dev``)
-  and not one installed in a conda environment.  Conda's ``libGLX.so``
+  and not one installed inside a conda environment.  Conda's ``libGLX.so``
   conflicts with the WSL2 Intel GPU driver.
