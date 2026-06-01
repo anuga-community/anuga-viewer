@@ -2,6 +2,47 @@ Release Notes
 =============
 
 
+v0.5.5 — 2026-06-01
+---------------------
+
+New Features
+~~~~~~~~~~~~
+
+**GDAL-free map tile fetching via libcurl**
+
+  Map tiles (OSM and ESRI satellite) are now fetched with libcurl and
+  pure inverse Transverse Mercator mathematics — no GDAL required.
+  This removes ~150 MB of transitive dependencies and shrinks the
+  AppImage from 65 MB to 14 MB and the Windows installer by ~25 MB.
+
+  GDAL can still be enabled for ``-texture GeoTIFF`` georeferencing by
+  building with ``make GDAL_LIBS="$(gdal-config --libs)" GDAL_CFLAGS="$(gdal-config --cflags)"``.
+
+**Windows one-click installer**
+
+  A self-contained NSIS installer (``anuga-viewer-windows-setup.exe``)
+  is now provided on the Releases page.  It registers ``.sww`` file
+  associations, adds Start Menu and Desktop shortcuts, and includes a
+  standard uninstaller.
+
+**Per-tile download progress**
+
+  A progress counter (e.g. ``[OSM] tile  5/20``) is printed to the
+  terminal while map tiles are fetched, giving feedback during the
+  initial download on slower connections.
+
+Bug Fixes
+~~~~~~~~~
+
+- **ESRI satellite tiles saved with wrong extension** — ESRI serves
+  JPEG tiles despite no format hint in the URL; tiles are now detected
+  by magic bytes (``0xFF 0xD8``) and saved as ``.jpg``.
+
+- **Stale GDAL libs in AppImage** — ``linuxdeploy`` only adds libraries,
+  never removes them; old GDAL deps persisted across builds until
+  ``AppDir/usr/lib`` is cleared at the start of each ``make appimage`` run.
+
+
 v0.5.4 — 2026-05-31
 ---------------------
 
