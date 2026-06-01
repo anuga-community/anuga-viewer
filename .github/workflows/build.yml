@@ -330,7 +330,7 @@ jobs:
       - name: Build installer
         shell: cmd
         run: |
-          makensis /DVERSION=${{ github.ref_name }} installer\anuga_viewer.nsi
+          "C:\Program Files (x86)\NSIS\makensis.exe" /DVERSION=${{ github.ref_name }} installer\anuga_viewer.nsi
 
       - uses: actions/upload-artifact@v6
         with:
