@@ -63,10 +63,12 @@ Display
      - Action
    * - v / V
      - Cycle water colour mode forward / backward: stage / depth / speed / momentum / max depth / max speed / max momentum / max stage
-   * - ``[``
-     - Decrease colour scale maximum by 20%
-   * - ``]``
-     - Increase colour scale maximum by 20%
+   * - ``[`` / ``]``
+     - Decrease / increase the colour scale right endpoint (max)
+   * - ``{`` / ``}``
+     - Decrease / increase the colour scale left endpoint (min) — stage modes only
+   * - ``,`` / ``.``
+     - Pan the entire colour range left / right — stage modes only
    * - z
      - Decrease vertical exaggeration by 33%
    * - Z
@@ -117,8 +119,9 @@ Colour Modes
 ------------
 
 Press ``v`` to cycle through seven water colour modes.  All use a
-blue (low) → green (mid) → red (high) gradient.  Use ``[`` and ``]`` to
-adjust the saturation scale for the active mode without changing colour mode.
+blue (low) → green (mid) → red (high) gradient.  Use the colour range
+keys (see below) to adjust the scale limits for the active mode without
+changing colour mode.
 
 .. list-table::
    :widths: 25 75
@@ -148,8 +151,46 @@ The four **max** modes show a static snapshot of worst-case flood extent
 and do not animate with the timestep.  They are computed once when the file
 is opened.
 
-The current mode and scale value are shown in the information HUD (press
+The current mode and scale limits are shown in the information HUD (press
 ``i`` to toggle).
+
+
+.. _colour-range-controls:
+
+Colour Range Controls
+---------------------
+
+The colour scale endpoints can be moved independently so you can zoom in on a
+narrow band of values or pan the range across the data without leaving the
+current colour mode.
+
+.. list-table::
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Key
+     - Effect
+   * - ``]``
+     - Increase the right endpoint (max) by one step
+   * - ``[``
+     - Decrease the right endpoint (max) by one step
+   * - ``}``
+     - Increase the left endpoint (min) by one step *(stage modes only)*
+   * - ``{``
+     - Decrease the left endpoint (min) by one step *(stage modes only)*
+   * - ``.``
+     - Pan the entire range right by one step *(stage modes only)*
+   * - ``,``
+     - Pan the entire range left by one step *(stage modes only)*
+
+The step size is proportional to the current range width, so adjustments
+remain responsive at any zoom level.  Neither endpoint will cross zero in
+the direction it came from.
+
+The left-endpoint and pan keys apply only to **stage** and **max stage**
+modes, where the range minimum carries physical meaning (e.g. the
+background terrain elevation).  In depth, speed, and momentum modes the
+minimum is always zero and only the right endpoint is adjustable.
 
 
 Timeseries Plot
