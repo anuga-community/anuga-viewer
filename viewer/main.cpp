@@ -373,8 +373,8 @@ int main( int argc, char **argv )
       if (swwDir.empty()) swwDir = ".";
       std::string base = swwDir + "/" + osgDB::getStrippedName(sww->getSWWFilename());
 
-      std::string osmPath = fetchMapTexture(sww, base + "_osm.tif", MapTileSource::OSM);
-      std::string satPath = fetchMapTexture(sww, base + "_satellite.tif", MapTileSource::SATELLITE);
+      std::string osmPath = fetchMapTexture(sww, base + "_osm.jpg", MapTileSource::OSM);
+      std::string satPath = fetchMapTexture(sww, base + "_satellite.jpg", MapTileSource::SATELLITE);
 
       // Register whichever tile arrived first to populate UV coords in swwreader.
       if (!osmPath.empty())

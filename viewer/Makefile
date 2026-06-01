@@ -45,11 +45,18 @@ ifneq ($(GDAL_LIBS),)
 	CPPFLAGS        += -DHAVE_GDAL
 endif
 
+# libcurl for map tile fetching (replaces GDAL WMS on all platforms)
+CURL_LIBS   = $(shell pkg-config --libs libcurl 2>/dev/null || curl-config --libs 2>/dev/null || echo "-lcurl")
+CURL_CFLAGS = $(shell pkg-config --cflags libcurl 2>/dev/null || curl-config --cflags 2>/dev/null)
+ifneq ($(CURL_LIBS),)
+	CPPFLAGS    += -DHAVE_CURL
+endif
+
 X_LIBS           ?= -lX11
 OTHER_LIBS       =  -lm -lstdc++ -lnetcdf
 LIBS            +=  -losg -losgText -losgDB -losgUtil -losgGA \
                     -lOpenThreads -losgViewer -lswwreader \
-                    $(GL_LIBS) $(X_LIBS) $(OTHER_LIBS) $(OSX_LIBS) $(GDAL_LIBS)
+                    $(GL_LIBS) $(X_LIBS) $(OTHER_LIBS) $(OSX_LIBS) $(GDAL_LIBS) $(CURL_LIBS)
 # Put $(TOPDIR)/bin first so the freshly built swwreader is preferred over any installed version.
 # Embed $ORIGIN rpath so the binary finds libswwreader.so next to itself at runtime (no sudo install needed).
 LIBDIRS          =  -L$(TOPDIR)/bin -L${OSGHOME}/lib -L/usr/lib -L/usr/X11R6/lib -L/usr/local/lib64 -L/usr/local/lib
@@ -66,7 +73,7 @@ OBJ              =  anugahud.o hud.o keyboardeventhandler.o watersurface.o main.
 
 
 %.o : %.cpp
-	$(COMPILER) -c -MMD -MP $(INCLUDES) $(GDAL_CFLAGS) $(CPPFLAGS) $< -o $@
+	$(COMPILER) -c -MMD -MP $(INCLUDES) $(GDAL_CFLAGS) $(CURL_CFLAGS) $(CPPFLAGS) $< -o $@
 
 
 $(TARGET) : $(OBJ)

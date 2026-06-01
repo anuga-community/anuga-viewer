@@ -179,6 +179,31 @@ void SWWReader::setBedslopeTexture( std::string filename )
 		}
 	}
 #endif
+
+	// Sidecar fallback: read a .georef file written by fetchMapTexture when GDAL
+	// is unavailable or when the image format (e.g. JPEG) carries no geotransform.
+	if (!_bedslopegeodata.hasData)
+	{
+		FILE* f = fopen((filename + ".georef").c_str(), "r");
+		if (f)
+		{
+			float xo, yo, xp, yp;
+			int   xr, yr;
+			if (fscanf(f, "%f %f %f %f %d %d", &xo, &yo, &xp, &yp, &xr, &yr) == 6)
+			{
+				_bedslopegeodata.xorigin     = xo;
+				_bedslopegeodata.yorigin     = yo;
+				_bedslopegeodata.xpixel      = xp;
+				_bedslopegeodata.ypixel      = yp;
+				_bedslopegeodata.xresolution = xr;
+				_bedslopegeodata.yresolution = yr;
+				_bedslopegeodata.rotation    = 0.0f;
+				_bedslopegeodata.hasData     = true;
+				osg::notify(osg::INFO) << "[SWWReader::setBedslopetexture] loaded .georef sidecar\n";
+			}
+			fclose(f);
+		}
+	}
 }
 
 
