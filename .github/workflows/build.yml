@@ -323,10 +323,15 @@ jobs:
 
           echo "=== Bundle size ===" && du -sh "$DIST" && du -sh "$DIST"/* | sort -rh | head -20
 
+      - name: Build installer
+        shell: cmd
+        run: |
+          makensis /DVERSION=${{ github.ref_name }} installer\anuga_viewer.nsi
+
       - uses: actions/upload-artifact@v6
         with:
           name: anuga-viewer-windows
-          path: dist
+          path: anuga-viewer-windows-setup.exe
 
   # -----------------------------------------------------------------------
   # Release — upload artifacts to GitHub Release when a version tag is pushed
@@ -340,14 +345,10 @@ jobs:
     steps:
       - uses: actions/download-artifact@v7
 
-      - name: Zip Windows bundle
-        run: |
-          (cd anuga-viewer-windows && zip -r ../anuga-viewer-windows.zip anuga-viewer)
-
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
             anuga-viewer-linux/*.AppImage
             anuga-viewer-macos/*.dmg
-            anuga-viewer-windows.zip
+            anuga-viewer-windows/anuga-viewer-windows-setup.exe
