@@ -16,7 +16,7 @@
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\ANUGAViewer"
 
 Name    "${APP_NAME} ${VERSION}"
-OutFile "anuga-viewer-windows-setup.exe"
+OutFile "..\anuga-viewer-windows-setup.exe"
 
 InstallDir      "$PROGRAMFILES64\ANUGA Viewer"
 InstallDirRegKey HKCU "${APP_REGKEY}" "InstallDir"
@@ -48,7 +48,7 @@ Section "ANUGA Viewer" SecMain
   SectionIn RO
 
   SetOutPath "$INSTDIR"
-  File /r "dist\anuga-viewer\*.*"
+  File /r "..\dist\anuga-viewer\*.*"
 
   ; SWOLLEN_BINDIR tells the viewer where to find bundled fonts and images.
   ; Write it as a persistent user environment variable so command-line
