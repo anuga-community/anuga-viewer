@@ -34,6 +34,28 @@ New Features
   A ``-texture`` file on the command line adds a ``map`` mode alongside
   ``colour``.  Water transparency is now fully independent of ``t``.
 
+**Independent colour range endpoint controls**
+
+  The colour scale endpoints can now be adjusted independently:
+
+  ======= ============================================================
+  Key     Effect
+  ======= ============================================================
+  ``]``   Increase the right endpoint (max) by one step
+  ``[``   Decrease the right endpoint (max) by one step
+  ``}``   Increase the left endpoint (min) by one step (stage modes)
+  ``{``   Decrease the left endpoint (min) by one step (stage modes)
+  ``.``   Pan the entire range right by one step (stage modes)
+  ``,``   Pan the entire range left by one step (stage modes)
+  ======= ============================================================
+
+  The step size is proportional to the current range width so nudges
+  stay responsive at any zoom level.  Neither endpoint will cross zero
+  in the direction it came from.
+
+  Previously ``[`` / ``]`` zoomed symmetrically around the range
+  midpoint, making it hard to set one bound without disturbing the other.
+
 **Smarter colour range defaults**
 
   Colour scale limits are now initialised from actual data values:
@@ -42,13 +64,6 @@ New Features
     startup, not the full terrain elevation span.
   - Depth, speed, and momentum limits are set from the per-vertex maxima.
   - All limits are rounded to a *nice* ``{1, 2, 5} × 10ⁿ`` boundary.
-    The ``[`` / ``]`` nudge keys also snap to nice values.
-
-**Stage range pan** (``,`` / ``.`` keys)
-
-  Press ``,`` to shift the stage / max-stage colour window downward by one
-  step, or ``.`` to shift it upward.  Combined with ``[`` / ``]`` this lets
-  you zoom and pan the colour range without leaving the viewer.
 
 Bug Fixes
 ~~~~~~~~~
@@ -68,7 +83,7 @@ Bug Fixes
   through the stage scale.  Now uses the same ``stageoffset`` /
   ``stageheightmax`` reference as ``CM_STAGE``.
 
-- **``[`` / ``]`` keys did not repaint water surface** — nudging the colour
+- **Colour range keys did not repaint water surface** — nudging the colour
   scale required waiting for the next timestep change before the new range
   was visible.  A forced refresh is now triggered immediately.
 
