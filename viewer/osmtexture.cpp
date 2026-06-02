@@ -22,8 +22,10 @@
 #ifdef _WIN32
 #  include <direct.h>
 #  define MAKE_DIR(p) _mkdir(p)
+#  define DIR_SEP "\\"
 #else
 #  define MAKE_DIR(p) mkdir((p), 0755)
+#  define DIR_SEP "/"
 #endif
 
 #ifndef M_PI
@@ -110,6 +112,34 @@ static int chooseZoom(double lonRangeDeg, double latRangeDeg, int maxZ)
 }
 
 static bool fileExists(const std::string& p) { struct stat s; return stat(p.c_str(), &s) == 0; }
+
+// Create directory and all parents (mkdir -p).
+static void makeDirs(const std::string& path)
+{
+    for (size_t i = 1; i <= path.size(); i++) {
+        if (i == path.size() || path[i] == '/' || path[i] == '\\') {
+            MAKE_DIR(path.substr(0, i).c_str());
+        }
+    }
+}
+
+// Shared tile cache: ~/.cache/anuga-viewer/tiles/<source>/
+// (Windows: %LOCALAPPDATA%\anuga-viewer\tiles\<source>\)
+static std::string getTileCacheDir(const char* sourceLabel)
+{
+    std::string sub = sourceLabel;
+    for (char& c : sub) c = (char)tolower((unsigned char)c);
+#ifdef _WIN32
+    const char* base = getenv("LOCALAPPDATA");
+    if (!base || !base[0]) base = getenv("APPDATA");
+    if (!base || !base[0]) return "." DIR_SEP "anuga-viewer-tiles" DIR_SEP + sub;
+    return std::string(base) + "\\anuga-viewer\\tiles\\" + sub;
+#else
+    const char* home = getenv("HOME");
+    if (!home || !home[0]) return "./.anuga-viewer-tiles/" + sub;
+    return std::string(home) + "/.cache/anuga-viewer/tiles/" + sub;
+#endif
+}
 
 static size_t curlWriteCB(void* ptr, size_t sz, size_t n, void* fp)
 {
@@ -315,8 +345,9 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTi
         return "";
     }
 
-    std::string cacheDir = outputPath + "_tiles";
-    MAKE_DIR(cacheDir.c_str());
+    std::string cacheDir = getTileCacheDir(src.label);
+    makeDirs(cacheDir);
+    std::cout << "[" << src.label << "] tile cache: " << cacheDir << "\n";
 
     // Pre-fetch all tiles with per-tile progress, then stitch.
     std::map<std::pair<int,int>, osg::ref_ptr<osg::Image>> tileCache;
