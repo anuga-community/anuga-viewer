@@ -21,19 +21,19 @@ AnugaHUD::AnugaHUD() :
 	osg::Geode* right = new osg::Geode;
 
 	// Left column — bottom to top
-	addStatusLine("wireframe", left,  osg::Vec3(LX, Y0,           0));
-	addStatusLine("culling",   left,  osg::Vec3(LX, Y0 + DY,      0));
-	addStatusLine("color",     left,  osg::Vec3(LX, Y0 + 2*DY,    0));
-	addStatusLine("wetdepth",  left,  osg::Vec3(LX, Y0 + 3*DY,    0));
+	addStatusLine("wireframe", "wireframe (w)",   left,  osg::Vec3(LX, Y0,        0));
+	addStatusLine("culling",   "culling (c)",     left,  osg::Vec3(LX, Y0 + DY,   0));
+	addStatusLine("color",     "color (v/V)",     left,  osg::Vec3(LX, Y0 + 2*DY, 0));
+	addStatusLine("wetdepth",  "wetdepth (a/A)",  left,  osg::Vec3(LX, Y0 + 3*DY, 0));
 
 	// Filename — dedicated row, left-aligned, free to stretch right
-	addStatusLine("filename",  left,  osg::Vec3(LX, FY,            0));
+	addStatusLine("filename",  "filename",        left,  osg::Vec3(LX, FY,         0));
 
 	// Right column — bottom to top, right-aligned
-	addStatusLine("recorder",  right, osg::Vec3(RX, Y0,           0), true);
-	addStatusLine("grid",      right, osg::Vec3(RX, Y0 + DY,      0), true);
-	addStatusLine("vscale",    right, osg::Vec3(RX, Y0 + 2*DY,    0), true);
-	addStatusLine("mode",      right, osg::Vec3(RX, Y0 + 3*DY,    0), true);
+	addStatusLine("recorder",  "recorder (1)",    right, osg::Vec3(RX, Y0,        0), true);
+	addStatusLine("grid",      "grid (g)",        right, osg::Vec3(RX, Y0 + DY,   0), true);
+	addStatusLine("vscale",    "vscale (z/Z)",    right, osg::Vec3(RX, Y0 + 2*DY, 0), true);
+	addStatusLine("mode",      "mode (t)",        right, osg::Vec3(RX, Y0 + 3*DY, 0), true);
 
 	_status_switch->addChild(left);
 	_status_switch->addChild(right);

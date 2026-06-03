@@ -225,7 +225,7 @@ void HeadsUpDisplay::update()
 		for(TStatusMap::iterator i = _statusmap.begin(); i!=_statusmap.end(); ++i)
 		{
 			std::ostringstream text;
-			text << i->first << ": " << i->second._label;
+			text << i->second._displayLabel << ": " << i->second._label;
 			i->second._drawable->setText(text.str());
 		}
       _dirtystatus = false;
@@ -274,12 +274,14 @@ void HeadsUpDisplay::setTimeSeriesData(osg::ref_ptr<osg::FloatArray> aData, floa
 }
 
 
-void HeadsUpDisplay::addStatusLine(const std::string & aLabel, osg::Geode* aParentGeode,
+void HeadsUpDisplay::addStatusLine(const std::string & aKey, const std::string & aDisplayLabel,
+                                   osg::Geode* aParentGeode,
                                    const osg::Vec3& aPos, bool rightAlign)
 {
 	StatusData data;
+	data._displayLabel = aDisplayLabel;
 	data._drawable = addText(aPos, *_font, false, rightAlign);
-	_statusmap.insert(TStatusPair(aLabel, data));
+	_statusmap.insert(TStatusPair(aKey, data));
 	aParentGeode->addDrawable( data._drawable );
 	_dirtystatus = true;
 }

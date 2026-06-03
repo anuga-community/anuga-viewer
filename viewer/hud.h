@@ -90,7 +90,8 @@ protected:
 	 * @param aPos    position in ORTHO2D canvas coords
 	 * @param rightAlign  if true, text is right-aligned at aPos
 	 */
-	void addStatusLine(const std::string & aLabel, osg::Geode* aParentGeode,
+	void addStatusLine(const std::string & aKey, const std::string & aDisplayLabel,
+	                   osg::Geode* aParentGeode,
 	                   const osg::Vec3& aPos, bool rightAlign = false);
 
 	void applyVisibility();
@@ -108,6 +109,7 @@ protected:
 
 	struct StatusData
 	{
+		std::string _displayLabel;  /**< prefix shown in HUD, e.g. "color (v/V)" */
 		std::string _label;
 		osgText::Text * _drawable;
 	};
