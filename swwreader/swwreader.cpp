@@ -518,12 +518,14 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 
 		if (_state.wetdepth > 0.0f)
 		{
+			// Ramp from 0 (dry) to alphamin (deep water) over the wetdepth range.
+			// alphamin controls deep-water opacity; alphamax is unused in this mode.
 			if (depth_m <= 0.0f)
 				alpha = 0.0f;
 			else if (depth_m < _state.wetdepth)
-				alpha = (depth_m / _state.wetdepth) * _state.alphamax;
+				alpha = (depth_m / _state.wetdepth) * _state.alphamin;
 			else
-				alpha = _state.alphamax;
+				alpha = _state.alphamin;
 		}
 		else
 		{
