@@ -28,6 +28,8 @@ class HeadsUpDisplay
 
 public:
 
+	enum HudVisibility { HUD_FULL, HUD_MINIMAL, HUD_NONE };
+
     HeadsUpDisplay();
 	/**
 	 * Set the time display.
@@ -45,18 +47,13 @@ public:
 		virtual void setStatus(const std::string & aField, const std::string & aStatus);
 
 		virtual void setShowIntensityScale(bool aSet)	{ if (aSet) _intensity_scale_switch->setAllChildrenOn(); else _intensity_scale_switch->setAllChildrenOff();	}
-		
-		/**
-		 * Set the HUD text as visible or invisible
-		 * @param aVisible tre if visible
-		 */
-		virtual void setVisible(bool aVisible) {	_status_visible_dirty = true;	_status_visible = aVisible;	}
 
-		/**
-		 * Get if the HUD text is visible or invisible
-		 * @return true if visible
-		 */
-		virtual bool isVisible() {	return _status_visible;	}
+		/** Cycle through Full → Minimal (title+time only) → None → Full */
+		virtual void cycleVisibility();
+
+		/** Legacy toggle used by recording/playback state: true=FULL, false=NONE */
+		virtual void setVisible(bool aVisible);
+		virtual bool isVisible() { return _hudVisibility != HUD_NONE; }
 
 	/**
 	 * Tick the hud
@@ -81,14 +78,22 @@ protected:
 	 * @param aPos Screen position
 	 * @param aFont Font to use
 	 * @param aLarge true if large font size is to be used
+	 * @param rightAlign if true, text is right-aligned at aPos
 	 */
-	osgText::Text * addText(const osg::Vec3 & aPos,  osgText::Font & aFont, bool aLarge = false);
+	osgText::Text * addText(const osg::Vec3 & aPos, osgText::Font & aFont,
+	                        bool aLarge = false, bool rightAlign = false);
 
 	/**
-	 * Add a status line
-	 * Creates a status line.
+	 * Add a status line at an explicit canvas position.
+	 * @param aLabel  key used with setStatus()
+	 * @param aParentGeode  geode to attach the drawable to
+	 * @param aPos    position in ORTHO2D canvas coords
+	 * @param rightAlign  if true, text is right-aligned at aPos
 	 */
-	void addStatusLine(const std::string & aLabel, osg::Geode* aParentGeode);
+	void addStatusLine(const std::string & aLabel, osg::Geode* aParentGeode,
+	                   const osg::Vec3& aPos, bool rightAlign = false);
+
+	void applyVisibility();
 
 protected:
 
@@ -116,7 +121,8 @@ protected:
 
     osg::Projection* _projection;
 	osg::Switch * _intensity_scale_switch;
-	osg::Switch * _text_switch;	/**< Switch text off and on */
+	osg::Switch * _text_switch;    /**< Switch for title + time (shown in MINIMAL and FULL) */
+	osg::Switch * _status_switch;  /**< Switch for status lines (shown in FULL only) */
     osgText::Text* _titletext;
     osgText::Text* _timetext;
     float _timevalue;
@@ -129,9 +135,8 @@ protected:
 
 	osgText::Font* _font;
 
-	osg::Vec2 _status_pos; /**< Current position of righthand edge of status grid */
-	bool _status_visible;	/**< True if HUD status lines are visible */ 
-	bool _status_visible_dirty;	/**< True if the visibility has changed state */
+	HudVisibility _hudVisibility;
+	bool _visibility_dirty;
 
 };
 

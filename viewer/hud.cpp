@@ -24,17 +24,12 @@
 osg::Vec4 COLORBAR_TEXT_COL(0.8, 0.8, 0.8, 1.0);
 
 
-//static const std::string FONT_PATH = "/home/stephen/anuga-viewer/bin/fonts/arial.ttf"; // This is the default font path as used by OSG
-
-
-
 // constructor
 HeadsUpDisplay::HeadsUpDisplay()
 	: _linegraph(NULL),
 	_font(NULL),
-	_status_pos(400, 32),
-	_status_visible(true),
-	_status_visible_dirty(false)
+	_hudVisibility(HUD_FULL),
+	_visibility_dirty(false)
 {
    // a heads-up display requires an orthographic projection
    _projection = new osg::Projection;
@@ -52,16 +47,15 @@ HeadsUpDisplay::HeadsUpDisplay()
 
    FONT_PATH = SWOLLEN_BINDIR + std::string( "/fonts/arial.ttf" );
    std::cout << "FONT_PATH = " << FONT_PATH << std::endl;
-   //std::cout << "SWOLLEN_BINDIR = " << SWOLLEN_BINDIR << std::endl;
 
-   _font = osgText::readFontFile(FONT_PATH);	
+   _font = osgText::readFontFile(FONT_PATH);
 
-   // title text
+   // title text (bottom-left)
    _titletext = addText(osg::Vec3(20,20,0), *_font);
    _dirtytime = false;
 
-   // timer text
-   _timetext = addText(osg::Vec3(1100,20,0), *_font, true);
+   // timer text (bottom-right, right-aligned, large)
+   _timetext = addText(osg::Vec3(ORTHO2D_WIDTH-20, 20, 0), *_font, true, true);
    _timevalue = 0.0;
    _dirtytime = true;
 
@@ -77,15 +71,21 @@ HeadsUpDisplay::HeadsUpDisplay()
    _xfm = new osg::MatrixTransform;
    _xfm->setReferenceFrame(osg::Transform::ABSOLUTE_RF);
    _xfm->setMatrix(osg::Matrix::identity());
-   osg::Geode* textnode = new osg::Geode;
 
+   // title + time: shown in FULL and MINIMAL
+   osg::Geode* textnode = new osg::Geode;
    textnode->addDrawable( _titletext );
    textnode->addDrawable( _timetext );
+   _text_switch = new osg::Switch;
+   _text_switch->addChild(textnode);
+   _text_switch->setAllChildrenOn();
+
+   // status lines: shown in FULL only (populated by AnugaHUD)
+   _status_switch = new osg::Switch;
+   _status_switch->setAllChildrenOn();
 
    osg::Geode* intensity_scale_node = new osg::Geode;
    _intensity_scale_switch = new osg::Switch;
-   _text_switch = new osg::Switch;
-
 
    {
 		osgText::Text* intensityscale = addText(osg::Vec3(48,300,0), *_font);
@@ -104,11 +104,8 @@ HeadsUpDisplay::HeadsUpDisplay()
 	_intensity_scale_switch->addChild(intensity_scale_node);
    _intensity_scale_switch->setAllChildrenOff();
 
-	
-	_text_switch->addChild(textnode);
-	_text_switch->setAllChildrenOn();
-
-   _xfm->addChild( _text_switch);
+   _xfm->addChild( _text_switch );
+   _xfm->addChild( _status_switch );
    _xfm->addChild( _intensity_scale_switch );
    _projection->addChild( _xfm );
 }
@@ -124,7 +121,8 @@ HeadsUpDisplay::~HeadsUpDisplay()
 }
 
 
-osgText::Text * HeadsUpDisplay::addText(const osg::Vec3 & aPos,  osgText::Font & aFont, bool aLarge)
+osgText::Text * HeadsUpDisplay::addText(const osg::Vec3 & aPos, osgText::Font & aFont,
+                                        bool aLarge, bool rightAlign)
 {
 	osgText::Text * text = new osgText::Text;
 
@@ -133,7 +131,9 @@ osgText::Text * HeadsUpDisplay::addText(const osg::Vec3 & aPos,  osgText::Font &
 	text->setCharacterSize(aLarge ? 30 : 20);
 	text->setPosition(aPos);
 	text->setFontResolution(40, 40);
-	text->setDataVariance(osg::Object::DYNAMIC);	// Flag that it may change at any time, otherwise we will have threading issues
+	text->setDataVariance(osg::Object::DYNAMIC);
+	if (rightAlign)
+		text->setAlignment(osgText::Text::RIGHT_BASE_LINE);
 
 	return text;
 }
@@ -166,6 +166,49 @@ void HeadsUpDisplay::setStatus(const std::string & aField, const std::string & a
 }
 
 
+void HeadsUpDisplay::cycleVisibility()
+{
+	switch (_hudVisibility)
+	{
+		case HUD_FULL:    _hudVisibility = HUD_MINIMAL; break;
+		case HUD_MINIMAL: _hudVisibility = HUD_NONE;    break;
+		case HUD_NONE:    _hudVisibility = HUD_FULL;    break;
+	}
+	_visibility_dirty = true;
+}
+
+
+void HeadsUpDisplay::setVisible(bool aVisible)
+{
+	HudVisibility v = aVisible ? HUD_FULL : HUD_NONE;
+	if (v != _hudVisibility)
+	{
+		_hudVisibility = v;
+		_visibility_dirty = true;
+	}
+}
+
+
+void HeadsUpDisplay::applyVisibility()
+{
+	switch (_hudVisibility)
+	{
+		case HUD_FULL:
+			_text_switch->setAllChildrenOn();
+			_status_switch->setAllChildrenOn();
+			break;
+		case HUD_MINIMAL:
+			_text_switch->setAllChildrenOn();
+			_status_switch->setAllChildrenOff();
+			break;
+		case HUD_NONE:
+			_text_switch->setAllChildrenOff();
+			_status_switch->setAllChildrenOff();
+			break;
+	}
+}
+
+
 void HeadsUpDisplay::update()
 {
    if( _dirtytime )
@@ -173,7 +216,6 @@ void HeadsUpDisplay::update()
       char timestr[256];
       sprintf(timestr, "t = %-7.2f", _timevalue);
       _timetext->setText(timestr);
-      // hud time now updated ...
       _dirtytime = false;
    }
 
@@ -183,13 +225,9 @@ void HeadsUpDisplay::update()
 		for(TStatusMap::iterator i = _statusmap.begin(); i!=_statusmap.end(); ++i)
 		{
 			std::ostringstream text;
-
 			text << i->first << ": " << i->second._label;
-
 			i->second._drawable->setText(text.str());
 		}
-
-      // hud "recording/playback" text now updated ...
       _dirtystatus = false;
    }
 
@@ -197,8 +235,6 @@ void HeadsUpDisplay::update()
    if( _dirtytitle )
    {
       _titletext->setText(_titlestring);
-
-      // hud title text now updated ...
       _dirtytitle = false;
    }
 
@@ -214,7 +250,6 @@ void HeadsUpDisplay::update()
 		osg::FloatArray * fa = _graphdata._data.get();
 		if (fa && fa->size()>1)
 		{
-			// If there is new data, show it.
 			_linegraph = new LineGraph;
 			_xfm->addChild(_linegraph->setUpScene(_graphdata._title, _graphdata._unit, fa, _graphdata._timelength, osg::Vec3(16.0f, ORTHO2D_HEIGHT*0.66f-24.0f, 0), osg::Vec2(ORTHO2D_WIDTH - 400, 400)));
 		}
@@ -222,17 +257,10 @@ void HeadsUpDisplay::update()
 		_dirtytimeseries = false;
    }
 
-	if (_status_visible_dirty)
+	if (_visibility_dirty)
 	{
-		_status_visible_dirty = false;
-		if (!_status_visible)
-		{
-			_text_switch->setAllChildrenOff();
-		}
-		else
-		{
-			_text_switch->setAllChildrenOn();
-		}
+		_visibility_dirty = false;
+		applyVisibility();
 	}
 }
 
@@ -246,21 +274,12 @@ void HeadsUpDisplay::setTimeSeriesData(osg::ref_ptr<osg::FloatArray> aData, floa
 }
 
 
-void HeadsUpDisplay::addStatusLine(const std::string & aLabel, osg::Geode* aParentGeode)
+void HeadsUpDisplay::addStatusLine(const std::string & aLabel, osg::Geode* aParentGeode,
+                                   const osg::Vec3& aPos, bool rightAlign)
 {
 	StatusData data;
-
-	data._drawable = addText(osg::Vec3(_status_pos.x(), _status_pos.y(), 0), *_font);
-
+	data._drawable = addText(aPos, *_font, false, rightAlign);
 	_statusmap.insert(TStatusPair(aLabel, data));
-
 	aParentGeode->addDrawable( data._drawable );
-   _dirtystatus = true;
-
-   if (_status_pos.x() >= 800)
-   {
-	   _status_pos.set(0, _status_pos.y()+40);
-   }
-
-   _status_pos += osg::Vec2(400, 0);
+	_dirtystatus = true;
 }

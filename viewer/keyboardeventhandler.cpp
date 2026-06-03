@@ -264,7 +264,7 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 					return true;
 
 				case 'i':
-					g_hud->setVisible(!g_hud->isVisible());
+					g_hud->cycleVisibility();
 					return true;
 
 				case '1':
