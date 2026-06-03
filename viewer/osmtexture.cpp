@@ -290,19 +290,13 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTi
         return "";
     }
 
-    if (fileExists(outputPath)) {
-        std::cout << "[" << src.label << "] Using cached texture: " << outputPath << "\n";
-        return outputPath;
-    }
-
     bool south = sww->isSouthernHemisphere();
-    std::cout << "[" << src.label << "] UTM zone " << zone << (south ? "S" : "N") << "\n";
 
     double xmin, xmax, ymin, ymax;
     sww->getTerrainBoundsUTM(xmin, xmax, ymin, ymax);
 
     // 5% margin in UTM
-    double mg   = std::max(xmax-xmin, ymax-ymin) * 0.05;
+    double mg    = std::max(xmax-xmin, ymax-ymin) * 0.05;
     double oxmin = xmin-mg, oxmax = xmax+mg;
     double oymin = ymin-mg, oymax = ymax+mg;
     double oW = oxmax-oxmin, oH = oymax-oymin;
@@ -320,9 +314,6 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTi
     double lonMax = *std::max_element(lons,lons+4);
 
     int zoom = chooseZoom((lonMax-lonMin)*180/M_PI, (latMax-latMin)*180/M_PI, src.maxZoom);
-    std::cout << "[" << src.label << "] bbox ["
-              << lonMin*180/M_PI << ", " << latMin*180/M_PI << ", "
-              << lonMax*180/M_PI << ", " << latMax*180/M_PI << "] deg\n";
 
     // Tile index range covering bbox (latMax → smaller ty since tiles go top-down)
     int txMin, tyMin, txMax, tyMax; double dummy;
@@ -337,9 +328,6 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTi
     if (tyMax >= n) tyMax = n-1;
 
     int tileCount = (txMax-txMin+1) * (tyMax-tyMin+1);
-    std::cout << "[" << src.label << "] " << tileCount
-              << " tiles (" << (txMax-txMin+1) << "x" << (tyMax-tyMin+1)
-              << ")  zoom=" << zoom << "\n";
     if (tileCount > 400) {
         std::cerr << "[" << src.label << "] Too many tiles (" << tileCount << ") — aborting.\n";
         return "";
@@ -347,6 +335,34 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTi
 
     std::string cacheDir = getTileCacheDir(src.label);
     makeDirs(cacheDir);
+
+    // Return early only when the stitched output exists AND every expected tile is
+    // in the cache.  A partial download leaves the output looking blank in places;
+    // falling through re-fetches only the missing tiles then re-stitches.
+    if (fileExists(outputPath)) {
+        bool complete = true;
+        char tname[80];
+        for (int ty = tyMin; ty <= tyMax && complete; ty++)
+            for (int tx = txMin; tx <= txMax && complete; tx++) {
+                snprintf(tname, sizeof(tname), "/%d_%d_%d", zoom, tx, ty);
+                if (!fileExists(cacheDir + tname + ".png") &&
+                    !fileExists(cacheDir + tname + ".jpg"))
+                    complete = false;
+            }
+        if (complete) {
+            std::cout << "[" << src.label << "] Using cached texture: " << outputPath << "\n";
+            return outputPath;
+        }
+        std::cout << "[" << src.label << "] Incomplete tile cache — re-fetching missing tiles.\n";
+    }
+
+    std::cout << "[" << src.label << "] UTM zone " << zone << (south ? "S" : "N") << "\n";
+    std::cout << "[" << src.label << "] bbox ["
+              << lonMin*180/M_PI << ", " << latMin*180/M_PI << ", "
+              << lonMax*180/M_PI << ", " << latMax*180/M_PI << "] deg\n";
+    std::cout << "[" << src.label << "] " << tileCount
+              << " tiles (" << (txMax-txMin+1) << "x" << (tyMax-tyMin+1)
+              << ")  zoom=" << zoom << "\n";
     std::cout << "[" << src.label << "] tile cache: " << cacheDir << "\n";
 
     // Pre-fetch all tiles with per-tile progress, then stitch.
