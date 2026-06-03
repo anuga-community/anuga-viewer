@@ -19,7 +19,8 @@ test:
 install:
 	cd swwreader; make install OSGHOME=$(OSGHOME)
 
-# AppImage build — requires linuxdeploy-x86_64.AppImage in the project root.
+# -----------------------------------------------------------------------
+# Linux AppImage — requires linuxdeploy-x86_64.AppImage in the project root.
 # env -i strips any active conda environment to prevent ABI mismatches that
 # cause the resulting AppImage to segfault on launch.
 LINUXDEPLOY ?= ./linuxdeploy-x86_64.AppImage
@@ -33,4 +34,24 @@ appimage:
 	env -i HOME=$(HOME) PATH=/usr/bin:/bin:/usr/local/bin DISPLAY=$(DISPLAY) \
 	    LD_LIBRARY_PATH=$(CURDIR)/bin \
 	    $(LINUXDEPLOY) --appdir AppDir --executable bin/anuga_viewer --output appimage
+
+# -----------------------------------------------------------------------
+# macOS DMG — run on macOS.
+# Requires: brew install open-scene-graph netcdf curl cppunit dylibbundler create-dmg
+# env -i strips any active conda environment to avoid ABI mismatches.
+BREW_PREFIX ?= $(shell brew --prefix 2>/dev/null || echo /usr/local)
+BREW_PATH   ?= $(BREW_PREFIX)/bin:/usr/local/bin:/usr/bin:/bin
+
+dmg:
+	env -i HOME=$(HOME) PATH=$(BREW_PATH) $(MAKE) OSGHOME=$(BREW_PREFIX)
+	env -i HOME=$(HOME) PATH=$(BREW_PATH) \
+	    bash distros/bundle-macos.sh $(BREW_PREFIX)
+
+# -----------------------------------------------------------------------
+# Windows NSIS installer — run from an MSYS2 MINGW64 shell on Windows.
+# Requires: pacman -S mingw-w64-x86_64-{gcc,OpenSceneGraph,netcdf,curl}
+#           choco install nsis
+nsis:
+	$(MAKE) OSGHOME=/mingw64
+	bash distros/bundle-windows.sh
 
