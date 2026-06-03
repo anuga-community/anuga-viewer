@@ -401,8 +401,13 @@ int main( int argc, char **argv )
       if (swwDir.empty()) swwDir = ".";
       std::string base = swwDir + "/" + osgDB::getStrippedName(sww->getSWWFilename());
 
-      std::string osmPath = fetchMapTexture(sww, base + "_osm.jpg", MapTileSource::OSM);
-      std::string satPath = fetchMapTexture(sww, base + "_satellite.jpg", MapTileSource::SATELLITE);
+      // Embed zone in filename so a changed zone (e.g. via -epsg) regenerates the texture
+      // rather than reusing a stale cached jpg built from the wrong zone's tiles.
+      std::string zoneSuffix = "_z" + std::to_string(sww->getUTMZone())
+                             + (sww->isSouthernHemisphere() ? "S" : "N");
+
+      std::string osmPath = fetchMapTexture(sww, base + zoneSuffix + "_osm.jpg", MapTileSource::OSM);
+      std::string satPath = fetchMapTexture(sww, base + zoneSuffix + "_satellite.jpg", MapTileSource::SATELLITE);
 
       // Register whichever tile arrived first to populate UV coords in swwreader.
       if (!osmPath.empty())
