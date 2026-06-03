@@ -74,5 +74,5 @@ BATCH
 echo "=== Bundle size ===" && du -sh "$DIST" && du -sh "$DIST"/* | sort -rh | head -10
 
 echo "=== Building NSIS installer (version: $VERSION) ==="
-"$NSIS" /DVERSION="$VERSION" "$CURDIR/installer/anuga_viewer.nsi"
+"$NSIS" -DVERSION="$VERSION" "$CURDIR/installer/anuga_viewer.nsi"
 echo "=== Done: $CURDIR/anuga-viewer-windows-setup.exe ==="
