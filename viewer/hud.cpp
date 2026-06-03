@@ -50,12 +50,12 @@ HeadsUpDisplay::HeadsUpDisplay()
 
    _font = osgText::readFontFile(FONT_PATH);
 
-   // title text (bottom-left)
-   _titletext = addText(osg::Vec3(20,20,0), *_font);
+   // title text (top-left)
+   _titletext = addText(osg::Vec3(20, ORTHO2D_HEIGHT-20, 0), *_font);
    _dirtytime = false;
 
-   // timer text (bottom-right, right-aligned, large)
-   _timetext = addText(osg::Vec3(ORTHO2D_WIDTH-20, 20, 0), *_font, true, true);
+   // timer text (top-right, right-aligned, large)
+   _timetext = addText(osg::Vec3(ORTHO2D_WIDTH-20, ORTHO2D_HEIGHT-20, 0), *_font, true, true);
    _timevalue = 0.0;
    _dirtytime = true;
 

@@ -10,9 +10,9 @@
 
 static const float LX   = 20.0f;    // left column x
 static const float RX   = 1260.0f;  // right column x (right-aligned)
-static const float Y0   = 100.0f;   // first column row
+static const float Y0   = 62.0f;    // first column row
 static const float DY   = 38.0f;    // row step
-static const float FY   = 62.0f;    // filename row
+static const float FY   = 20.0f;    // filename row (bottom, below columns)
 
 AnugaHUD::AnugaHUD() :
 	HeadsUpDisplay()
