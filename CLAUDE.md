@@ -104,8 +104,10 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 |-----------|-------------|
 | `-texture <file>` | Apply image/GDAL texture to bedslope (overrides auto tile fetch) |
 | `-maptiles osm\|satellite\|none` | Map tile source when SWW has UTM zone (default: `osm`) |
+| `--epsg <code>` | Override/supply UTM zone (e.g. `32755` = zone 55 South) |
 | `-scale <float>` | Initial vertical exaggeration factor (default: 1.0) |
 | `-tps <float>` | Timesteps per second (default: 10) |
+| `-wetdepth <float>` | Depth (m) below which water fades transparent (rain-on-grid) |
 | `-hmin`/`-hmax` | Water depth colour scale limits (metres) |
 | `-speedmax <float>` | Speed colour scale maximum (m/s) |
 | `-momentummax <float>` | Momentum colour scale maximum (m²/s) |
@@ -120,14 +122,17 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 | Key | Action |
 |-----|--------|
 | Space | Pause/resume |
-| `v` | Cycle water colour mode: stage / depth / speed / momentum / max depth / max speed / max momentum / max stage |
-| `[` / `]` | Decrease/increase colour scale maximum by 20% |
+| `v` / `V` | Cycle water colour mode forward/backward: blue / stage / depth / speed / momentum / max depth / max speed / max momentum / max stage |
+| `[` / `]` | Decrease/increase colour scale right endpoint |
+| `{` / `}` | Decrease/increase colour scale left endpoint (stage modes) |
+| `,` / `.` | Pan colour scale range left/right (stage modes) |
+| `a` / `A` | Decrease/increase shallow-water transparency threshold (wetdepth) |
 | `z` / `Z` | Decrease/increase vertical exaggeration by factor of 1.5 |
 | `w` | Cycle wireframe mode (off / water / bed / both) |
 | `g` | Cycle grid/colorbar overlay |
-| `i` | Toggle information HUD |
+| `i` | Cycle HUD: full → minimal (title + time only) → off |
 | `l` | Toggle lighting |
-| `t` | Cycle view mode: landscape (map, water hidden) → colour (osm) → colour |
+| `t` | Cycle view mode: landscape → colour (osm) → colour |
 | `b` | Toggle backface culling |
 | `c` | Toggle steep-triangle culling |
 | `x` | Reset camera to default position |

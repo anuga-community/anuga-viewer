@@ -117,6 +117,9 @@ Display
 | ``,`` / ``.``      | Pan the entire colour range left / right               |
 |                    | — stage modes only                                     |
 +--------------------+--------------------------------------------------------+
+| a / A              | Decrease / increase shallow-water transparency         |
+|                    | threshold (wetdepth)                                   |
++--------------------+--------------------------------------------------------+
 | z / Z              | Decrease / increase vertical exaggeration by 1.5×      |
 +--------------------+--------------------------------------------------------+
 | w                  | Cycle wireframe mode (off / water / bed / both)        |
@@ -131,7 +134,7 @@ Display
 +--------------------+--------------------------------------------------------+
 | g                  | Cycle grid / colorbar overlay                          |
 +--------------------+--------------------------------------------------------+
-| i                  | Toggle information HUD                                 |
+| i                  | Cycle HUD: full → minimal (title + time only) → off    |
 +--------------------+--------------------------------------------------------+
 | Shift + arrows     | Pan camera (useful on touchpads)                       |
 +--------------------+--------------------------------------------------------+
@@ -213,7 +216,10 @@ Apply an image to the bedslope with ``-texture``::
 If the SWW file contains UTM zone metadata, OpenStreetMap or ESRI satellite
 tiles are fetched automatically and draped over the terrain.  Use
 ``-maptiles satellite`` to select satellite imagery or ``-maptiles none`` to
-disable tile fetching.
+disable tile fetching.  If the zone is absent or incorrect, supply it with
+``--epsg``::
+
+   anuga_viewer --epsg 32755 simulation.sww   # UTM zone 55 South
 
 Press ``t`` to cycle between landscape (textured) and colour (data) view modes.
 
@@ -225,38 +231,44 @@ Command-Line Options
 
    anuga_viewer [options] <file.sww>
 
-+---------------------------+------------------------------------------------+
-| Option                    | Description                                    |
-+===========================+================================================+
-| ``-texture <file>``       | Apply image texture to bedslope                |
-+---------------------------+------------------------------------------------+
-| ``-maptiles osm|sat|none``| Map tile source when SWW has UTM zone          |
-|                           | (default: ``osm``)                             |
-+---------------------------+------------------------------------------------+
-| ``-scale <float>``        | Initial vertical exaggeration (default: 1.0)   |
-+---------------------------+------------------------------------------------+
-| ``-tps <float>``          | Timesteps per second (default: 10)             |
-+---------------------------+------------------------------------------------+
-| ``-hmin <float>``         | Water depth colour scale minimum (m)           |
-+---------------------------+------------------------------------------------+
-| ``-hmax <float>``         | Water depth colour scale maximum (m)           |
-+---------------------------+------------------------------------------------+
-| ``-speedmax <float>``     | Speed colour scale maximum (m/s)               |
-+---------------------------+------------------------------------------------+
-| ``-momentummax <float>``  | Momentum colour scale maximum (m²/s)           |
-+---------------------------+------------------------------------------------+
-| ``-alphamin <float>``     | Water minimum opacity (0–1)                    |
-+---------------------------+------------------------------------------------+
-| ``-alphamax <float>``     | Water maximum opacity (0–1)                    |
-+---------------------------+------------------------------------------------+
-| ``-lightpos x,y,z``       | Directional light position (z is up)           |
-+---------------------------+------------------------------------------------+
-| ``-nosky``                | Disable skybox                                 |
-+---------------------------+------------------------------------------------+
-| ``-movie <dir>``          | Export frames to directory (use with ``.swm``) |
-+---------------------------+------------------------------------------------+
-| ``-- screen <n>``         | Select display screen (OSG standard)           |
-+---------------------------+------------------------------------------------+
++------------------------------+----------------------------------------------+
+| Option                       | Description                                  |
++==============================+==============================================+
+| ``-texture <file>``          | Apply image texture to bedslope              |
++------------------------------+----------------------------------------------+
+| ``-maptiles osm|sat|none``   | Map tile source when SWW has UTM zone        |
+|                              | (default: ``osm``)                           |
++------------------------------+----------------------------------------------+
+| ``--epsg <code>``            | Override / supply UTM zone                   |
+|                              | (e.g. ``32755`` = zone 55 South)             |
++------------------------------+----------------------------------------------+
+| ``-scale <float>``           | Initial vertical exaggeration (default: 1.0) |
++------------------------------+----------------------------------------------+
+| ``-tps <float>``             | Timesteps per second (default: 10)           |
++------------------------------+----------------------------------------------+
+| ``-wetdepth <float>``        | Depth (m) below which water fades            |
+|                              | transparent (rain-on-grid)                   |
++------------------------------+----------------------------------------------+
+| ``-hmin <float>``            | Water depth colour scale minimum (m)         |
++------------------------------+----------------------------------------------+
+| ``-hmax <float>``            | Water depth colour scale maximum (m)         |
++------------------------------+----------------------------------------------+
+| ``-speedmax <float>``        | Speed colour scale maximum (m/s)             |
++------------------------------+----------------------------------------------+
+| ``-momentummax <float>``     | Momentum colour scale maximum (m²/s)         |
++------------------------------+----------------------------------------------+
+| ``-alphamin <float>``        | Water minimum opacity (0–1)                  |
++------------------------------+----------------------------------------------+
+| ``-alphamax <float>``        | Water maximum opacity (0–1)                  |
++------------------------------+----------------------------------------------+
+| ``-lightpos x,y,z``          | Directional light position (z is up)         |
++------------------------------+----------------------------------------------+
+| ``-nosky``                   | Disable skybox                               |
++------------------------------+----------------------------------------------+
+| ``-movie <dir>``             | Export frames to directory (with ``.swm``)   |
++------------------------------+----------------------------------------------+
+| ``-- screen <n>``            | Select display screen (OSG standard)         |
++------------------------------+----------------------------------------------+
 
 
 How to Make a Movie

@@ -69,16 +69,16 @@ Display
      - Decrease / increase the colour scale left endpoint (min) — stage modes only
    * - ``,`` / ``.``
      - Pan the entire colour range left / right — stage modes only
-   * - z
-     - Decrease vertical exaggeration by 33%
-   * - Z
-     - Increase vertical exaggeration by 50%
+   * - a / A
+     - Decrease / increase shallow-water transparency threshold (wetdepth)
+   * - z / Z
+     - Decrease / increase vertical exaggeration by 1.5×
    * - w
      - Cycle wireframe mode (off / water / bed / both)
    * - l
      - Toggle lighting
    * - t
-     - Toggle between colour mode and landscape mode (bedslope texture)
+     - Cycle view: landscape → colour (osm) → colour
    * - b
      - Toggle backface culling
    * - c
@@ -86,7 +86,7 @@ Display
    * - g
      - Cycle grid / colorbar overlay
    * - i
-     - Toggle information HUD
+     - Cycle information HUD: full → minimal (title + time only) → off
    * - Shift + arrow keys
      - Pan camera (useful on touchpads without middle mouse)
    * - x
@@ -193,6 +193,29 @@ background terrain elevation).  In depth, speed, and momentum modes the
 minimum is always zero and only the right endpoint is adjustable.
 
 
+Shallow-water Transparency
+--------------------------
+
+For rain-on-grid simulations, very shallow water can clutter the view with
+near-invisible colour noise.  The ``-wetdepth`` option sets a depth threshold
+below which water fades from fully transparent (dry) to the minimum opacity
+(``-alphamin``, default 0.8):
+
+.. code-block:: text
+
+   anuga_viewer -wetdepth 0.2 simulation.sww
+
+With ``-wetdepth 0.2``, triangles with less than 0.2 m of water are partially
+transparent, making dry areas visually distinct from shallow inundation.
+
+Use ``a`` / ``A`` at runtime to decrease / increase the threshold in
+``{1, 2, 5} × 10ⁿ`` steps (0.05 → 0.1 → 0.2 → …).  Set to 0 to return to
+the standard opacity ramp (controlled by ``-alphamin`` / ``-alphamax``).
+
+The current threshold is shown in the HUD as ``wetdepth (a/A): 0–0.2 m``
+or ``wetdepth (a/A): off``.
+
+
 Timeseries Plot
 ---------------
 
@@ -236,7 +259,14 @@ There are two mapping modes:
 2. **Projected** — otherwise, the image is draped from above, scaled to
    exactly cover the bedslope bounding rectangle.
 
-Press ``t`` to toggle the texture on and off at runtime.
+If the SWW file contains UTM zone metadata, OpenStreetMap or ESRI satellite
+tiles are fetched automatically.  Use ``-maptiles satellite`` or
+``-maptiles none`` to choose the source.  If the UTM zone is absent or
+incorrect, supply it with ``-epsg``::
+
+   anuga_viewer --epsg 32755 simulation.sww   # UTM zone 55 South
+
+Press ``t`` to cycle between landscape and colour view modes at runtime.
 
 
 Command-Line Options
@@ -254,10 +284,16 @@ Command-Line Options
      - Description
    * - ``-texture <file>``
      - Apply image / GDAL texture to bedslope
+   * - ``-maptiles osm|satellite|none``
+     - Map tile source when SWW has UTM zone (default: ``osm``)
+   * - ``--epsg <code>``
+     - Override / supply UTM georeferencing (e.g. ``32755`` = zone 55 South)
    * - ``-scale <float>``
      - Initial vertical exaggeration (default: 1.0)
    * - ``-tps <float>``
      - Timesteps per second (default: 10)
+   * - ``-wetdepth <float>``
+     - Depth (m) below which water fades to transparent (rain-on-grid)
    * - ``-hmin <float>``
      - Water depth colour scale minimum (m)
    * - ``-hmax <float>``

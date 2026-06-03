@@ -2,6 +2,69 @@ Release Notes
 =============
 
 
+v0.5.6 — 2026-06-03
+---------------------
+
+New Features
+~~~~~~~~~~~~
+
+**Shallow-water transparency for rain-on-grid** (``-wetdepth``, ``a`` / ``A``)
+
+  A new ``-wetdepth <float>`` option fades out very shallow water so that
+  near-dry cells do not clutter the view in rain-on-grid simulations.
+  Triangles with depth below the threshold fade linearly from fully
+  transparent (dry) to the minimum opacity (``-alphamin``).
+
+  Adjust the threshold interactively with ``a`` (decrease) / ``A`` (increase),
+  stepping through ``{1, 2, 5} × 10ⁿ`` values (0.05 → 0.1 → 0.2 → …).
+  Set to 0 (``a`` from 0.05) to return to the standard opacity ramp.
+
+**UTM georeferencing override** (``--epsg``)
+
+  Pass ``--epsg <EPSG-code>`` to supply or correct the UTM zone used for
+  automatic map tile fetching.  Useful when the zone embedded in the SWW
+  file is missing or records the wrong hemisphere::
+
+     anuga_viewer --epsg 32755 simulation.sww   # force UTM zone 55 South
+
+  Standard UTM EPSG codes are accepted: 32601–32660 (north), 32701–32760
+  (south).
+
+**Redesigned information HUD**
+
+  Status items are now spread across the side margins instead of stacking
+  in the centre-bottom, leaving the terrain view unobstructed:
+
+  - Left edge: ``wireframe (w)``, ``culling (c)``, ``color (v/V)``, ``wetdepth (a/A)``
+  - Right edge (right-aligned): ``recorder (1)``, ``grid (g)``, ``vscale (z/Z)``, ``mode (t)``
+  - Bottom: filename (dedicated row, free to stretch)
+  - Top corners: ``ANUGA Viewer`` title and simulation time
+
+  Each label now shows the key that controls it (e.g. ``color (v/V)``), so
+  the HUD doubles as a quick reference.
+
+  The ``i`` key cycles through three states: **full** → **minimal**
+  (title + time only) → **off** → full.  Minimal mode is useful for
+  screenshots and presentations.
+
+Bug Fixes
+~~~~~~~~~
+
+- **Satellite texture black when ``--epsg`` corrects the hemisphere** — the
+  stitched ``_satellite.jpg`` cached from a previous run (built from wrong-zone
+  tiles) was silently reused.  The UTM zone is now embedded in the output
+  filename (e.g. ``_z55S_satellite.jpg``) so each zone gets its own cached
+  texture and stale files are never picked up.
+
+- **``a`` key stuck at 0.1** — pressing ``a`` to decrease the wetdepth
+  threshold from 0.1 returned 0.1 unchanged because ``nicePrev(0.1)`` clamps
+  at its floor.  The 0.1 → 0.05 step is now handled explicitly.
+
+- **Redundant georef sidecar** — OSM and satellite textures cover the same
+  UTM extent so their ``.georef`` files were always identical.  Both now share
+  a single ``_z55S.georef`` file.
+
+
 v0.5.5 — 2026-06-01
 ---------------------
 
