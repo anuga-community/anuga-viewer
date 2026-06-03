@@ -35,6 +35,7 @@
 #define DEFAULT_ALPHAMAX 1.0
 #define DEFAULT_HEIGHTMIN 0.0
 #define DEFAULT_HEIGHTMAX 1.0
+#define DEFAULT_WETDEPTH 0.0
 #define DEFAULT_BEDSLOPEOFFSET 0.0
 #define DEFAULT_CULLONSTART false
 
@@ -502,32 +503,42 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 			steeptri->push_back( iv );
 	}
 
-	// stage height above bedslope mapped as alpha value
-	//		alpha = min( a(h-hmin) + alphamin, alphamax),  h >= hmin
-	//		alpha = 0,												 h < hmin
-	// where a = (alphamax-alphamin)/(hmax-hmin)
+	// Alpha: either wetdepth ramp (real metres) or legacy height ramp (model units).
+	// wetdepth > 0: alpha ramps linearly from 0 at dry to alphamax at wetdepth metres,
+	//               then stays at alphamax above that depth.
+	// wetdepth == 0: alpha = alphamin + (alphamax-alphamin)*(height-hmin)/(hmax-hmin),
+	//                clamped to [0, alphamax], where height is in model units.
 	float alpha, height, alphascale;
 	alphascale = (_state.alphamax - _state.alphamin) / (_state.heightmax - _state.heightmin);
 	_stagecolors = new osg::Vec4Array;
 	_stagecolors->reserve(_npoints);
 	for (iv=0; iv < _npoints; iv++)
 	{
-		// water height above corresponding bedslope
-		height = _stagevertices->at(iv).z() - _bedslopevertices->at(iv).z();
-	
-		if (height < _state.heightmin)
-		{		
-			alpha = 0.0;
-		}
-		else 
+		float depth_m = _pstage[iv] - _pz[iv];
+
+		if (_state.wetdepth > 0.0f)
 		{
-			alpha = alphascale * (height - _state.heightmin) + _state.alphamin;
-			if( alpha > _state.alphamax ) 
+			if (depth_m <= 0.0f)
+				alpha = 0.0f;
+			else if (depth_m < _state.wetdepth)
+				alpha = (depth_m / _state.wetdepth) * _state.alphamax;
+			else
 				alpha = _state.alphamax;
+		}
+		else
+		{
+			height = _stagevertices->at(iv).z() - _bedslopevertices->at(iv).z();
+			if (height < _state.heightmin)
+				alpha = 0.0f;
+			else
+			{
+				alpha = alphascale * (height - _state.heightmin) + _state.alphamin;
+				if (alpha > _state.alphamax)
+					alpha = _state.alphamax;
+			}
 		}
 
 	  {
-		float depth_m = _pstage[iv] - _pz[iv];
 		ColorMode cm = _state.colorMode;
 
 		if (cm == CM_BLUE)
@@ -966,6 +977,7 @@ bool SWWReader::load()
 	_state.alphamax = DEFAULT_ALPHAMAX;
 	_state.heightmin = DEFAULT_HEIGHTMIN;
 	_state.heightmax = DEFAULT_HEIGHTMAX;
+	_state.wetdepth = DEFAULT_WETDEPTH;
 
 	// steepness culling default, can be overridden after construction by command line parameter
 	_state.cullangle = DEFAULT_CULLANGLE;

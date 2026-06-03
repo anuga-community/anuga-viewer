@@ -249,6 +249,9 @@ int main( int argc, char **argv )
          "  -hmax <float>                 Depth above which water is fully opaque\n"
          "  -alphamin <float 0-1>         Transparency at hmin\n"
          "  -alphamax <float 0-1>         Maximum transparency\n"
+         "  -wetdepth <float>             Depth (m) at which water reaches full opacity;\n"
+         "                                water shallower than this ramps from transparent\n"
+         "                                to opaque (useful for rain-on-grid). a/A keys adjust.\n"
          "  -speedmax <float>             Speed colour scale maximum (m/s)\n"
          "  -momentummax <float>          Momentum colour scale maximum (m^2/s)\n"
          "  -stagemin <float>             Stage colour scale minimum elevation (m)\n"
@@ -340,6 +343,7 @@ int main( int argc, char **argv )
    float userStageMin = 0.0f; bool hasStageMin = arguments.read("-stagemin", userStageMin);
    if( arguments.read("-alphamin",tmpfloat) ) sww->setAlphaMin( tmpfloat );
    if( arguments.read("-alphamax",tmpfloat) ) sww->setAlphaMax( tmpfloat );
+   if( arguments.read("-wetdepth",tmpfloat) ) sww->setWetDepth( tmpfloat );
    if( arguments.read("-cullangle",tmpfloat) ) sww->setCullAngle( tmpfloat );
    bool hasSpeedMax = arguments.read("-speedmax", tmpfloat);
    if (hasSpeedMax) sww->setSpeedMax(tmpfloat);
@@ -428,6 +432,12 @@ int main( int argc, char **argv )
 		char buf[32];
 		snprintf(buf, sizeof(buf), "%.2fx", vscale);
 		g_hud->setStatus("vscale", std::string(buf));
+	}
+	if (sww->getWetDepth() > 0.0f)
+	{
+		char buf[48];
+		snprintf(buf, sizeof(buf), "shallow alpha: 0-%.3g m", sww->getWetDepth());
+		g_hud->setStatus("wetdepth", std::string(buf));
 	}
 
    // Lighting
@@ -745,6 +755,24 @@ int main( int argc, char **argv )
 				char buf[32];
 				snprintf(buf, sizeof(buf), "%.2fx", vscale);
 				g_hud->setStatus("vscale", std::string(buf));
+			}
+
+			int wdNudge = event_handler->wetDepthNudge();
+			if (wdNudge != 0)
+			{
+				float wd = sww->getWetDepth();
+				if (wdNudge > 0)
+					wd = (wd <= 0.0f) ? 0.05f : niceNext(wd);
+				else
+					wd = (wd < 0.05f + 1e-6f) ? 0.0f : nicePrev(wd);
+				sww->setWetDepth(wd);
+				water->forceRefresh();
+				char buf[48];
+				if (wd <= 0.0f)
+					snprintf(buf, sizeof(buf), "shallow alpha: off");
+				else
+					snprintf(buf, sizeof(buf), "shallow alpha: 0-%.3g m", wd);
+				g_hud->setStatus("wetdepth", std::string(buf));
 			}
 
 			{

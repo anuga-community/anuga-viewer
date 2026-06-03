@@ -114,6 +114,8 @@ public:
     virtual void setAlphaMax( float value ) {_state.alphamax = value;}
     virtual void setHeightMin( float value ) {_state.heightmin = value;}
     virtual void setHeightMax( float value ) {_state.heightmax = value;}
+    virtual float getWetDepth() {return _state.wetdepth;}
+    virtual void  setWetDepth(float value) {_state.wetdepth = value;}
 
     virtual void setCullAngle( float value ) {_state.cullangle = value;}
     virtual void toggleCulling() {_state.culling = _state.culling ? false : true;}
@@ -215,6 +217,7 @@ protected:
           float alphamin;
           float heightmax;
           float heightmin;
+          float wetdepth;  // depth (m) at which water reaches full opacity; 0 = use alphamin/alphamax ramp
 
           float cullangle;  // cull triangles with steepness angle above this value
           bool culling;   // culling is on or off
