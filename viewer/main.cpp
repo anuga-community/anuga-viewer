@@ -367,7 +367,7 @@ int main( int argc, char **argv )
    // -epsg overrides (or supplies) the UTM zone embedded in the SWW file.
    // EPSG 326xx = UTM north zone xx, 327xx = UTM south zone xx.
    int epsgCode = 0;
-   if (arguments.read("-epsg", epsgCode))
+   if (arguments.read("-epsg", epsgCode) || arguments.read("--epsg", epsgCode))
    {
       int zone = 0; bool south = false;
       if (epsgCode >= 32601 && epsgCode <= 32660)      { zone = epsgCode - 32600; south = false; }
@@ -457,10 +457,13 @@ int main( int argc, char **argv )
 		snprintf(buf, sizeof(buf), "%.2fx", vscale);
 		g_hud->setStatus("vscale", std::string(buf));
 	}
-	if (sww->getWetDepth() > 0.0f)
 	{
 		char buf[48];
-		snprintf(buf, sizeof(buf), "shallow alpha: 0-%.3g m", sww->getWetDepth());
+		float wd = sww->getWetDepth();
+		if (wd > 0.0f)
+			snprintf(buf, sizeof(buf), "shallow alpha: 0-%.3g m", wd);
+		else
+			snprintf(buf, sizeof(buf), "shallow alpha: off");
 		g_hud->setStatus("wetdepth", std::string(buf));
 	}
 

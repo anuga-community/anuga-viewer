@@ -13,6 +13,7 @@ AnugaHUD::AnugaHUD() :
 	addStatusLine("grid", textnode);
 	addStatusLine("color", textnode);
 	addStatusLine("vscale", textnode);
+	addStatusLine("wetdepth", textnode);
 	addStatusLine("mode", textnode);
 	addStatusLine("filename", textnode);
 
