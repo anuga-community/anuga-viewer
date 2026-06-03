@@ -136,7 +136,7 @@ SWWReader::~SWWReader()
 
 
 
-void SWWReader::setBedslopeTexture( std::string filename )
+void SWWReader::setBedslopeTexture( std::string filename, const std::string& georefPath )
 {
 	osg::notify(osg::INFO) << "[SWWReader::setBedslopetexture] filename: " << filename <<  std::endl;
 	_state.bedslopetexturefilename = new std::string(filename);
@@ -185,7 +185,8 @@ void SWWReader::setBedslopeTexture( std::string filename )
 	// is unavailable or when the image format (e.g. JPEG) carries no geotransform.
 	if (!_bedslopegeodata.hasData)
 	{
-		FILE* f = fopen((filename + ".georef").c_str(), "r");
+		const std::string& gp = georefPath.empty() ? filename + ".georef" : georefPath;
+		FILE* f = fopen(gp.c_str(), "r");
 		if (f)
 		{
 			float xo, yo, xp, yp;

@@ -406,14 +406,17 @@ int main( int argc, char **argv )
       std::string zoneSuffix = "_z" + std::to_string(sww->getUTMZone())
                              + (sww->isSouthernHemisphere() ? "S" : "N");
 
-      std::string osmPath = fetchMapTexture(sww, base + zoneSuffix + "_osm.jpg", MapTileSource::OSM);
-      std::string satPath = fetchMapTexture(sww, base + zoneSuffix + "_satellite.jpg", MapTileSource::SATELLITE);
+      // Both textures cover the same UTM extent so they share one georef file.
+      std::string georefPath = base + zoneSuffix + ".georef";
+
+      std::string osmPath = fetchMapTexture(sww, base + zoneSuffix + "_osm.jpg", georefPath, MapTileSource::OSM);
+      std::string satPath = fetchMapTexture(sww, base + zoneSuffix + "_satellite.jpg", georefPath, MapTileSource::SATELLITE);
 
       // Register whichever tile arrived first to populate UV coords in swwreader.
       if (!osmPath.empty())
-         sww->setBedslopeTexture(osmPath);
+         sww->setBedslopeTexture(osmPath, georefPath);
       else if (!satPath.empty())
-         sww->setBedslopeTexture(satPath);
+         sww->setBedslopeTexture(satPath, georefPath);
 
       if (!osmPath.empty())
       {

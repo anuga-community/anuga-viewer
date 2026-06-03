@@ -74,7 +74,7 @@ public:
     virtual osg::ref_ptr<osg::Vec2Array> getBedslopeTextureCoords();
 
     virtual bool hasBedslopeTexture() {return (_state.bedslopetexturefilename != NULL);}
-    virtual void setBedslopeTexture( std::string filename );
+    virtual void setBedslopeTexture( std::string filename, const std::string& georefPath = "" );
     virtual osg::Image* getBedslopeTexture();
 
 	/**

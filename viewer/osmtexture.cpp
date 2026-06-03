@@ -277,7 +277,8 @@ miss:
     r = g = b = 128; return false;
 }
 
-std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTileSource source)
+std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath,
+                            const std::string& georefPath, MapTileSource source)
 {
     static bool curlReady = false;
     if (!curlReady) { curl_global_init(CURL_GLOBAL_DEFAULT); curlReady = true; }
@@ -437,7 +438,7 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTi
     // Sidecar georef for swwreader::setBedslopeTexture UV mapping.
     // Format: xorigin yorigin xpixel ypixel xresolution yresolution
     // Matches the GDAL GeoTransform convention (ypixel negative = downward).
-    FILE* gf = fopen((outputPath + ".georef").c_str(), "w");
+    FILE* gf = fopen(georefPath.c_str(), "w");
     if (gf) {
         fprintf(gf, "%.6f %.6f %.6f %.6f %d %d\n",
                 oxmin, oymax, pixelW, -pixelH, pixW, pixH);
@@ -452,7 +453,7 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath, MapTi
 
 #else // !HAVE_CURL
 
-std::string fetchMapTexture(SWWReader*, const std::string&, MapTileSource)
+std::string fetchMapTexture(SWWReader*, const std::string&, const std::string&, MapTileSource)
 {
     std::cout << "[tiles] libcurl not available — map tile fetch disabled.\n";
     return "";

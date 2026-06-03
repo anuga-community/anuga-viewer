@@ -22,6 +22,7 @@ enum class MapTileSource { OSM, SATELLITE };
  *   Satellite: imagery © Esri, Maxar, Earthstar Geographics, and GIS User Community
  */
 std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath,
+                            const std::string& georefPath,
                             MapTileSource source = MapTileSource::OSM);
 
 #endif // OSMTEXTURE_H
