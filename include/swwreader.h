@@ -158,6 +158,8 @@ public:
     // Geographic info from SWW global attributes (zone = -1 if not present)
     int  getUTMZone() const { return _zone; }
     bool isSouthernHemisphere() const { return _south; }
+    void setUTMZone(int zone) { _zone = zone; }
+    void setSouthernHemisphere(bool south) { _south = south; }
     void getTerrainBoundsUTM(double& xmin, double& xmax, double& ymin, double& ymax) const;
 
 	virtual bool refresh();

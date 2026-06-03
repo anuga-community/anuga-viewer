@@ -243,6 +243,10 @@ int main( int argc, char **argv )
          "Options:\n"
          "  -texture <file>               Bedslope texture image (overrides auto tile fetch)\n"
          "  -maptiles osm|satellite|none  Map tile source when SWW has UTM zone (default: osm)\n"
+         "  -epsg <int>                   Override/set UTM projection (e.g. 32755 = UTM zone 55S).\n"
+         "                                Accepts EPSG codes 32601-32660 (UTM north) and\n"
+         "                                32701-32760 (UTM south). Enables map tile fetch for\n"
+         "                                SWW files that lack embedded georeferencing.\n"
          "  -scale <float>                Initial vertical exaggeration (default: 1.0)\n"
          "  -tps <float>                  Timesteps per second (default: 10)\n"
          "  -hmin <float>                 Depth below which water is transparent\n"
@@ -359,6 +363,26 @@ int main( int argc, char **argv )
 
    std::string maptiles = "osm";
    arguments.read("-maptiles", maptiles);
+
+   // -epsg overrides (or supplies) the UTM zone embedded in the SWW file.
+   // EPSG 326xx = UTM north zone xx, 327xx = UTM south zone xx.
+   int epsgCode = 0;
+   if (arguments.read("-epsg", epsgCode))
+   {
+      int zone = 0; bool south = false;
+      if (epsgCode >= 32601 && epsgCode <= 32660)      { zone = epsgCode - 32600; south = false; }
+      else if (epsgCode >= 32701 && epsgCode <= 32760) { zone = epsgCode - 32700; south = true;  }
+      if (zone > 0)
+      {
+         sww->setUTMZone(zone);
+         sww->setSouthernHemisphere(south);
+         std::cout << "[epsg] zone " << zone << (south ? "S" : "N")
+                   << " (EPSG:" << epsgCode << ")\n";
+      }
+      else
+         std::cerr << "[epsg] unrecognised code " << epsgCode
+                   << " — expected 32601-32660 (N) or 32701-32760 (S)\n";
+   }
 
    std::string userTexture;
    if( arguments.read("-texture", userTexture) )
