@@ -796,7 +796,9 @@ int main( int argc, char **argv )
 				if (wdNudge > 0)
 					wd = (wd <= 0.0f) ? 0.05f : niceNext(wd);
 				else
-					wd = (wd < 0.05f + 1e-6f) ? 0.0f : nicePrev(wd);
+					wd = (wd <= 0.05f + 1e-6f) ? 0.0f
+					   : (wd <= 0.1f  + 1e-6f) ? 0.05f
+					   : nicePrev(wd);
 				sww->setWetDepth(wd);
 				water->forceRefresh();
 				char buf[48];
