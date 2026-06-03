@@ -125,50 +125,7 @@ jobs:
         run: make test OSGHOME="$(brew --prefix)"
 
       - name: Bundle app
-        run: |
-          APP="ANUGA Viewer.app"
-          MACOS="$APP/Contents/MacOS"
-          LIBS_DIR="$APP/Contents/libs"
-
-          mkdir -p "$MACOS/fonts" "$MACOS/images" "$LIBS_DIR" "$APP/Contents/Resources"
-
-          cp bin/anuga_viewer            "$MACOS/"
-          cp bin/fonts/arial.ttf         "$MACOS/fonts/"
-          cp bin/images/sky_small.jpg    "$MACOS/images/"
-          cp bin/images/envmap.jpg       "$MACOS/images/"
-          cp distros/icon.png            "$APP/Contents/Resources/"
-
-          cat > "$APP/Contents/Info.plist" << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict>
-            <key>CFBundleName</key>        <string>ANUGA Viewer</string>
-            <key>CFBundleExecutable</key>  <string>anuga_viewer</string>
-            <key>CFBundleIdentifier</key>  <string>au.gov.ga.anuga-viewer</string>
-            <key>CFBundleIconFile</key>    <string>icon.png</string>
-            <key>CFBundlePackageType</key> <string>APPL</string>
-            <key>CFBundleVersion</key>     <string>1.0</string>
-          </dict></plist>
-          EOF
-
-          # Fix the dylib's install name and the viewer's recorded reference
-          # from the relative build-time path to an absolute path so
-          # dylibbundler can locate and read the dylib's own dependencies
-          SWWREADER_ABSPATH="$(pwd)/bin/libswwreader.dylib"
-          install_name_tool -id "$SWWREADER_ABSPATH" bin/libswwreader.dylib
-          install_name_tool -change "../bin/libswwreader.dylib" "$SWWREADER_ABSPATH" "$MACOS/anuga_viewer"
-
-          # Copy libswwreader and fix up all dylib paths
-          cp "bin/libswwreader.dylib" "$LIBS_DIR/"
-          dylibbundler \
-            --overwrite-dir \
-            --bundle-deps \
-            --fix-file "$MACOS/anuga_viewer" \
-            --dest-dir "$LIBS_DIR" \
-            --install-path "@executable_path/../libs" \
-            --search-path "$(brew --prefix)/lib" \
-            --search-path bin
+        run: bash distros/bundle-macos.sh $(brew --prefix)
 
       - name: Smoke test bundle
         run: |
@@ -209,19 +166,6 @@ jobs:
             exit 1
           fi
 
-      - name: Create DMG
-        run: |
-          create-dmg \
-            --volname "ANUGA Viewer" \
-            --window-pos 200 120 \
-            --window-size 600 300 \
-            --icon-size 100 \
-            --icon "ANUGA Viewer.app" 175 120 \
-            --hide-extension "ANUGA Viewer.app" \
-            --app-drop-link 425 120 \
-            "anuga-viewer-macos.dmg" \
-            "ANUGA Viewer.app"
-
       - uses: actions/upload-artifact@v6
         with:
           name: anuga-viewer-macos
@@ -261,89 +205,12 @@ jobs:
           find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null \
             | head -1 | xargs ls 2>/dev/null | head -20 || echo "(empty or not found)"
 
-      - name: Bundle
-        run: |
-          DIST=dist/anuga-viewer
-          mkdir -p "$DIST/fonts" "$DIST/images"
-
-          cp bin/anuga_viewer*          "$DIST/"
-          cp bin/fonts/arial.ttf        "$DIST/fonts/"
-          cp bin/images/sky_small.jpg   "$DIST/images/"
-          cp bin/images/envmap.jpg      "$DIST/images/"
-
-          # Copy libswwreader DLL
-          cp bin/libswwreader.dll "$DIST/" 2>/dev/null || true
-
-          # Bundle OSG plugins — whitelist only what anuga-viewer needs:
-          #   jpeg/png/rgb/tga/bmp/dds — image formats for sky & bedslope textures
-          #   freetype                  — TTF font loading via osgText
-          #   osg/ive/deprecated_osg   — OSG native formats (for any bundled data)
-          # Excludes osgdb_ffmpeg (pulls in 50-100 MB of FFmpeg codec DLLs),
-          # osgdb_gdal (OSG raster plugin — viewer calls GDAL directly, doesn't need it),
-          # and all 3D model/network/video plugins the viewer never uses.
-          PLUGIN_DIR=$(find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
-          if [ -n "$PLUGIN_DIR" ]; then
-            echo "=== All available plugins ==="
-            ls "$PLUGIN_DIR/"
-            DEST_PLUGINS="$DIST/$(basename "$PLUGIN_DIR")"
-            mkdir -p "$DEST_PLUGINS"
-            for p in mingw_osgdb_jpeg mingw_osgdb_png mingw_osgdb_rgb \
-                     mingw_osgdb_tga mingw_osgdb_bmp mingw_osgdb_dds \
-                     mingw_osgdb_tiff mingw_osgdb_freetype \
-                     mingw_osgdb_osg mingw_osgdb_ive mingw_osgdb_deprecated_osg; do
-              if [ -f "$PLUGIN_DIR/${p}.dll" ]; then
-                cp "$PLUGIN_DIR/${p}.dll" "$DEST_PLUGINS/"
-                echo "  bundled: ${p}.dll"
-              fi
-            done
-            echo "Plugins bundled: $(ls "$DEST_PLUGINS/" | wc -l)"
-          else
-            echo "WARNING: no osgPlugins directory found — viewer will start but cannot load images or sky"
-          fi
-
-          # Iteratively bundle all MinGW DLL dependencies (exe + DLLs + plugins)
-          # until no new DLLs are added — catches transitive deps of plugins
-          for i in 1 2 3 4 5; do
-            BEFORE=$(find "$DIST" -name "*.dll" | wc -l)
-            find "$DIST" \( -name "*.dll" -o -name "*.exe" \) \
-              | xargs ldd 2>/dev/null \
-              | grep -i mingw64 | awk '{print $3}' | sort -u \
-              | xargs -I{} cp -n "{}" "$DIST/" 2>/dev/null || true
-            AFTER=$(find "$DIST" -name "*.dll" | wc -l)
-            [ "$AFTER" = "$BEFORE" ] && break
-          done
-
-          # Minimal Fontconfig config — suppresses "Cannot load default config file"
-          # warnings from the bundled libfontconfig without scanning system fonts.
-          mkdir -p "$DIST/etc/fonts"
-          echo '<fontconfig></fontconfig>' > "$DIST/etc/fonts/fonts.conf"
-
-          # CA certificate bundle — libcurl needs this to verify HTTPS tile server certs.
-          for f in /mingw64/ssl/certs/ca-bundle.crt /mingw64/etc/ssl/certs/ca-bundle.crt \
-                   /usr/ssl/certs/ca-bundle.crt; do
-            [ -f "$f" ] && cp "$f" "$DIST/ca-bundle.crt" && break
-          done
-
-          # Launcher batch file
-          cat > "$DIST/run_viewer.bat" << 'BATCH'
-          @echo off
-          set SWOLLEN_BINDIR=%~dp0
-          set OSG_LIBRARY_PATH=%~dp0
-          set FONTCONFIG_FILE=%~dp0etc\fonts\fonts.conf
-          set CURL_CA_BUNDLE=%~dp0ca-bundle.crt
-          "%~dp0anuga_viewer.exe" %*
-          BATCH
-
-          echo "=== Bundle size ===" && du -sh "$DIST" && du -sh "$DIST"/* | sort -rh | head -20
-
       - name: Install NSIS
         shell: cmd
         run: choco install nsis -y --no-progress
 
-      - name: Build installer
-        shell: cmd
-        run: |
-          "C:\Program Files (x86)\NSIS\makensis.exe" /DVERSION=${{ github.ref_name }} installer\anuga_viewer.nsi
+      - name: Bundle and build installer
+        run: bash distros/bundle-windows.sh ${{ github.ref_name }}
 
       - uses: actions/upload-artifact@v6
         with:

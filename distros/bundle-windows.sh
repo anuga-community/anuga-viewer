@@ -5,6 +5,7 @@
 #           NSIS installed via: choco install nsis
 set -e
 
+VERSION="${1:-dev}"
 CURDIR="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$CURDIR/dist/anuga-viewer"
 NSIS="${NSIS:-C:/Program Files (x86)/NSIS/makensis.exe}"
@@ -72,6 +73,6 @@ BATCH
 
 echo "=== Bundle size ===" && du -sh "$DIST" && du -sh "$DIST"/* | sort -rh | head -10
 
-echo "=== Building NSIS installer ==="
-"$NSIS" "$CURDIR/installer/anuga_viewer.nsi"
+echo "=== Building NSIS installer (version: $VERSION) ==="
+"$NSIS" /DVERSION="$VERSION" "$CURDIR/installer/anuga_viewer.nsi"
 echo "=== Done: $CURDIR/anuga-viewer-windows-setup.exe ==="
