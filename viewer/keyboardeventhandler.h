@@ -41,6 +41,7 @@ public:
 	virtual int  getPanY() { int v = _panY; _panY = 0; return v; }
 	virtual bool toggleTexture() { bool v = _toggleTexture; _toggleTexture = false; return v; }
 	virtual bool toggleCentroid() { bool v = _toggleCentroid; _toggleCentroid = false; return v; }
+	virtual bool checkToggleHelp() { bool v = _toggleHelp; _toggleHelp = false; return v; }
 	virtual bool checkWriteFrame() { bool curr = _writeframe; _writeframe = false; return curr;	}
 	virtual bool checkReturnOrigin() { bool curr = _return_origin; _return_origin = false; return curr;	}
 	virtual bool checkMouseClicked() { bool curr = _mouseclicked; _mouseclicked = false; return curr;	}
@@ -92,6 +93,7 @@ private:
 	int  _panY;			/**< +1 = pan up, -1 = pan down, 0 = no change */
 	bool _toggleTexture;	/**< true = toggle landscape/colour mode */
 	bool _toggleCentroid;	/**< true = toggle vertex/centroid data source */
+	bool _toggleHelp;		/**< true = toggle help panel */
 };
 
 #endif  // KEYBOARDEVENTHANDLER_H

@@ -29,7 +29,8 @@ HeadsUpDisplay::HeadsUpDisplay()
 	: _linegraph(NULL),
 	_font(NULL),
 	_hudVisibility(HUD_FULL),
-	_visibility_dirty(false)
+	_visibility_dirty(false),
+	_helpVisible(false)
 {
    // a heads-up display requires an orthographic projection
    _projection = new osg::Projection;
@@ -104,9 +105,13 @@ HeadsUpDisplay::HeadsUpDisplay()
 	_intensity_scale_switch->addChild(intensity_scale_node);
    _intensity_scale_switch->setAllChildrenOff();
 
+   _help_switch = new osg::Switch;
+   _help_switch->setAllChildrenOff();
+
    _xfm->addChild( _text_switch );
    _xfm->addChild( _status_switch );
    _xfm->addChild( _intensity_scale_switch );
+   _xfm->addChild( _help_switch );
    _projection->addChild( _xfm );
 }
 
@@ -163,6 +168,16 @@ void HeadsUpDisplay::setStatus(const std::string & aField, const std::string & a
 {
 	_statusmap[aField]._label = aStatus;
     _dirtystatus = true;
+}
+
+
+void HeadsUpDisplay::toggleHelp()
+{
+	_helpVisible = !_helpVisible;
+	if (_helpVisible)
+		_help_switch->setAllChildrenOn();
+	else
+		_help_switch->setAllChildrenOff();
 }
 
 

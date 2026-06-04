@@ -1,4 +1,6 @@
 #include "anugahud.h"
+#include <osg/BlendFunc>
+#include <osg/Geometry>
 
 // Canvas is ORTHO2D_WIDTH x ORTHO2D_HEIGHT (1280 x 1024), origin bottom-left.
 //
@@ -33,6 +35,100 @@ AnugaHUD::AnugaHUD() :
 	addStatusLine("filename",  "filename",       left, osg::Vec3(LX, FY, 0));
 
 	_status_switch->addChild(left);
+
+	// ---- Help panel (shown on 'h') ----------------------------------------
+	// Positioned to the right of the controls column.
+	// Two sub-columns: keys right-aligned at HX_KEY, descriptions left-aligned at HX_DESC.
+	static const float HX_KEY  = 490.0f;
+	static const float HX_DESC = 510.0f;
+	static const float HY      = TSY;          // top of first line, same as controls
+
+	// Semi-transparent background quad
+	{
+		osg::Geometry* bg = new osg::Geometry;
+		osg::Vec3Array* v = new osg::Vec3Array(4);
+		(*v)[0].set(360, 490, 0);
+		(*v)[1].set(ORTHO2D_WIDTH - 15, 490, 0);
+		(*v)[2].set(ORTHO2D_WIDTH - 15, HY + 24, 0);
+		(*v)[3].set(360, HY + 24, 0);
+		bg->setVertexArray(v);
+		osg::Vec4Array* c = new osg::Vec4Array(1);
+		(*c)[0].set(0.0f, 0.0f, 0.0f, 0.70f);
+		bg->setColorArray(c);
+		bg->setColorBinding(osg::Geometry::BIND_OVERALL);
+		bg->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::QUADS, 0, 4));
+		osg::StateSet* ss = bg->getOrCreateStateSet();
+		ss->setAttribute(new osg::BlendFunc(osg::BlendFunc::SRC_ALPHA, osg::BlendFunc::ONE_MINUS_SRC_ALPHA));
+		ss->setMode(GL_BLEND, osg::StateAttribute::ON);
+		ss->setRenderBinDetails(11, "RenderBin");
+
+		osg::Geode* bgGeode = new osg::Geode;
+		bgGeode->addDrawable(bg);
+		_help_switch->addChild(bgGeode);
+	}
+
+	// Keys column (right-aligned)
+	osg::Geode* helpGeode = new osg::Geode;
+	{
+		osgText::Text* t = addText(osg::Vec3(HX_KEY, HY, 0), *_font, false, true);
+		t->setText(
+			"Space\n"
+			"v / V\n"
+			"[ / ]\n"
+			"{ / }\n"
+			", / .\n"
+			"a / A\n"
+			"z / Z\n"
+			"w\n"
+			"t\n"
+			"g\n"
+			"i\n"
+			"q\n"
+			"b\n"
+			"c\n"
+			"l\n"
+			"x\n"
+			"r\n"
+			"1 / 2 / 3\n"
+			"O\n"
+			"Shift+LMB\n"
+			"Shift+arrows\n"
+			"Escape"
+		);
+		helpGeode->addDrawable(t);
+	}
+
+	// Descriptions column (left-aligned)
+	{
+		osgText::Text* t = addText(osg::Vec3(HX_DESC, HY, 0), *_font, false, false);
+		t->setText(
+			"Pause / resume\n"
+			"Cycle colour mode fwd / back\n"
+			"Colour scale right endpoint ±20%\n"
+			"Colour scale left endpoint ±20%  (stage modes)\n"
+			"Pan colour scale range  (stage modes)\n"
+			"Shallow-water opacity threshold\n"
+			"Vertical exaggeration ×1.5\n"
+			"Cycle wireframe\n"
+			"Cycle view mode  (bedslope / OSM / satellite)\n"
+			"Cycle grid / colorbar\n"
+			"Cycle HUD  (full / minimal / off)\n"
+			"Toggle vertex / centroid / faceted data\n"
+			"Backface culling\n"
+			"Steep-triangle culling\n"
+			"Toggle lighting\n"
+			"Reset camera\n"
+			"Reset to timestep 0\n"
+			"Record / play / save camera path\n"
+			"Screenshot\n"
+			"Show timeseries for clicked polygon\n"
+			"Pan camera\n"
+			"Quit"
+		);
+		helpGeode->addDrawable(t);
+	}
+
+	_help_switch->addChild(helpGeode);
 }
 
 

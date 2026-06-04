@@ -133,50 +133,6 @@ public:
 };
 
 
-// HelpHandler subclass that increases the font size after the overlay is first built.
-class AnugaHelpHandler : public osgViewer::HelpHandler
-{
-public:
-    AnugaHelpHandler() : _fontFixed(false) {}
-
-    virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
-    {
-        bool result = osgViewer::HelpHandler::handle(ea, aa);
-        if (!_fontFixed && getCamera())
-        {
-            fixFont(getCamera());
-            _fontFixed = true;
-        }
-        return result;
-    }
-
-private:
-    bool _fontFixed;
-
-    void fixFont(osg::Node* node)
-    {
-        if (osg::Geode* geode = dynamic_cast<osg::Geode*>(node))
-        {
-            for (unsigned int i = 0; i < geode->getNumDrawables(); ++i)
-            {
-                osgText::Text* t = dynamic_cast<osgText::Text*>(geode->getDrawable(i));
-                if (t)
-                {
-                    t->setCharacterSize(20.0f);
-                    // Shift right to clear the left-side HUD controls column
-                    osg::Vec3 p = t->getPosition();
-                    p.x() += 350.0f;
-                    t->setPosition(p);
-                }
-            }
-        }
-        if (osg::Group* group = dynamic_cast<osg::Group*>(node))
-        {
-            for (unsigned int i = 0; i < group->getNumChildren(); ++i)
-                fixFont(group->getChild(i));
-        }
-    }
-};
 
 
 int main( int argc, char **argv )
@@ -589,8 +545,8 @@ int main( int argc, char **argv )
 	mman->setNode(model);
 	mman->setAutoComputeHomePosition( false );
 	mman->setHomePosition(
-	  osg::Vec3d(-0.3,-3,3),  // camera location (offset left so scene appears right of HUD)
-	  osg::Vec3d(-0.3,0,0),   // camera target
+	  osg::Vec3d(-0.1,-3,3),  // camera location (slight left offset so scene clears HUD column)
+	  osg::Vec3d(-0.1,0,0),   // camera target
 	  osg::Vec3d(0,1,1) );    // camera up vector
 	mman->setMinimumDistance(0.000001);
 	viewer.setCameraManipulator(mman);
@@ -608,8 +564,7 @@ int main( int argc, char **argv )
 	KeyboardEventHandler* event_handler = new KeyboardEventHandler(sww->getNumberOfTimesteps(), tps);
 	viewer.addEventHandler(event_handler);
 
-	// add the help handler
-	viewer.addEventHandler(new AnugaHelpHandler);
+	// Help panel is built into the HUD; no separate OSG HelpHandler needed.
 
 	// add the window size toggle handler (provides fullscreen toggle on 'f')
 	viewer.addEventHandler(new osgViewer::WindowSizeHandler);
@@ -861,6 +816,9 @@ int main( int argc, char **argv )
 				const char* labels[] = {"vertex", "centroid", "faceted"};
 				g_hud->setStatus("data", labels[dm]);
 			}
+
+			if (event_handler->checkToggleHelp())
+				g_hud->toggleHelp();
 
 			bool mouseClicked = event_handler->checkMouseClicked();
 			if (mouseClicked || colorChanged)

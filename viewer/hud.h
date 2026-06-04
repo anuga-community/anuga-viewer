@@ -51,6 +51,9 @@ public:
 		/** Cycle through Full → Minimal (title+time only) → None → Full */
 		virtual void cycleVisibility();
 
+		/** Toggle the key-bindings help panel on/off */
+		virtual void toggleHelp();
+
 		/** Legacy toggle used by recording/playback state: true=FULL, false=NONE */
 		virtual void setVisible(bool aVisible);
 		virtual bool isVisible() { return _hudVisibility != HUD_NONE; }
@@ -125,6 +128,8 @@ protected:
 	osg::Switch * _intensity_scale_switch;
 	osg::Switch * _text_switch;    /**< Switch for title + time (shown in MINIMAL and FULL) */
 	osg::Switch * _status_switch;  /**< Switch for status lines (shown in FULL only) */
+	osg::Switch * _help_switch;   /**< Switch for help panel (toggled by h key) */
+	bool          _helpVisible;
     osgText::Text* _titletext;
     osgText::Text* _timetext;
     float _timevalue;

@@ -39,6 +39,7 @@ KeyboardEventHandler::KeyboardEventHandler( int nTimesteps, float tps)	:
    _panY = 0;
    _toggleTexture  = false;
    _toggleCentroid = false;
+   _toggleHelp     = false;
 }
 
 
@@ -271,6 +272,10 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 
 				case 'i':
 					g_hud->cycleVisibility();
+					return true;
+
+				case 'h':
+					_toggleHelp = true;
 					return true;
 
 				case '1':
