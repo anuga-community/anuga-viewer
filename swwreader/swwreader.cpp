@@ -106,7 +106,7 @@ SWWReader::SWWReader(const std::string& filename) :
 	_zone(-1),
 	_south(false),
 	_hasCentroidData(false),
-	_centroidMode(false),
+	_dataMode(DM_VERTEX),
 	_stageid_c(-1), _xmomentumid_c(-1), _ymomentumid_c(-1), _zid_c(-1),
 	_pstage_c(NULL), _pxmomentum_c(NULL), _pymomentum_c(NULL), _pz_c(NULL),
 	_pstage_v(NULL), _pxmomentum_v(NULL), _pymomentum_v(NULL), _pz_cv(NULL)
@@ -444,7 +444,7 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		// empty array for storing list of steep triangles
 		osg::ref_ptr<osg::IntArray> steeptri = new osg::IntArray;
 
-	bool useCentroid = _centroidMode && _hasCentroidData;
+	bool useCentroid = (_dataMode != DM_VERTEX) && _hasCentroidData;
 	if (useCentroid)
 	{
 		size_t cstart[2] = {index, 0};
@@ -661,6 +661,110 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		}
 	}
 
+	// Build per-triangle flat colours for DM_CENTROID_FACETED mode
+	if (_dataMode == DM_CENTROID_FACETED && _hasCentroidData && _pstage_c && _pz_c)
+	{
+		_faceted_stagecolors = new osg::Vec4Array;
+		_faceted_stagecolors->resize(_nvolumes);
+
+		ColorMode cm = _state.colorMode;
+
+		for (unsigned int it = 0; it < _nvolumes; it++)
+		{
+			float stage_c = _pstage_c[it];
+			float z_c     = _pz_c[it];
+			float depth_m = stage_c - z_c;
+
+			float alpha;
+			if (_state.wetdepth > 0.0f)
+			{
+				if (depth_m <= 0.0f)
+					alpha = 0.0f;
+				else if (depth_m < _state.wetdepth)
+					alpha = (depth_m / _state.wetdepth) * _state.alphamin;
+				else
+					alpha = _state.alphamin;
+			}
+			else
+			{
+				if (depth_m <= 0.0f)
+					alpha = 0.0f;
+				else
+				{
+					float h = depth_m * _scale;  // model-unit depth
+					if (h < _state.heightmin)
+						alpha = 0.0f;
+					else
+					{
+						alpha = alphascale * (h - _state.heightmin) + _state.alphamin;
+						if (alpha > _state.alphamax)
+							alpha = _state.alphamax;
+					}
+				}
+			}
+
+			osg::Vec4 col;
+			if (cm == CM_BLUE)
+			{
+				col.set(0.40f, 0.52f, 0.70f, alpha);
+			}
+			else
+			{
+				float intens = 0.0f;
+				if (cm == CM_MAX_DEPTH || cm == CM_MAX_SPEED || cm == CM_MAX_MOMENTUM || cm == CM_MAX_STAGE)
+				{
+					v1index = _pvolumes[3*it+0];
+					v2index = _pvolumes[3*it+1];
+					v3index = _pvolumes[3*it+2];
+					if (cm == CM_MAX_DEPTH && _pmaxdepth)
+						intens = min(1.0f, (_pmaxdepth[v1index]+_pmaxdepth[v2index]+_pmaxdepth[v3index]) / 3.0f / _state.heightmax);
+					else if (cm == CM_MAX_SPEED && _pmaxspeed)
+						intens = min(1.0f, (_pmaxspeed[v1index]+_pmaxspeed[v2index]+_pmaxspeed[v3index]) / 3.0f / _state.speedmax);
+					else if (cm == CM_MAX_MOMENTUM && _pmaxmomentum)
+						intens = min(1.0f, (_pmaxmomentum[v1index]+_pmaxmomentum[v2index]+_pmaxmomentum[v3index]) / 3.0f / _state.momentummax);
+					else if (cm == CM_MAX_STAGE && _pmaxstage)
+						intens = min(1.0f, max(0.0f, ((_pmaxstage[v1index]+_pmaxstage[v2index]+_pmaxstage[v3index]) / 3.0f - _state.stageoffset) / _state.stageheightmax));
+				}
+				else if (cm == CM_DEPTH)
+				{
+					intens = (depth_m > 0.001f) ? min(1.0f, depth_m / _state.heightmax) : 0.0f;
+				}
+				else if (cm == CM_STAGE)
+				{
+					intens = (depth_m > 0.001f) ? min(1.0f, max(0.0f, (stage_c - _state.stageoffset) / _state.stageheightmax)) : 0.0f;
+				}
+				else if (_pxmomentum_c && _pymomentum_c)
+				{
+					float uh = _pxmomentum_c[it];
+					float vh = _pymomentum_c[it];
+					if (cm == CM_SPEED)
+					{
+						if (depth_m > 0.001f)
+							intens = min(1.0f, sqrt(uh*uh+vh*vh) / depth_m / _state.speedmax);
+					}
+					else  // CM_MOMENTUM
+					{
+						intens = min(1.0f, sqrt(uh*uh+vh*vh) / _state.momentummax);
+					}
+				}
+				col.set(intens, (0.5f-fabs(intens-0.5f))*2.0f, 1.0f-intens, alpha);
+			}
+
+			(*_faceted_stagecolors)[it] = col;
+		}
+
+		// Cull steep triangles
+		if (_state.culling)
+		{
+			for (size_t k = 0; k < steeptri->size(); k++)
+				(*_faceted_stagecolors)[steeptri->at(k)] = osg::Vec4(1, 1, 1, 0);
+		}
+	}
+	else
+	{
+		_faceted_stagecolors = NULL;
+	}
+
 	// per-vertex normals calculated as average of primitive normals
 	// from contributing triangles
 	_stagevertexnormals = new osg::Vec3Array;
@@ -718,7 +822,7 @@ bool SWWReader::getTimeSeries(unsigned int aPolyIndex, TimeSeriesType aPlotType,
 
 	aData->resize(_ntimesteps);
 
-	if (_centroidMode && _hasCentroidData)
+	if ((_dataMode != DM_VERTEX) && _hasCentroidData)
 	{
 		// Read centroid column for this polygon directly
 		size_t cstart[2] = {0, aPolyIndex};
@@ -924,7 +1028,8 @@ void SWWReader::clear()
 	SAFE_DELETE_ARRAY(_pymomentum_v);
 	SAFE_DELETE_ARRAY(_pz_cv);
 	_hasCentroidData = false;
-	_centroidMode    = false;
+	_dataMode        = DM_VERTEX;
+	_faceted_stagecolors = NULL;
 }
 
 

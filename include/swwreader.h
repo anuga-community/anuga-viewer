@@ -59,6 +59,15 @@ public:
 		TSTYPE_SPEED,					/**< Flow speed = momentum / depth (m/s) */
 	};
 
+	/** How stage/momentum data is sourced and coloured. */
+	enum DataMode
+	{
+		DM_VERTEX          = 0,  /**< Per-vertex quantities (default) */
+		DM_CENTROID_SMOOTH = 1,  /**< Centroid quantities expanded to vertices (smooth) */
+		DM_CENTROID_FACETED = 2, /**< Centroid quantities, one flat colour per triangle */
+		DM_NUM_OF          = 3
+	};
+
 
     SWWReader(const std::string& filename);
 
@@ -136,8 +145,11 @@ public:
     virtual bool hasMaxima() { return _pmaxdepth != NULL; }
 
     virtual bool hasCentroidData() { return _hasCentroidData; }
-    virtual bool getCentroidMode() { return _centroidMode; }
-    virtual void setCentroidMode(bool v) { _centroidMode = v; }
+    virtual DataMode getDataMode() { return _dataMode; }
+    virtual void setDataMode(DataMode dm) { _dataMode = dm; }
+    virtual bool getCentroidMode() { return _dataMode != DM_VERTEX; }
+    virtual void setCentroidMode(bool v) { _dataMode = v ? DM_CENTROID_SMOOTH : DM_VERTEX; }
+    virtual osg::ref_ptr<osg::Vec4Array> getFacetedColorArray() { return _faceted_stagecolors; }
 
     virtual float getActualMaxDepth();
     virtual float getActualMaxSpeed();
@@ -313,10 +325,11 @@ protected:
 	bool _bedslopeLoaded;		/**< True after first bedslope load; prevents stageoffset reset on texture-mode switches */
 
 	// Centroid (triangle-centre) quantities — present only in some SWW files.
-	// When _centroidMode is true, loadStageVertexArray reads these instead of
+	// When _dataMode != DM_VERTEX, loadStageVertexArray reads these instead of
 	// the vertex quantities and expands them to per-vertex via connectivity averaging.
-	bool  _hasCentroidData;
-	bool  _centroidMode;
+	bool      _hasCentroidData;
+	DataMode  _dataMode;
+	osg::ref_ptr<osg::Vec4Array> _faceted_stagecolors;  /**< per-triangle colors for DM_CENTROID_FACETED */
 	int   _stageid_c, _xmomentumid_c, _ymomentumid_c, _zid_c;
 	float *_pstage_c;       /**< centroid stage buffer [nvolumes], one timestep */
 	float *_pxmomentum_c;   /**< centroid xmomentum buffer [nvolumes] */

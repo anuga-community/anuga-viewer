@@ -847,10 +847,12 @@ int main( int argc, char **argv )
 
 			if (event_handler->toggleCentroid() && sww->hasCentroidData())
 			{
-				bool cm = !sww->getCentroidMode();
-				sww->setCentroidMode(cm);
+				SWWReader::DataMode dm = sww->getDataMode();
+				dm = (SWWReader::DataMode)((dm + 1) % SWWReader::DM_NUM_OF);
+				sww->setDataMode(dm);
 				water->forceRefresh();
-				g_hud->setStatus("data", cm ? "centroid" : "vertex");
+				const char* labels[] = {"vertex", "centroid", "faceted"};
+				g_hud->setStatus("data", labels[dm]);
 			}
 
 			bool mouseClicked = event_handler->checkMouseClicked();

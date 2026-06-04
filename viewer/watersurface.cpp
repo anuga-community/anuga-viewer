@@ -9,6 +9,7 @@
 #include <watersurface.h>
 #include <osg/AlphaFunc>
 #include <osg/BlendFunc>
+#include <osg/ShadeModel>
 #include <osg/ShapeDrawable>
 #include <osg/Texture2D>
 #include <osg/TexEnv>
@@ -94,15 +95,46 @@ void WaterSurface::onRefreshData()
 	// local reference to raw height field data
 	osg::ref_ptr<osg::Vec3Array> vertices = _sww->getStageVertexArray();
 	osg::ref_ptr<osg::Vec3Array> vertexnormals = _sww->getStageVertexNormalArray();
-	osg::ref_ptr<osg::Vec4Array> colors = _sww->getStageColorArray();
 
 	// geometry
 	_geom->setVertexArray( vertices.get() );
 	_geom->addPrimitiveSet( _sww->getBedslopeIndexArray().get() );
 
-	// per vertex colors (we only modulate the alpha for transparency)
-	_geom->setColorArray( colors.get() );
-	_geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+	// Colour binding
+	if (_sww->getDataMode() == SWWReader::DM_CENTROID_FACETED)
+	{
+		// Flat shading: each face shows its provoking vertex colour (last vertex of each triangle).
+		// Write the per-triangle centroid colour to the provoking vertex slot; later writes win.
+		osg::ref_ptr<osg::Vec4Array> facetedColors = _sww->getFacetedColorArray();
+		osg::ref_ptr<osg::DrawElementsUInt> idx = _sww->getBedslopeIndexArray();
+		if (facetedColors.valid() && idx.valid())
+		{
+			size_t nv = vertices->size();
+			osg::ref_ptr<osg::Vec4Array> pvc = new osg::Vec4Array(nv);
+			std::fill(pvc->begin(), pvc->end(), osg::Vec4(0,0,0,0));
+			size_t ntri = idx->size() / 3;
+			for (size_t it = 0; it < ntri; it++)
+				(*pvc)[(*idx)[3*it+2]] = (*facetedColors)[it];
+			_geom->setColorArray(pvc.get());
+		}
+		else
+		{
+			_geom->setColorArray(_sww->getStageColorArray().get());
+		}
+		_geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+		osg::ShadeModel* sm = new osg::ShadeModel;
+		sm->setMode(osg::ShadeModel::FLAT);
+		_stateset->setAttribute(sm);
+	}
+	else
+	{
+		osg::ref_ptr<osg::Vec4Array> colors = _sww->getStageColorArray();
+		_geom->setColorArray(colors.get());
+		_geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+		osg::ShadeModel* sm = new osg::ShadeModel;
+		sm->setMode(osg::ShadeModel::SMOOTH);
+		_stateset->setAttribute(sm);
+	}
 
 	// normals
 	// Performance warning: OpenGL has no concept of per-primitive normals, so if we try to use
