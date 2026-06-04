@@ -62,7 +62,7 @@ Display
    * - Key
      - Action
    * - v / V
-     - Cycle water colour mode forward / backward: stage / depth / speed / momentum / max depth / max speed / max momentum / max stage
+     - Cycle water colour mode forward / backward: blue / stage / depth / speed / momentum / max depth / max speed / max momentum / max stage
    * - ``[`` / ``]``
      - Decrease / increase the colour scale right endpoint (max)
    * - ``{`` / ``}``
@@ -73,20 +73,24 @@ Display
      - Decrease / increase shallow-water transparency threshold (wetdepth)
    * - z / Z
      - Decrease / increase vertical exaggeration by 1.5×
+   * - t
+     - Cycle view mode: landscape → colour (OSM) → colour (satellite)
+   * - q
+     - Cycle data source: vertex (interpolated) → centroid (smooth) → faceted (flat per-triangle)
    * - w
      - Cycle wireframe mode (off / water / bed / both)
-   * - l
-     - Toggle lighting
-   * - t
-     - Cycle view: landscape → colour (osm) → colour
-   * - b
-     - Toggle backface culling
+   * - g
+     - Cycle grid / colour bar overlay
    * - c
      - Toggle steep-triangle culling
-   * - g
-     - Cycle grid / colorbar overlay
+   * - b
+     - Toggle backface culling
+   * - l
+     - Toggle lighting
    * - i
      - Cycle information HUD: full → minimal (title + time only) → off
+   * - h
+     - Toggle help panel (key binding reference)
    * - Shift + arrow keys
      - Pan camera (useful on touchpads without middle mouse)
    * - x
@@ -118,10 +122,11 @@ Recording
 Colour Modes
 ------------
 
-Press ``v`` to cycle through seven water colour modes.  All use a
-blue (low) → green (mid) → red (high) gradient.  Use the colour range
-keys (see below) to adjust the scale limits for the active mode without
-changing colour mode.
+Press ``v`` to cycle through eight water colour modes.  The default
+**blue** mode renders water as a natural blue colour.  The remaining modes
+use a blue (low) → green (mid) → red (high) gradient to map a data
+quantity to colour.  Use the colour range keys (see below) to adjust the
+scale limits for the active mode without changing colour mode.
 
 .. list-table::
    :widths: 25 75
@@ -129,6 +134,8 @@ changing colour mode.
 
    * - Mode
      - Description
+   * - blue
+     - Natural blue water colour (default; no data mapping)
    * - stage
      - Current absolute water surface elevation above datum (m)
    * - depth
@@ -212,8 +219,8 @@ Use ``a`` / ``A`` at runtime to decrease / increase the threshold in
 ``{1, 2, 5} × 10ⁿ`` steps (0.05 → 0.1 → 0.2 → …).  Set to 0 to return to
 the standard opacity ramp (controlled by ``-alphamin`` / ``-alphamax``).
 
-The current threshold is shown in the HUD as ``wetdepth (a/A): 0–0.2 m``
-or ``wetdepth (a/A): off``.
+The current threshold is shown in the HUD as ``(a/A) wetdepth: 0–0.2 m``
+or ``(a/A) wetdepth: off``.
 
 
 Timeseries Plot
@@ -292,6 +299,8 @@ Command-Line Options
      - Initial vertical exaggeration (default: 1.0)
    * - ``-tps <float>``
      - Timesteps per second (default: 10)
+   * - ``-fps <float>``
+     - Maximum display frame rate (default: 30); reduce to cut X11 display bandwidth
    * - ``-wetdepth <float>``
      - Depth (m) below which water fades to transparent (rain-on-grid)
    * - ``-hmin <float>``

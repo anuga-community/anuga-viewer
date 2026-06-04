@@ -266,7 +266,7 @@ void HeadsUpDisplay::update()
 		if (fa && fa->size()>1)
 		{
 			_linegraph = new LineGraph;
-			_xfm->addChild(_linegraph->setUpScene(_graphdata._title, _graphdata._unit, fa, _graphdata._timelength, osg::Vec3(16.0f, ORTHO2D_HEIGHT*0.66f-24.0f, 0), osg::Vec2(ORTHO2D_WIDTH - 400, 400)));
+			_xfm->addChild(_linegraph->setUpScene(_graphdata._title, _graphdata._unit, fa, _graphdata._timelength, osg::Vec3(16.0f, 490.0f, 0), osg::Vec2(ORTHO2D_WIDTH - 400, 400)));
 		}
 
 		_dirtytimeseries = false;

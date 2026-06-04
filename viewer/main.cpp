@@ -212,6 +212,7 @@ int main( int argc, char **argv )
          "                                SWW files that lack embedded georeferencing.\n"
          "  -scale <float>                Initial vertical exaggeration (default: 1.0)\n"
          "  -tps <float>                  Timesteps per second (default: 10)\n"
+         "  -fps <float>                  Max display frame rate (default: 30)\n"
          "  -hmin <float>                 Depth below which water is transparent\n"
          "  -hmax <float>                 Depth above which water is fully opaque\n"
          "  -alphamin <float 0-1>         Transparency at hmin\n"
@@ -233,17 +234,22 @@ int main( int argc, char **argv )
          "Keyboard shortcuts:\n"
          "  Space          Pause / resume\n"
          "  v / V          Cycle colour mode forward / backward\n"
-         "                   (stage / depth / speed / momentum /\n"
+         "                   (blue / stage / depth / speed / momentum /\n"
          "                    max depth / max speed / max momentum / max stage)\n"
-         "  [ / ]          Decrease / increase colour scale maximum by 20%\n"
+         "  [ / ]          Decrease / increase colour scale right endpoint\n"
+         "  { / }          Decrease / increase colour scale left endpoint (stage modes)\n"
+         "  , / .          Pan colour scale range left / right (stage modes)\n"
+         "  a / A          Decrease / increase shallow-water opacity threshold\n"
          "  z / Z          Decrease / increase vertical exaggeration by 50%\n"
+         "  t              Cycle view mode: landscape → colour (osm) → colour (satellite)\n"
+         "  q              Cycle data source: vertex → centroid → faceted\n"
          "  w              Cycle wireframe modes\n"
-         "  g              Cycle grid / colorbar overlay\n"
-         "  i              Toggle information HUD\n"
-         "  l              Toggle lighting\n"
-         "  t              Cycle view mode: landscape (map) → colour (osm) → colour\n"
-         "  b              Toggle backface culling\n"
+         "  g              Cycle grid / colour bar overlay\n"
          "  c              Toggle steep-triangle culling\n"
+         "  b              Toggle backface culling\n"
+         "  l              Toggle lighting\n"
+         "  i              Cycle information HUD: full → minimal → off\n"
+         "  h              Toggle help panel\n"
          "  x              Reset camera\n"
          "  r              Reset animation to timestep 0\n"
          "  1              Start / stop recording camera path\n"
@@ -300,8 +306,9 @@ int main( int argc, char **argv )
 
 
    // default arguments and command line parameters
-   float tmpfloat, tps, vscale;
+   float tmpfloat, tps, vscale, maxFps;
    if( !arguments.read("-tps", tps) || tps <= 0.0 ) tps = DEF_TPS;
+   if( !arguments.read("-fps", maxFps) || maxFps <= 0.0 ) maxFps = 30.0f;
    if( !arguments.read("-scale", vscale) ) vscale = 1.0;
    if( arguments.read("-hmin",tmpfloat) ) sww->setHeightMin( tmpfloat );
    // -hmax and -stagemin are read now but applied AFTER loadBedslopeVertexArray so they
@@ -994,6 +1001,18 @@ int main( int argc, char **argv )
 
 		// fire off the cull and draw traversals of the scene.
 		viewer.frame();
+
+		// Cap frame rate to limit X11 display bandwidth (default 30fps).
+		{
+			static osg::Timer_t prevTick = osg::Timer::instance()->tick();
+			double minFrame = 1.0 / maxFps;
+			osg::Timer_t now = osg::Timer::instance()->tick();
+			double elapsed = osg::Timer::instance()->delta_s(prevTick, now);
+			if (elapsed < minFrame)
+				OpenThreads::Thread::microSleep(
+					(unsigned int)((minFrame - elapsed) * 1e6));
+			prevTick = osg::Timer::instance()->tick();
+		}
 	}
 
 #ifdef _WIN32
