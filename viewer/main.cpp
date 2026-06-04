@@ -160,7 +160,14 @@ private:
             for (unsigned int i = 0; i < geode->getNumDrawables(); ++i)
             {
                 osgText::Text* t = dynamic_cast<osgText::Text*>(geode->getDrawable(i));
-                if (t) t->setCharacterSize(24.0f);
+                if (t)
+                {
+                    t->setCharacterSize(20.0f);
+                    // Shift right to clear the left-side HUD controls column
+                    osg::Vec3 p = t->getPosition();
+                    p.x() += 350.0f;
+                    t->setPosition(p);
+                }
             }
         }
         if (osg::Group* group = dynamic_cast<osg::Group*>(node))
@@ -470,9 +477,9 @@ int main( int argc, char **argv )
 		char buf[48];
 		float wd = sww->getWetDepth();
 		if (wd > 0.0f)
-			snprintf(buf, sizeof(buf), "shallow alpha: 0-%.3g m", wd);
+			snprintf(buf, sizeof(buf), "0-%.3g m", wd);
 		else
-			snprintf(buf, sizeof(buf), "shallow alpha: off");
+			snprintf(buf, sizeof(buf), "off");
 		g_hud->setStatus("wetdepth", std::string(buf));
 	}
 
@@ -582,9 +589,9 @@ int main( int argc, char **argv )
 	mman->setNode(model);
 	mman->setAutoComputeHomePosition( false );
 	mman->setHomePosition(
-	  osg::Vec3d(0,-3,3),    // camera location
-	  osg::Vec3d(0,0,0),     // camera target
-	  osg::Vec3d(0,1,1) );   // camera up vector
+	  osg::Vec3d(-0.3,-3,3),  // camera location (offset left so scene appears right of HUD)
+	  osg::Vec3d(-0.3,0,0),   // camera target
+	  osg::Vec3d(0,1,1) );    // camera up vector
 	mman->setMinimumDistance(0.000001);
 	viewer.setCameraManipulator(mman);
 	viewer.home();
@@ -807,9 +814,9 @@ int main( int argc, char **argv )
 				water->forceRefresh();
 				char buf[48];
 				if (wd <= 0.0f)
-					snprintf(buf, sizeof(buf), "shallow alpha: off");
+					snprintf(buf, sizeof(buf), "off");
 				else
-					snprintf(buf, sizeof(buf), "shallow alpha: 0-%.3g m", wd);
+					snprintf(buf, sizeof(buf), "0-%.3g m", wd);
 				g_hud->setStatus("wetdepth", std::string(buf));
 			}
 
