@@ -2,6 +2,70 @@ Release Notes
 =============
 
 
+v0.6.0 — 2026-06-04
+---------------------
+
+New Features
+~~~~~~~~~~~~
+
+**Centroid data modes** (``q`` key)
+
+  For SWW files produced with ANUGA's centroid-output operators (variables
+  ending in ``_c``), press ``q`` to cycle through three data-source modes:
+
+  ============= =====================================================================
+  Mode          Description
+  ============= =====================================================================
+  ``vertex``    Interpolated per-vertex values (default; smooth shading)
+  ``centroid``  Per-centroid values smoothly shaded (removes interpolation artefacts)
+  ``faceted``   Flat per-triangle colour from centroid value; per-face normals
+  ============= =====================================================================
+
+  In **faceted** mode the geometry is fully deindexed so each triangle carries
+  its own colour and lighting normal, giving an unambiguous flat-shaded view of
+  the raw simulation data with no blending across triangle boundaries.
+
+  The ``(q) data`` HUD item shows the current mode.  The key is only active
+  when centroid data is present in the SWW file; otherwise it has no effect.
+
+**Custom help panel** (``h`` key)
+
+  Press ``h`` to toggle a two-column key-binding reference panel directly on
+  the HUD canvas.  The panel lists all keyboard shortcuts with white text on a
+  transparent background so the 3D scene remains visible.  The built-in OSG
+  help handler (which printed hundreds of internal options) has been removed.
+
+**Frame rate cap** (``-fps``, default 30)
+
+  The render loop is now capped at 30 frames per second by default.  This
+  reduces X11 display bandwidth from 100+ MB/s to ~40 MB/s when running over
+  an X server (e.g. on WSL2), with no perceptible change in visual smoothness
+  at typical animation speeds.  Override with ``-fps <n>`` on the command line.
+
+**HUD redesign**
+
+  The information overlay has been restructured for clarity:
+
+  - All nine status items are now in a single left-hand column directly under
+    the ``ANUGA Viewer`` title, in priority order:
+    ``(t) mode``, ``(v/V) colour``, ``(q) data``, ``(z/Z) vscale``,
+    ``(a/A) wetdepth``, ``(w) wireframe``, ``(g) grid``, ``(c) culling``,
+    ``(1) recorder``
+  - Labels now lead with the key binding — ``(v/V) colour`` instead of
+    ``colour (v/V)`` — so the shortcut is visible at a glance.
+  - British spelling ``colour`` used throughout.
+
+Bug Fixes
+~~~~~~~~~
+
+- **Timeseries plot overlapping HUD** — the timeseries popup was positioned
+  too high, covering the ``grid`` and ``recorder`` status items.  It is now
+  anchored so its bottom edge sits just above the filename row.
+
+- **Help text** — "clicked polygon" corrected to "clicked point" in the
+  help panel and ``-h`` output.
+
+
 v0.5.6 — 2026-06-03
 ---------------------
 
