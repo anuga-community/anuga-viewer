@@ -1,6 +1,4 @@
 #include "anugahud.h"
-#include <osg/BlendFunc>
-#include <osg/Geometry>
 
 // Canvas is ORTHO2D_WIDTH x ORTHO2D_HEIGHT (1280 x 1024), origin bottom-left.
 //
@@ -43,34 +41,13 @@ AnugaHUD::AnugaHUD() :
 	static const float HX_DESC = 510.0f;
 	static const float HY      = TSY;          // top of first line, same as controls
 
-	// Semi-transparent background quad
-	{
-		osg::Geometry* bg = new osg::Geometry;
-		osg::Vec3Array* v = new osg::Vec3Array(4);
-		(*v)[0].set(360, 490, 0);
-		(*v)[1].set(ORTHO2D_WIDTH - 15, 490, 0);
-		(*v)[2].set(ORTHO2D_WIDTH - 15, HY + 24, 0);
-		(*v)[3].set(360, HY + 24, 0);
-		bg->setVertexArray(v);
-		osg::Vec4Array* c = new osg::Vec4Array(1);
-		(*c)[0].set(0.0f, 0.0f, 0.0f, 0.70f);
-		bg->setColorArray(c);
-		bg->setColorBinding(osg::Geometry::BIND_OVERALL);
-		bg->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::QUADS, 0, 4));
-		osg::StateSet* ss = bg->getOrCreateStateSet();
-		ss->setAttribute(new osg::BlendFunc(osg::BlendFunc::SRC_ALPHA, osg::BlendFunc::ONE_MINUS_SRC_ALPHA));
-		ss->setMode(GL_BLEND, osg::StateAttribute::ON);
-		ss->setRenderBinDetails(11, "RenderBin");
+	static const osg::Vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
 
-		osg::Geode* bgGeode = new osg::Geode;
-		bgGeode->addDrawable(bg);
-		_help_switch->addChild(bgGeode);
-	}
-
-	// Keys column (right-aligned)
+	// Keys column (right-aligned, white)
 	osg::Geode* helpGeode = new osg::Geode;
 	{
 		osgText::Text* t = addText(osg::Vec3(HX_KEY, HY, 0), *_font, false, true);
+		t->setColor(WHITE);
 		t->setText(
 			"Space\n"
 			"v / V\n"
@@ -98,17 +75,18 @@ AnugaHUD::AnugaHUD() :
 		helpGeode->addDrawable(t);
 	}
 
-	// Descriptions column (left-aligned)
+	// Descriptions column (left-aligned, white)
 	{
 		osgText::Text* t = addText(osg::Vec3(HX_DESC, HY, 0), *_font, false, false);
+		t->setColor(WHITE);
 		t->setText(
 			"Pause / resume\n"
 			"Cycle colour mode fwd / back\n"
-			"Colour scale right endpoint ±20%\n"
-			"Colour scale left endpoint ±20%  (stage modes)\n"
+			"Colour scale right endpoint +/-20%\n"
+			"Colour scale left endpoint +/-20%  (stage modes)\n"
 			"Pan colour scale range  (stage modes)\n"
 			"Shallow-water opacity threshold\n"
-			"Vertical exaggeration ×1.5\n"
+			"Vertical exaggeration x1.5\n"
 			"Cycle wireframe\n"
 			"Cycle view mode  (bedslope / OSM / satellite)\n"
 			"Cycle grid / colorbar\n"
