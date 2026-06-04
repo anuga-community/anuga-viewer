@@ -92,55 +92,70 @@ void WaterSurface::onRefreshData()
 		return;
 	}
 
-	// local reference to raw height field data
-	osg::ref_ptr<osg::Vec3Array> vertices = _sww->getStageVertexArray();
-	osg::ref_ptr<osg::Vec3Array> vertexnormals = _sww->getStageVertexNormalArray();
-
-	// geometry
-	_geom->setVertexArray( vertices.get() );
-	_geom->addPrimitiveSet( _sww->getBedslopeIndexArray().get() );
-
-	// Colour binding
 	if (_sww->getDataMode() == SWWReader::DM_CENTROID_FACETED)
 	{
-		// Flat shading: each face shows its provoking vertex colour (last vertex of each triangle).
-		// Write the per-triangle centroid colour to the provoking vertex slot; later writes win.
-		osg::ref_ptr<osg::Vec4Array> facetedColors = _sww->getFacetedColorArray();
-		osg::ref_ptr<osg::DrawElementsUInt> idx = _sww->getBedslopeIndexArray();
-		if (facetedColors.valid() && idx.valid())
+		// Deindexed geometry: give each triangle its own 3 vertices so every corner
+		// of a face carries the exact same centroid colour — no boundary bleed, no
+		// interpolation.  Per-face normals give fully faceted lighting too.
+		osg::ref_ptr<osg::Vec4Array>        facetedColors = _sww->getFacetedColorArray();
+		osg::ref_ptr<osg::DrawElementsUInt> idx           = _sww->getBedslopeIndexArray();
+		osg::ref_ptr<osg::Vec3Array>        srcVerts      = _sww->getStageVertexArray();
+
+		if (facetedColors.valid() && idx.valid() && srcVerts.valid())
 		{
-			size_t nv = vertices->size();
-			osg::ref_ptr<osg::Vec4Array> pvc = new osg::Vec4Array(nv);
-			std::fill(pvc->begin(), pvc->end(), osg::Vec4(0,0,0,0));
 			size_t ntri = idx->size() / 3;
+			osg::ref_ptr<osg::Vec3Array> fv = new osg::Vec3Array(3 * ntri);
+			osg::ref_ptr<osg::Vec3Array> fn = new osg::Vec3Array(3 * ntri);
+			osg::ref_ptr<osg::Vec4Array> fc = new osg::Vec4Array(3 * ntri);
+
 			for (size_t it = 0; it < ntri; it++)
-				(*pvc)[(*idx)[3*it+2]] = (*facetedColors)[it];
-			_geom->setColorArray(pvc.get());
+			{
+				unsigned int i0 = (*idx)[3*it+0];
+				unsigned int i1 = (*idx)[3*it+1];
+				unsigned int i2 = (*idx)[3*it+2];
+
+				osg::Vec3 v0 = (*srcVerts)[i0];
+				osg::Vec3 v1 = (*srcVerts)[i1];
+				osg::Vec3 v2 = (*srcVerts)[i2];
+
+				osg::Vec3 n = (v1 - v0) ^ (v2 - v0);
+				n.normalize();
+
+				(*fv)[3*it+0] = v0;  (*fv)[3*it+1] = v1;  (*fv)[3*it+2] = v2;
+				(*fn)[3*it+0] = n;   (*fn)[3*it+1] = n;   (*fn)[3*it+2] = n;
+
+				osg::Vec4 c = (*facetedColors)[it];
+				(*fc)[3*it+0] = c;   (*fc)[3*it+1] = c;   (*fc)[3*it+2] = c;
+			}
+
+			_geom->setVertexArray(fv.get());
+			_geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::TRIANGLES, 0, 3*ntri));
+			_geom->setColorArray(fc.get());
+			_geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+			_geom->setNormalArray(fn.get());
+			_geom->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
 		}
-		else
-		{
-			_geom->setColorArray(_sww->getStageColorArray().get());
-		}
-		_geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
-		osg::ShadeModel* sm = new osg::ShadeModel;
-		sm->setMode(osg::ShadeModel::FLAT);
-		_stateset->setAttribute(sm);
-	}
-	else
-	{
-		osg::ref_ptr<osg::Vec4Array> colors = _sww->getStageColorArray();
-		_geom->setColorArray(colors.get());
-		_geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+
 		osg::ShadeModel* sm = new osg::ShadeModel;
 		sm->setMode(osg::ShadeModel::SMOOTH);
 		_stateset->setAttribute(sm);
 	}
+	else
+	{
+		// Shared-vertex indexed geometry — default path
+		osg::ref_ptr<osg::Vec3Array> vertices      = _sww->getStageVertexArray();
+		osg::ref_ptr<osg::Vec3Array> vertexnormals = _sww->getStageVertexNormalArray();
+		osg::ref_ptr<osg::Vec4Array> colors        = _sww->getStageColorArray();
 
-	// normals
-	// Performance warning: OpenGL has no concept of per-primitive normals, so if we try to use
-	// BIND_PER_PRIMITIVE, it will revert to glBegin/glEnd mode instead of display lists. This is SLOW!
-	_geom->setNormalArray( vertexnormals.get() );
-	_geom->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
+		_geom->setVertexArray(vertices.get());
+		_geom->addPrimitiveSet(_sww->getBedslopeIndexArray().get());
+		_geom->setColorArray(colors.get());
+		_geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+		_geom->setNormalArray(vertexnormals.get());
+		_geom->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
 
-	// water surface corresponding to _timestep is now (re)loaded ...
+		osg::ShadeModel* sm = new osg::ShadeModel;
+		sm->setMode(osg::ShadeModel::SMOOTH);
+		_stateset->setAttribute(sm);
+	}
 }
