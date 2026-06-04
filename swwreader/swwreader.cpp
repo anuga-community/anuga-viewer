@@ -545,27 +545,53 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 	{
 		float depth_m = stage_p[iv] - z_p[iv];
 
+		// In centroid mode, averaged centroid stage bleeds positive depth onto dry boundary
+		// vertices. Use the minimum adjacent centroid depth for dry masking instead: a vertex
+		// is only opaque when every surrounding centroid is wet.
+		float depth_for_alpha = depth_m;
+		if (useCentroid && _pstage_c && _pz_c)
+		{
+			const triangle_list& tris = _connectivity[iv];
+			if (!tris.empty())
+			{
+				float min_d = _pstage_c[tris[0]] - _pz_c[tris[0]];
+				for (size_t j = 1; j < tris.size(); j++)
+				{
+					float d = _pstage_c[tris[j]] - _pz_c[tris[j]];
+					if (d < min_d) min_d = d;
+				}
+				depth_for_alpha = min_d;
+			}
+		}
+
 		if (_state.wetdepth > 0.0f)
 		{
 			// Ramp from 0 (dry) to alphamin (deep water) over the wetdepth range.
 			// alphamin controls deep-water opacity; alphamax is unused in this mode.
-			if (depth_m <= 0.0f)
+			if (depth_for_alpha <= 0.0f)
 				alpha = 0.0f;
-			else if (depth_m < _state.wetdepth)
-				alpha = (depth_m / _state.wetdepth) * _state.alphamin;
+			else if (depth_for_alpha < _state.wetdepth)
+				alpha = (depth_for_alpha / _state.wetdepth) * _state.alphamin;
 			else
 				alpha = _state.alphamin;
 		}
 		else
 		{
-			height = _stagevertices->at(iv).z() - _bedslopevertices->at(iv).z();
-			if (height < _state.heightmin)
+			if (depth_for_alpha <= 0.0f)
+			{
 				alpha = 0.0f;
+			}
 			else
 			{
-				alpha = alphascale * (height - _state.heightmin) + _state.alphamin;
-				if (alpha > _state.alphamax)
-					alpha = _state.alphamax;
+				height = _stagevertices->at(iv).z() - _bedslopevertices->at(iv).z();
+				if (height < _state.heightmin)
+					alpha = 0.0f;
+				else
+				{
+					alpha = alphascale * (height - _state.heightmin) + _state.alphamin;
+					if (alpha > _state.alphamax)
+						alpha = _state.alphamax;
+				}
 			}
 		}
 
