@@ -577,7 +577,9 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		}
 		else
 		{
-			if (depth_for_alpha <= 0.0f)
+			// In centroid mode, suppress vertices whose minimum adjacent centroid depth
+			// is non-positive before falling through to the height-based alpha ramp.
+			if (useCentroid && depth_for_alpha <= 0.0f)
 			{
 				alpha = 0.0f;
 			}
