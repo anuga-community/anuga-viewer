@@ -135,6 +135,10 @@ public:
 
     virtual bool hasMaxima() { return _pmaxdepth != NULL; }
 
+    virtual bool hasCentroidData() { return _hasCentroidData; }
+    virtual bool getCentroidMode() { return _centroidMode; }
+    virtual void setCentroidMode(bool v) { _centroidMode = v; }
+
     virtual float getActualMaxDepth();
     virtual float getActualMaxSpeed();
     virtual float getActualMaxMomentum();
@@ -307,6 +311,27 @@ protected:
 
 	bool _elevationAnimated;	/**< True if the elevation data is animated */
 	bool _bedslopeLoaded;		/**< True after first bedslope load; prevents stageoffset reset on texture-mode switches */
+
+	// Centroid (triangle-centre) quantities — present only in some SWW files.
+	// When _centroidMode is true, loadStageVertexArray reads these instead of
+	// the vertex quantities and expands them to per-vertex via connectivity averaging.
+	bool  _hasCentroidData;
+	bool  _centroidMode;
+	int   _stageid_c, _xmomentumid_c, _ymomentumid_c, _zid_c;
+	float *_pstage_c;       /**< centroid stage buffer [nvolumes], one timestep */
+	float *_pxmomentum_c;   /**< centroid xmomentum buffer [nvolumes] */
+	float *_pymomentum_c;   /**< centroid ymomentum buffer [nvolumes] */
+	float *_pz_c;           /**< centroid elevation [nvolumes], static */
+	float *_pstage_v;       /**< centroid stage expanded to vertices [npoints] */
+	float *_pxmomentum_v;
+	float *_pymomentum_v;
+	float *_pz_cv;          /**< centroid elevation expanded to vertices, or NULL */
+
+	/**
+	 * Expand a per-centroid array [nvolumes] to per-vertex [npoints] by
+	 * averaging the values of all triangles sharing each vertex.
+	 */
+	void expandCentroidsToVertices(const float* src, float* dst);
 
 	// error checker (iterates through _status stack)
 	bool _statusHasError();

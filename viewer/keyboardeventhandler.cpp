@@ -37,7 +37,8 @@ KeyboardEventHandler::KeyboardEventHandler( int nTimesteps, float tps)	:
    _wetdepthNudge = 0;
    _panX = 0;
    _panY = 0;
-   _toggleTexture = false;
+   _toggleTexture  = false;
+   _toggleCentroid = false;
 }
 
 
@@ -61,6 +62,7 @@ void KeyboardEventHandler::getAppUsage(osg::ApplicationUsage& usage)
     usage.addKeyboardMouseBinding("{/}","Decrease/increase colour scale left endpoint (stage modes)");
     usage.addKeyboardMouseBinding(",/.","Pan colour scale range left/right (stage modes)");
     usage.addKeyboardMouseBinding("t","Toggle landscape / colour mode");
+    usage.addKeyboardMouseBinding("q","Toggle vertex / centroid data source (if centroid data present)");
     usage.addKeyboardMouseBinding("Shift+arrows","Pan camera");
     usage.addKeyboardMouseBinding("Escape","Quit the application");
 }
@@ -257,6 +259,10 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 
 				case 't':
 					_toggleTexture = true;
+					return true;
+
+				case 'q':
+					_toggleCentroid = true;
 					return true;
 
 				case 'c':

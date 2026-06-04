@@ -104,7 +104,12 @@ SWWReader::SWWReader(const std::string& filename) :
 	_bedslopeLoaded(false),
 	_vscale(1.0f),
 	_zone(-1),
-	_south(false)
+	_south(false),
+	_hasCentroidData(false),
+	_centroidMode(false),
+	_stageid_c(-1), _xmomentumid_c(-1), _ymomentumid_c(-1), _zid_c(-1),
+	_pstage_c(NULL), _pxmomentum_c(NULL), _pymomentum_c(NULL), _pz_c(NULL),
+	_pstage_v(NULL), _pxmomentum_v(NULL), _pymomentum_v(NULL), _pz_cv(NULL)
 {
 PROFILE_BEGIN
 
@@ -439,17 +444,40 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		// empty array for storing list of steep triangles
 		osg::ref_ptr<osg::IntArray> steeptri = new osg::IntArray;
 
-	// stage heights from netcdf file (x and y are same as bedslope)
-	_status.push_back(nc_get_vars_float (_ncid, _stageid, start, count, stride, _pstage));
-
-	if (_pxmomentum && _pymomentum)
+	bool useCentroid = _centroidMode && _hasCentroidData;
+	if (useCentroid)
 	{
-		// stage momentum from netcdf file (x and y are same as bedslope)
-		_status.push_back(nc_get_vars_float (_ncid, _xmomentumid, start, count, stride, _pxmomentum));
-		_status.push_back(nc_get_vars_float (_ncid, _ymomentumid, start, count, stride, _pymomentum));
+		size_t cstart[2] = {index, 0};
+		size_t ccount[2] = {1, _nvolumes};
+		_status.push_back(nc_get_vars_float(_ncid, _stageid_c, cstart, ccount, stride, _pstage_c));
+		if (_xmomentumid_c >= 0 && _pxmomentum_c)
+			_status.push_back(nc_get_vars_float(_ncid, _xmomentumid_c, cstart, ccount, stride, _pxmomentum_c));
+		if (_ymomentumid_c >= 0 && _pymomentum_c)
+			_status.push_back(nc_get_vars_float(_ncid, _ymomentumid_c, cstart, ccount, stride, _pymomentum_c));
+		_status.push_back(nc_close(_ncid));
+
+		expandCentroidsToVertices(_pstage_c, _pstage_v);
+		if (_xmomentumid_c >= 0 && _pxmomentum_c && _pxmomentum_v)
+			expandCentroidsToVertices(_pxmomentum_c, _pxmomentum_v);
+		if (_ymomentumid_c >= 0 && _pymomentum_c && _pymomentum_v)
+			expandCentroidsToVertices(_pymomentum_c, _pymomentum_v);
+	}
+	else
+	{
+		_status.push_back(nc_get_vars_float(_ncid, _stageid, start, count, stride, _pstage));
+		if (_pxmomentum && _pymomentum)
+		{
+			_status.push_back(nc_get_vars_float(_ncid, _xmomentumid, start, count, stride, _pxmomentum));
+			_status.push_back(nc_get_vars_float(_ncid, _ymomentumid, start, count, stride, _pymomentum));
+		}
+		_status.push_back(nc_close(_ncid));
 	}
 
-	_status.push_back( nc_close(_ncid) );
+	// Pointer aliasing: same geometry/colour loop works for both vertex and centroid modes
+	const float* stage_p = useCentroid ? _pstage_v : _pstage;
+	const float* uh_p    = useCentroid ? _pxmomentum_v : _pxmomentum;
+	const float* vh_p    = useCentroid ? _pymomentum_v : _pymomentum;
+	const float* z_p     = (useCentroid && _pz_cv) ? _pz_cv : _pz;
 
 	// load stage vertex array, scaling and shifting vertices to lie in the unit cube
 	_stagevertices = new osg::Vec3Array;
@@ -460,7 +488,7 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 	                  cm0 == CM_MAX_MOMENTUM || cm0 == CM_MAX_STAGE) && _pmaxstage;
 	for (iv=0; iv < _npoints; iv++)
 	{
-		float stage_z = isMaxMode ? _pmaxstage[iv] : _pstage[iv];
+		float stage_z = isMaxMode ? _pmaxstage[iv] : stage_p[iv];
 		_stagevertices->push_back( osg::Vec3( (_px[iv]-_xoffset)*_scale - _xcenter,
 														  (_py[iv]-_yoffset)*_scale - _ycenter,
 														  (stage_z-_zoffset)*_scale - _zcenter) );
@@ -515,7 +543,7 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 	_stagecolors->reserve(_npoints);
 	for (iv=0; iv < _npoints; iv++)
 	{
-		float depth_m = _pstage[iv] - _pz[iv];
+		float depth_m = stage_p[iv] - z_p[iv];
 
 		if (_state.wetdepth > 0.0f)
 		{
@@ -569,18 +597,18 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 			}
 			else if (cm == CM_STAGE)
 			{
-				intens = (depth_m > 0.001f) ? min(1.0f, max(0.0f, (_pstage[iv] - _state.stageoffset) / _state.stageheightmax)) : 0.0f;
+				intens = (depth_m > 0.001f) ? min(1.0f, max(0.0f, (stage_p[iv] - _state.stageoffset) / _state.stageheightmax)) : 0.0f;
 			}
-			else if (_pxmomentum && _pymomentum)
+			else if (uh_p && vh_p)
 			{
 				if (cm == CM_SPEED)
 				{
 					if (depth_m > 0.001f)
-						intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / depth_m / _state.speedmax);
+						intens = min(1.0f, sqrt(uh_p[iv]*uh_p[iv]+vh_p[iv]*vh_p[iv]) / depth_m / _state.speedmax);
 				}
 				else  // CM_MOMENTUM
 				{
-					intens = min(1.0f, sqrt(_pxmomentum[iv]*_pxmomentum[iv]+_pymomentum[iv]*_pymomentum[iv]) / _state.momentummax);
+					intens = min(1.0f, sqrt(uh_p[iv]*uh_p[iv]+vh_p[iv]*vh_p[iv]) / _state.momentummax);
 				}
 			}
 			_stagecolors->push_back( osg::Vec4( intens, (0.5f-fabs(intens-0.5f))*2, 1.0f-intens, alpha ) );
@@ -635,106 +663,158 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 }
 
 
+void SWWReader::expandCentroidsToVertices(const float* src, float* dst)
+{
+	for (size_t iv = 0; iv < _npoints; iv++)
+	{
+		const triangle_list& tris = _connectivity[iv];
+		int n = (int)tris.size();
+		if (n == 0) { dst[iv] = 0.0f; continue; }
+		float sum = 0.0f;
+		for (int k = 0; k < n; k++)
+			sum += src[tris[k]];
+		dst[iv] = sum / n;
+	}
+}
+
+
 bool SWWReader::getTimeSeries(unsigned int aPolyIndex, TimeSeriesType aPlotType, osg::ref_ptr<osg::FloatArray> aData)
 {
 	PROFILE_BEGIN
 
-	// we could get an average of 3 plots here, but it's probably overkill
-	int stage_index = _pvolumes[aPolyIndex*3];
-
-
-	size_t start[2], count[2];
 	const ptrdiff_t stride[2] = {1,1};
-	start[0] = 0;
-	start[1] = stage_index;
-	count[0] = _ntimesteps;
-	count[1] = 1;
 
 	// netcdf open
 	_status.push_back( nc_open(_state.swwfilename->c_str(), NC_NOWRITE, &_ncid) );
-		if (this->_statusHasError()) return false;
+	if (this->_statusHasError()) return false;
 
-	aData->resize(count[0]);
+	aData->resize(_ntimesteps);
 
-	switch (aPlotType)
+	if (_centroidMode && _hasCentroidData)
 	{
-		case TSTYPE_MOMENTUM_MAGNITUDE:
+		// Read centroid column for this polygon directly
+		size_t cstart[2] = {0, aPolyIndex};
+		size_t ccount[2] = {_ntimesteps, 1};
+
+		switch (aPlotType)
 		{
-			if (!_pxmomentum || !_pymomentum)
+			case TSTYPE_STAGE:
+			default:
+				_status.push_back(nc_get_vars_float(_ncid, _stageid_c, cstart, ccount, stride, (float*)aData->getDataPointer()));
+				break;
+
+			case TSTYPE_DEPTH:
+				_status.push_back(nc_get_vars_float(_ncid, _stageid_c, cstart, ccount, stride, (float*)aData->getDataPointer()));
+				if (_pz_c)
+				{
+					float bed_z = _pz_c[aPolyIndex];
+					for (int i = 0; i < (int)aData->size(); i++)
+						aData->at(i) = osg::maximum(0.0f, aData->at(i) - bed_z);
+				}
+				break;
+
+			case TSTYPE_MOMENTUM_MAGNITUDE:
+				if (_xmomentumid_c >= 0 && _ymomentumid_c >= 0)
+				{
+					osg::ref_ptr<osg::FloatArray> xmom = new osg::FloatArray(_ntimesteps);
+					osg::ref_ptr<osg::FloatArray> ymom = new osg::FloatArray(_ntimesteps);
+					_status.push_back(nc_get_vars_float(_ncid, _xmomentumid_c, cstart, ccount, stride, (float*)xmom->getDataPointer()));
+					_status.push_back(nc_get_vars_float(_ncid, _ymomentumid_c, cstart, ccount, stride, (float*)ymom->getDataPointer()));
+					for (int i = 0; i < (int)aData->size(); i++)
+						aData->at(i) = sqrt(xmom->at(i)*xmom->at(i) + ymom->at(i)*ymom->at(i));
+				}
+				break;
+
+			case TSTYPE_SPEED:
+				if (_xmomentumid_c >= 0 && _ymomentumid_c >= 0 && _pz_c)
+				{
+					osg::ref_ptr<osg::FloatArray> xmom = new osg::FloatArray(_ntimesteps);
+					osg::ref_ptr<osg::FloatArray> ymom = new osg::FloatArray(_ntimesteps);
+					_status.push_back(nc_get_vars_float(_ncid, _stageid_c,     cstart, ccount, stride, (float*)aData->getDataPointer()));
+					_status.push_back(nc_get_vars_float(_ncid, _xmomentumid_c, cstart, ccount, stride, (float*)xmom->getDataPointer()));
+					_status.push_back(nc_get_vars_float(_ncid, _ymomentumid_c, cstart, ccount, stride, (float*)ymom->getDataPointer()));
+					float bed_z = _pz_c[aPolyIndex];
+					for (int i = 0; i < (int)aData->size(); i++)
+					{
+						float depth = aData->at(i) - bed_z;
+						if (depth > 0.001f)
+						{
+							float mom = sqrt(xmom->at(i)*xmom->at(i) + ymom->at(i)*ymom->at(i));
+							aData->at(i) = mom / depth;
+						}
+						else
+							aData->at(i) = 0.0f;
+					}
+				}
+				break;
+		}
+	}
+	else
+	{
+		// Vertex mode: read data at the first vertex of the clicked triangle
+		int stage_index = _pvolumes[aPolyIndex*3];
+		size_t start[2] = {0, (size_t)stage_index};
+		size_t count[2] = {_ntimesteps, 1};
+
+		switch (aPlotType)
+		{
+			case TSTYPE_MOMENTUM_MAGNITUDE:
 			{
+				if (_pxmomentum && _pymomentum)
+				{
+					osg::ref_ptr<osg::FloatArray> xmom = new osg::FloatArray(_ntimesteps);
+					osg::ref_ptr<osg::FloatArray> ymom = new osg::FloatArray(_ntimesteps);
+					_status.push_back(nc_get_vars_float(_ncid, _xmomentumid, start, count, stride, (float*)xmom->getDataPointer()));
+					_status.push_back(nc_get_vars_float(_ncid, _ymomentumid, start, count, stride, (float*)ymom->getDataPointer()));
+					for (int i = 0; i < (int)aData->size(); i++)
+						aData->at(i) = sqrt(xmom->at(i)*xmom->at(i) + ymom->at(i)*ymom->at(i));
+				}
 				break;
 			}
 
-			osg::ref_ptr<osg::FloatArray> xmom = new osg::FloatArray;
-			osg::ref_ptr<osg::FloatArray> ymom = new osg::FloatArray;
+			case TSTYPE_STAGE:
+			default:
+				_status.push_back(nc_get_vars_float(_ncid, _stageid, start, count, stride, (float*)aData->getDataPointer()));
+				break;
 
-			xmom->resize(count[0]);
-			ymom->resize(count[0]);
-
-			// momentum from netcdf file (x and y are same as bedslope)
-			_status.push_back(nc_get_vars_float (_ncid, _xmomentumid, start, count, stride, (float*)xmom->getDataPointer()));
-			_status.push_back(nc_get_vars_float (_ncid, _ymomentumid, start, count, stride, (float*)ymom->getDataPointer()));
-
-			for (int i=0; i<(int)aData->size(); i++)
-			{
-				aData->at(i) = sqrt(xmom->at(i)*xmom->at(i)+ymom->at(i)*ymom->at(i));
-			}
-			
-
-			break;
-		}
-
-		case TSTYPE_STAGE:
-		default:
-		{
-			_status.push_back(nc_get_vars_float (_ncid, _stageid, start, count, stride, (float*)aData->getDataPointer()));
-			break;
-		}
-
-		case TSTYPE_DEPTH:
-		{
-			_status.push_back(nc_get_vars_float (_ncid, _stageid, start, count, stride, (float*)aData->getDataPointer()));
-			float bed_z = _pz[stage_index];
-			for (int i = 0; i < (int)aData->size(); i++)
-				aData->at(i) = osg::maximum(0.0f, aData->at(i) - bed_z);
-			break;
-		}
-
-		case TSTYPE_SPEED:
-		{
-			if (!_pxmomentum || !_pymomentum) break;
-
-			osg::ref_ptr<osg::FloatArray> xmom = new osg::FloatArray;
-			osg::ref_ptr<osg::FloatArray> ymom = new osg::FloatArray;
-			xmom->resize(count[0]);
-			ymom->resize(count[0]);
-
-			_status.push_back(nc_get_vars_float (_ncid, _stageid,     start, count, stride, (float*)aData->getDataPointer()));
-			_status.push_back(nc_get_vars_float (_ncid, _xmomentumid, start, count, stride, (float*)xmom->getDataPointer()));
-			_status.push_back(nc_get_vars_float (_ncid, _ymomentumid, start, count, stride, (float*)ymom->getDataPointer()));
-
-			float bed_z = _pz[stage_index];
-			for (int i = 0; i < (int)aData->size(); i++)
-			{
-				float depth = aData->at(i) - bed_z;
-				if (depth > 0.001f)
+			case TSTYPE_DEPTH:
+				_status.push_back(nc_get_vars_float(_ncid, _stageid, start, count, stride, (float*)aData->getDataPointer()));
 				{
-					float mom = sqrt(xmom->at(i)*xmom->at(i) + ymom->at(i)*ymom->at(i));
-					aData->at(i) = mom / depth;
+					float bed_z = _pz[stage_index];
+					for (int i = 0; i < (int)aData->size(); i++)
+						aData->at(i) = osg::maximum(0.0f, aData->at(i) - bed_z);
 				}
-				else
-					aData->at(i) = 0.0f;
-			}
-			break;
+				break;
+
+			case TSTYPE_SPEED:
+				if (_pxmomentum && _pymomentum)
+				{
+					osg::ref_ptr<osg::FloatArray> xmom = new osg::FloatArray(_ntimesteps);
+					osg::ref_ptr<osg::FloatArray> ymom = new osg::FloatArray(_ntimesteps);
+					_status.push_back(nc_get_vars_float(_ncid, _stageid,     start, count, stride, (float*)aData->getDataPointer()));
+					_status.push_back(nc_get_vars_float(_ncid, _xmomentumid, start, count, stride, (float*)xmom->getDataPointer()));
+					_status.push_back(nc_get_vars_float(_ncid, _ymomentumid, start, count, stride, (float*)ymom->getDataPointer()));
+					float bed_z = _pz[stage_index];
+					for (int i = 0; i < (int)aData->size(); i++)
+					{
+						float depth = aData->at(i) - bed_z;
+						if (depth > 0.001f)
+						{
+							float mom = sqrt(xmom->at(i)*xmom->at(i) + ymom->at(i)*ymom->at(i));
+							aData->at(i) = mom / depth;
+						}
+						else
+							aData->at(i) = 0.0f;
+					}
+				}
+				break;
 		}
 	}
 
 	_status.push_back( nc_close(_ncid) );
 
 	if (_statusHasError())
-	{
 		return false;
-	}
 
 	PROFILE_END
 
@@ -806,6 +886,17 @@ void SWWReader::clear()
 	SAFE_DELETE_ARRAY(_pmaxstage);
 	SAFE_DELETE_ARRAY(_pmaxspeed);
 	SAFE_DELETE_ARRAY(_pmaxmomentum);
+
+	SAFE_DELETE_ARRAY(_pstage_c);
+	SAFE_DELETE_ARRAY(_pxmomentum_c);
+	SAFE_DELETE_ARRAY(_pymomentum_c);
+	SAFE_DELETE_ARRAY(_pz_c);
+	SAFE_DELETE_ARRAY(_pstage_v);
+	SAFE_DELETE_ARRAY(_pxmomentum_v);
+	SAFE_DELETE_ARRAY(_pymomentum_v);
+	SAFE_DELETE_ARRAY(_pz_cv);
+	_hasCentroidData = false;
+	_centroidMode    = false;
 }
 
 
@@ -946,6 +1037,29 @@ bool SWWReader::load()
 			osg::notify(osg::INFO) << "[SWWReader] UTM zone: " << _zone << (_south ? "S" : "N") << std::endl;
 	}
 
+	// --- Look for centroid per-timestep data (optional: stage_c, xmomentum_c, ymomentum_c, elevation_c)
+	_hasCentroidData = false;
+	_stageid_c = _xmomentumid_c = _ymomentumid_c = _zid_c = -1;
+	if (nc_inq_varid(_ncid, "stage_c", &_stageid_c) == NC_NOERR)
+	{
+		_hasCentroidData = true;
+		nc_inq_varid(_ncid, "xmomentum_c", &_xmomentumid_c);
+		nc_inq_varid(_ncid, "ymomentum_c",  &_ymomentumid_c);
+		nc_inq_varid(_ncid, "elevation_c",  &_zid_c);
+
+		_pstage_c = new float[_nvolumes];
+		_pstage_v = new float[_npoints];
+		if (_xmomentumid_c >= 0) { _pxmomentum_c = new float[_nvolumes]; _pxmomentum_v = new float[_npoints]; }
+		if (_ymomentumid_c >= 0) { _pymomentum_c = new float[_nvolumes]; _pymomentum_v = new float[_npoints]; }
+		if (_zid_c >= 0)
+		{
+			_pz_c  = new float[_nvolumes];
+			_pz_cv = new float[_npoints];
+			nc_get_var_float(_ncid, _zid_c, _pz_c);
+		}
+		osg::notify(osg::INFO) << "[SWWReader] centroid per-timestep data found." << std::endl;
+	}
+
 	// --- close file, we have finished with it
 	_status.push_back( nc_close(_ncid) );
 
@@ -1020,6 +1134,10 @@ bool SWWReader::load()
 		}
 	}
 
+
+	// Expand static centroid elevation to per-vertex now that connectivity is ready
+	if (_pz_c && _pz_cv)
+		expandCentroidsToVertices(_pz_c, _pz_cv);
 
 	// bedslope index array, pvolumes array indexes into x, y and z
 	_bedslopeindices = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLES, _nvolumes*_nvertices);

@@ -457,6 +457,7 @@ int main( int argc, char **argv )
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
 	g_hud->setStatus("color", "blue");
+	g_hud->setStatus("data", sww->hasCentroidData() ? "vertex" : "vertex (only)");
 	// texMode indexes into texModes[]; always start at 0 (colour, no bedslope texture).
 	int texMode = 0;
 	g_hud->setStatus("mode", texModes[0].label);
@@ -842,6 +843,14 @@ int main( int argc, char **argv )
 					bedslope->setTextureImage(texModes[texMode].img.get());
 					g_hud->setStatus("mode", texModes[texMode].label);
 				}
+			}
+
+			if (event_handler->toggleCentroid() && sww->hasCentroidData())
+			{
+				bool cm = !sww->getCentroidMode();
+				sww->setCentroidMode(cm);
+				water->forceRefresh();
+				g_hud->setStatus("data", cm ? "centroid" : "vertex");
 			}
 
 			bool mouseClicked = event_handler->checkMouseClicked();
