@@ -1208,19 +1208,17 @@ bool SWWReader::load()
 		osg::notify(osg::INFO) << "[SWWReader] centroid per-timestep data found." << std::endl;
 	}
 
-	// --- close file, we have finished with it
-	_status.push_back( nc_close(_ncid) );
-
-	// sww file can optionally contain bedslope texture image filename
+	// sww file can optionally contain a bedslope texture image filename,
+	// stored as a global text attribute. Must be read before nc_close.
 	size_t attlen; // length of text attribute (if it exists)
-	if( nc_inq_attlen(_ncid, NC_GLOBAL, "texture", &attlen) != NC_ENOTATT )
+	if( nc_inq_attlen(_ncid, NC_GLOBAL, "texture", &attlen) != NC_ENOTATT && attlen > 0 )
 	{
-		std::string texfilename;
-		int status;
-		status = nc_get_att_text(_ncid, NC_GLOBAL, "texture", (char*)texfilename.c_str());
-		if( status == NC_NOERR )
+		// netcdf text attributes are not null-terminated; size the buffer to
+		// attlen and read exactly that many bytes (writing through an empty
+		// string's c_str() would overflow its internal storage).
+		std::string texfilename(attlen, '\0');
+		if( nc_get_att_text(_ncid, NC_GLOBAL, "texture", &texfilename[0]) == NC_NOERR )
 		{
-			texfilename[attlen] = '\0';  // ensure string is terminated, not a requirement for netcdf attributes
 			osg::notify(osg::INFO) << "[SWWReader] embedded image filename: " << texfilename <<  std::endl;
 
 			// if sww isn't in current directory, need to prepend sww path to the bedslope texture
@@ -1234,6 +1232,9 @@ bool SWWReader::load()
 			}
 		}
 	}
+
+	// --- close file, we have finished with it
+	_status.push_back( nc_close(_ncid) );
 
 
 
