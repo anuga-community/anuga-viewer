@@ -102,6 +102,30 @@ static float nicePrev(float v)
 	return 5.0f * (mag * 0.1f);
 }
 
+// Wet-depth threshold ladder (metres): a 1-5-10 progression starting at 1 mm.
+// Used by the a/A keys so the threshold steps off -> 0.001 -> 0.005 -> 0.01 ->
+// 0.05 -> 0.1 -> ... rather than the coarser {1,2,5} niceNext/nicePrev sequence.
+static const float kWetDepthLadder[] =
+	{0.001f, 0.005f, 0.01f, 0.05f, 0.1f, 0.5f, 1.0f, 5.0f, 10.0f};
+static const int kWetDepthLadderN = (int)(sizeof(kWetDepthLadder)/sizeof(kWetDepthLadder[0]));
+
+// Next ladder value strictly above v (clamped to the top of the ladder).
+static float wetDepthNext(float v)
+{
+	for (int i = 0; i < kWetDepthLadderN; i++)
+		if (kWetDepthLadder[i] > v * 1.0001f) return kWetDepthLadder[i];
+	return kWetDepthLadder[kWetDepthLadderN - 1];
+}
+
+// Previous ladder value strictly below v; returns 0 (off) once below 1 mm.
+static float wetDepthPrev(float v)
+{
+	if (v <= kWetDepthLadder[0] * 1.0001f) return 0.0f;
+	for (int i = kWetDepthLadderN - 1; i >= 0; i--)
+		if (kWetDepthLadder[i] < v * 0.9999f) return kWetDepthLadder[i];
+	return 0.0f;
+}
+
 // Snap v to the nearest multiple of step (avoids float drift after repeated nudges).
 static float snapToStep(float v, float step)
 {
@@ -767,11 +791,9 @@ int main( int argc, char **argv )
 			{
 				float wd = sww->getWetDepth();
 				if (wdNudge > 0)
-					wd = (wd <= 0.0f) ? 0.05f : niceNext(wd);
+					wd = (wd <= 0.0f) ? kWetDepthLadder[0] : wetDepthNext(wd);
 				else
-					wd = (wd <= 0.05f + 1e-6f) ? 0.0f
-					   : (wd <= 0.1f  + 1e-6f) ? 0.05f
-					   : nicePrev(wd);
+					wd = wetDepthPrev(wd);
 				sww->setWetDepth(wd);
 				water->forceRefresh();
 				char buf[48];
