@@ -1188,7 +1188,22 @@ bool SWWReader::load()
 		{
 			_pz_c  = new float[_nvolumes];
 			_pz_cv = new float[_npoints];
-			nc_get_var_float(_ncid, _zid_c, _pz_c);
+			// elevation_c may be static (1-D: number_of_volumes) or animated
+			// (2-D: number_of_timesteps x number_of_volumes). Reading the whole
+			// variable with nc_get_var_float would overflow the single-timestep
+			// _pz_c buffer for animated files, so read only the first record.
+			int zc_ndims = 0;
+			nc_inq_varndims(_ncid, _zid_c, &zc_ndims);
+			if (zc_ndims == 2)
+			{
+				size_t zc_start[2] = {0, 0};
+				size_t zc_count[2] = {1, _nvolumes};
+				nc_get_vara_float(_ncid, _zid_c, zc_start, zc_count, _pz_c);
+			}
+			else
+			{
+				nc_get_var_float(_ncid, _zid_c, _pz_c);
+			}
 		}
 		osg::notify(osg::INFO) << "[SWWReader] centroid per-timestep data found." << std::endl;
 	}
