@@ -2,6 +2,40 @@ Release Notes
 =============
 
 
+v0.6.1 — 2026-06-16
+---------------------
+
+Bug Fixes
+~~~~~~~~~
+
+**Crash loading SWW files with animated elevation**
+
+  SWW files whose elevation varies in time store ``elevation_c`` as a 2-D
+  record variable (``number_of_timesteps`` x ``number_of_volumes``).  The
+  reader loaded the *entire* variable into a buffer sized for a single
+  timestep, overflowing the heap by tens of megabytes.  The corruption
+  surfaced as a ``SIGBUS`` deep inside NetCDF while scanning timesteps, so
+  large time-varying models (e.g. the Towradgi historic flood) could not be
+  opened.  Only the first elevation record is now read.
+
+**Embedded bedslope texture attribute**
+
+  The optional ``texture`` global attribute was read after the NetCDF file
+  had already been closed (so it never loaded), and into an undersized string
+  buffer.  The read now happens before the file is closed and uses a correctly
+  sized buffer.
+
+Changes
+~~~~~~~
+
+**Finer wet-depth threshold steps** (``a``/``A`` keys)
+
+  The shallow-water transparency threshold now steps through a 1-5-10 ladder
+  starting at 1 mm — ``off`` -> ``0.001`` -> ``0.005`` -> ``0.01`` ->
+  ``0.05`` -> ``0.1`` -> ... — instead of starting at 0.05 m, giving finer
+  control over rain-on-grid and thin-film visualisation.
+
+
 v0.6.0 — 2026-06-04
 ---------------------
 
