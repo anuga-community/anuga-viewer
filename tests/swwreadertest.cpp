@@ -162,6 +162,46 @@ void SWWReaderTest::tearDown()
 
 
 
+void SWWReaderTest::testEpsgToUTM()
+{
+    struct Expect { int epsg; int zone; bool south; };
+
+    // One representative plus both endpoints of every accepted family.
+    const Expect accepted[] = {
+        { 32601,  1, false }, { 32656, 56, false }, { 32660, 60, false },  // WGS 84 / UTM north
+        { 32701,  1, true  }, { 32756, 56, true  }, { 32760, 60, true  },  // WGS 84 / UTM south
+        {  7846, 46, true  }, {  7856, 56, true  }, {  7859, 59, true  },  // GDA2020 / MGA
+        { 28348, 48, true  }, { 28356, 56, true  }, { 28358, 58, true  },  // GDA94 / MGA
+        { 20348, 48, true  }, { 20356, 56, true  }, { 20358, 58, true  },  // AGD84 / AMG
+        { 20248, 48, true  }, { 20256, 56, true  }, { 20258, 58, true  },  // AGD66 / AMG
+    };
+
+    for (const Expect& e : accepted)
+    {
+        int zone = 0; bool south = false; const char* name = NULL;
+        CPPUNIT_ASSERT( SWWReader::epsgToUTM(e.epsg, zone, south, name) );
+        CPPUNIT_ASSERT_EQUAL( e.zone, zone );
+        CPPUNIT_ASSERT_EQUAL( e.south, south );
+        CPPUNIT_ASSERT( name != NULL );
+    }
+
+    // Codes just outside each range, and neighbours that are real CRSs but not
+    // UTM grids: 7845 is GDA2020 / GA LCC (Lambert conformal), 4326 is
+    // geographic WGS 84, 2193 is NZ Transverse Mercator (a single-zone grid).
+    const int rejected[] = { 0, -1, 4326, 2193,
+                             7845, 7860, 20247, 20259, 20347, 20359,
+                             28347, 28359, 32600, 32661, 32700, 32761 };
+
+    for (int code : rejected)
+    {
+        int zone = 0; bool south = false; const char* name = NULL;
+        CPPUNIT_ASSERT( !SWWReader::epsgToUTM(code, zone, south, name) );
+    }
+}
+
+
+
+
 int main(int argc, char* argv[])
 {
   // Get the top level suite from the registry

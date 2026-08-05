@@ -69,6 +69,40 @@
 #endif
 
 
+// Map an EPSG code to a UTM zone + hemisphere.  Returns false if the code is not
+// one of the transverse-Mercator grids we can georeference from.
+//
+// The Australian grids below are all "+proj=utm +south" with the same central
+// meridian, scale factor and false origin as WGS 84 / UTM; only the datum (and
+// hence the ellipsoid) differs, which is a few metres on the ground — well below
+// map-tile resolution — so they can be treated as plain UTM south zones here.
+bool SWWReader::epsgToUTM(int epsg, int& zone, bool& south, const char*& crsName)
+{
+	struct Range { int base, lo, hi; bool south; const char *name; };
+	static const Range ranges[] = {
+		{ 32600,  1, 60, false, "WGS 84 / UTM north"  },
+		{ 32700,  1, 60, true,  "WGS 84 / UTM south"  },
+		{  7800, 46, 59, true,  "GDA2020 / MGA"       },
+		{ 28300, 48, 58, true,  "GDA94 / MGA"         },
+		{ 20300, 48, 58, true,  "AGD84 / AMG"         },
+		{ 20200, 48, 58, true,  "AGD66 / AMG"         },
+	};
+
+	for (const Range &r : ranges)
+	{
+		int z = epsg - r.base;
+		if (z >= r.lo && z <= r.hi)
+		{
+			zone    = z;
+			south   = r.south;
+			crsName = r.name;
+			return true;
+		}
+	}
+	return false;
+}
+
+
 #ifdef USE_FAST_SQRT
 inline float Math_InvSqrtFast(float x)
 {
@@ -105,6 +139,7 @@ SWWReader::SWWReader(const std::string& filename) :
 	_vscale(1.0f),
 	_zone(-1),
 	_south(false),
+	_epsg(0),
 	_hasCentroidData(false),
 	_dataMode(DM_VERTEX),
 	_stageid_c(-1), _xmomentumid_c(-1), _ymomentumid_c(-1), _zid_c(-1),
@@ -1152,22 +1187,86 @@ bool SWWReader::load()
 		}
 	}
 
+	// ANUGA describes the projection with a set of global attributes: `zone` and
+	// `hemisphere`, and — from the versions that grew Geo_reference.epsg — an
+	// `epsg` code.  Prefer the EPSG code when it resolves, because it pins down
+	// the hemisphere as well as the zone, and because ANUGA only back-fills
+	// `zone` for WGS 84 UTM codes: a GDA2020 / MGA file arrives here carrying
+	// epsg=7856 with zone=-1, which is otherwise indistinguishable from a model
+	// with no georeferencing at all.
 	_zone = -1;
 	_south = false;
+	_epsg = 0;
 	{
 		int zoneVal = -1;
-		if (nc_get_att_int(_ncid, NC_GLOBAL, "zone", &zoneVal) == NC_NOERR && zoneVal > 0)
+		nc_get_att_int(_ncid, NC_GLOBAL, "zone", &zoneVal);   // left as -1 if absent
+
+		// ANUGA writes `epsg` as an integer, but accept the "EPSG:7856" text form
+		// too since other tools that produce SWW files do write it that way.
+		nc_type epsgType;
+		if (nc_inq_atttype(_ncid, NC_GLOBAL, "epsg", &epsgType) == NC_NOERR)
+		{
+			if (epsgType == NC_CHAR)
+			{
+				size_t len = 0;
+				if (nc_inq_attlen(_ncid, NC_GLOBAL, "epsg", &len) == NC_NOERR && len > 0)
+				{
+					std::string text(len, '\0');
+					if (nc_get_att_text(_ncid, NC_GLOBAL, "epsg", &text[0]) == NC_NOERR)
+					{
+						size_t digit = text.find_first_of("0123456789");
+						if (digit != std::string::npos)
+							_epsg = atoi(text.c_str() + digit);
+					}
+				}
+			}
+			else
+			{
+				int epsgVal = 0;
+				if (nc_get_att_int(_ncid, NC_GLOBAL, "epsg", &epsgVal) == NC_NOERR)
+					_epsg = epsgVal;
+			}
+		}
+
+		int epsgZone = 0; bool epsgSouth = false; const char *crsName = "";
+		bool epsgUsable = (_epsg > 0) && epsgToUTM(_epsg, epsgZone, epsgSouth, crsName);
+
+		if (epsgUsable)
+		{
+			_zone = epsgZone;
+			_south = epsgSouth;
+			osg::notify(osg::INFO) << "[SWWReader] EPSG:" << _epsg << " (" << crsName
+			                       << ") -> UTM zone " << _zone << (_south ? "S" : "N") << std::endl;
+
+			if (zoneVal > 0 && zoneVal != epsgZone)
+				osg::notify(osg::WARN) << "[SWWReader] zone attribute (" << zoneVal
+				                       << ") disagrees with EPSG:" << _epsg
+				                       << "; using the EPSG code" << std::endl;
+		}
+		else if (zoneVal > 0)
+		{
 			_zone = zoneVal;
 
-		size_t hemLen = 0;
-		if (_zone > 0 && nc_inq_attlen(_ncid, NC_GLOBAL, "hemisphere", &hemLen) == NC_NOERR && hemLen > 0)
-		{
-			std::string hem(hemLen, '\0');
-			nc_get_att_text(_ncid, NC_GLOBAL, "hemisphere", &hem[0]);
-			_south = (hem[0] == 'S' || hem[0] == 's');
-		}
-		if (_zone > 0)
+			// `hemisphere` is text ("southern"/"northern").  Older files omit it, so
+			// fall back to the UTM false northing, which is 10 000 000 m in the
+			// southern hemisphere and 0 in the northern.
+			size_t hemLen = 0;
+			double falseNorthing = 0.0;
+			if (nc_inq_attlen(_ncid, NC_GLOBAL, "hemisphere", &hemLen) == NC_NOERR && hemLen > 0)
+			{
+				std::string hem(hemLen, '\0');
+				nc_get_att_text(_ncid, NC_GLOBAL, "hemisphere", &hem[0]);
+				_south = (hem[0] == 'S' || hem[0] == 's');
+			}
+			else if (nc_get_att_double(_ncid, NC_GLOBAL, "false_northing", &falseNorthing) == NC_NOERR)
+				_south = (falseNorthing > 0.0);
+
 			osg::notify(osg::INFO) << "[SWWReader] UTM zone: " << _zone << (_south ? "S" : "N") << std::endl;
+		}
+		else if (_epsg > 0)
+			osg::notify(osg::WARN) << "[SWWReader] EPSG:" << _epsg
+			                       << " is not a UTM grid this viewer can map — no map tiles."
+			                       << "  Override with -epsg if the model really is UTM." << std::endl;
 	}
 
 	// --- Look for centroid per-timestep data (optional: stage_c, xmomentum_c, ymomentum_c, elevation_c)

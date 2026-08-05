@@ -144,39 +144,6 @@ static void applyNiceStageRange(SWWReader* sww, float minWet, float maxWet)
 	sww->setStageHeightMax(niceMax - niceMin);
 }
 
-// Map an EPSG code to a UTM zone + hemisphere.  Returns false if the code is not
-// one of the transverse-Mercator grids we can drive the tile fetcher from.
-//
-// The Australian grids below are all "+proj=utm +south" with the same central
-// meridian, scale factor and false origin as WGS 84 / UTM; only the datum (and
-// hence the ellipsoid) differs, which is a few metres on the ground — well below
-// map-tile resolution — so they can be treated as plain UTM south zones here.
-static bool epsgToUTM(int code, int &zone, bool &south, const char *&crsName)
-{
-	struct Range { int base, lo, hi; bool south; const char *name; };
-	static const Range ranges[] = {
-		{ 32600,  1, 60, false, "WGS 84 / UTM north"  },
-		{ 32700,  1, 60, true,  "WGS 84 / UTM south"  },
-		{  7800, 46, 59, true,  "GDA2020 / MGA"       },
-		{ 28300, 48, 58, true,  "GDA94 / MGA"         },
-		{ 20300, 48, 58, true,  "AGD84 / AMG"         },
-		{ 20200, 48, 58, true,  "AGD66 / AMG"         },
-	};
-
-	for (const Range &r : ranges)
-	{
-		int z = code - r.base;
-		if (z >= r.lo && z <= r.hi)
-		{
-			zone    = z;
-			south   = r.south;
-			crsName = r.name;
-			return true;
-		}
-	}
-	return false;
-}
-
 // OSG's StandardManipulator calls home() on every RESIZE event, which causes
 // the view to jump to the home position when toggling fullscreen.  Override
 // handle() to silently drop RESIZE so the camera stays where the user left it.
@@ -271,8 +238,9 @@ int main( int argc, char **argv )
          "                                  28348-28358  GDA94 / MGA zone 48-58\n"
          "                                  20348-20358  AGD84 / AMG zone 48-58\n"
          "                                  20248-20258  AGD66 / AMG zone 48-58\n"
-         "                                Enables map tile fetch for SWW files that lack\n"
-         "                                embedded georeferencing.\n"
+         "                                Takes precedence over the epsg/zone attributes in\n"
+         "                                the SWW; use it for files that lack them entirely,\n"
+         "                                or whose projection is recorded wrongly.\n"
          "  -scale <float>                Initial vertical exaggeration (default: 1.0)\n"
          "  -tps <float>                  Timesteps per second (default: 10)\n"
          "  -fps <float>                  Max display frame rate (default: 30)\n"
@@ -402,7 +370,7 @@ int main( int argc, char **argv )
    if (arguments.read("-epsg", epsgCode) || arguments.read("--epsg", epsgCode))
    {
       int zone = 0; bool south = false; const char *crsName = "";
-      if (epsgToUTM(epsgCode, zone, south, crsName))
+      if (SWWReader::epsgToUTM(epsgCode, zone, south, crsName))
       {
          sww->setUTMZone(zone);
          sww->setSouthernHemisphere(south);

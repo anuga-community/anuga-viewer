@@ -176,6 +176,16 @@ public:
     bool isSouthernHemisphere() const { return _south; }
     void setUTMZone(int zone) { _zone = zone; }
     void setSouthernHemisphere(bool south) { _south = south; }
+
+    // EPSG code declared by the SWW file, or 0 if it carries none.  Note this is
+    // what the file said, not necessarily what the zone above resolves to: an
+    // unrecognised code is still reported here while leaving the zone unset.
+    int  getEPSG() const { return _epsg; }
+
+    // Map an EPSG code to a UTM zone and hemisphere.  Returns false if the code
+    // is not one of the transverse-Mercator grids we can georeference from; on
+    // success crsName points to a static human-readable name for the CRS family.
+    static bool epsgToUTM(int epsg, int& zone, bool& south, const char*& crsName);
     void getTerrainBoundsUTM(double& xmin, double& xmax, double& ymin, double& ymax) const;
 
 	virtual bool refresh();
@@ -317,6 +327,9 @@ protected:
 	// UTM zone and hemisphere (zone = -1 if absent or invalid)
 	int  _zone;
 	bool _south;
+
+	// EPSG code as declared by the file (0 if absent)
+	int  _epsg;
 	
 	// stack of return values from netcdf function calls
 	std::vector<int> _status;

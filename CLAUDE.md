@@ -65,6 +65,9 @@ The codebase has two separately compiled components:
 - `loadStageVertexArray(index)` — loads water surface heights and computes per-vertex colors/normals
 - `getTimeSeries(polyIndex, type, data)` — extracts stage or momentum timeseries for a clicked polygon
 - `refresh()` — reloads file if it has changed on disk (`FileChangedCheck`)
+- `epsgToUTM(epsg, zone, south, crsName)` — static; maps an EPSG code to a UTM zone/hemisphere. Shared with the viewer's `-epsg` option so both accept the same set of codes.
+
+On load, the reader resolves the projection from the SWW global attributes. It prefers the `epsg` attribute (accepted as an integer or as `"EPSG:nnnn"` text) because that pins down the hemisphere as well as the zone, and because ANUGA only back-fills `zone` for WGS 84 UTM codes — a GDA2020 / MGA file carries `epsg = 7856` with `zone = -1`. Failing that it falls back to `zone` plus `hemisphere`, or to the sign of `false_northing` when `hemisphere` is absent (older files). The result drives map tile fetching; `getUTMZone()` returns -1 when nothing resolves.
 
 `filechangedcheck.cpp` provides file-modification monitoring.
 
@@ -104,7 +107,7 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 |-----------|-------------|
 | `-texture <file>` | Apply image/GDAL texture to bedslope (overrides auto tile fetch) |
 | `-maptiles osm\|satellite\|none` | Map tile source when SWW has UTM zone (default: `osm`) |
-| `--epsg <code>` | Override/supply UTM zone. WGS 84 UTM `32601`-`32660`/`32701`-`32760`, GDA2020 MGA `7846`-`7859`, GDA94 MGA `28348`-`28358`, AGD84 AMG `20348`-`20358`, AGD66 AMG `20248`-`20258` (e.g. `32755` = zone 55S, `7856` = MGA zone 56) |
+| `--epsg <code>` | Override/supply UTM zone, taking precedence over the SWW's own `epsg`/`zone` attributes. WGS 84 UTM `32601`-`32660`/`32701`-`32760`, GDA2020 MGA `7846`-`7859`, GDA94 MGA `28348`-`28358`, AGD84 AMG `20348`-`20358`, AGD66 AMG `20248`-`20258` (e.g. `32755` = zone 55S, `7856` = MGA zone 56) |
 | `-scale <float>` | Initial vertical exaggeration factor (default: 1.0) |
 | `-tps <float>` | Timesteps per second (default: 10) |
 | `-wetdepth <float>` | Depth (m) below which water fades transparent (rain-on-grid) |
