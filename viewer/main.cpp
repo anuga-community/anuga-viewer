@@ -144,6 +144,39 @@ static void applyNiceStageRange(SWWReader* sww, float minWet, float maxWet)
 	sww->setStageHeightMax(niceMax - niceMin);
 }
 
+// Map an EPSG code to a UTM zone + hemisphere.  Returns false if the code is not
+// one of the transverse-Mercator grids we can drive the tile fetcher from.
+//
+// The Australian grids below are all "+proj=utm +south" with the same central
+// meridian, scale factor and false origin as WGS 84 / UTM; only the datum (and
+// hence the ellipsoid) differs, which is a few metres on the ground — well below
+// map-tile resolution — so they can be treated as plain UTM south zones here.
+static bool epsgToUTM(int code, int &zone, bool &south, const char *&crsName)
+{
+	struct Range { int base, lo, hi; bool south; const char *name; };
+	static const Range ranges[] = {
+		{ 32600,  1, 60, false, "WGS 84 / UTM north"  },
+		{ 32700,  1, 60, true,  "WGS 84 / UTM south"  },
+		{  7800, 46, 59, true,  "GDA2020 / MGA"       },
+		{ 28300, 48, 58, true,  "GDA94 / MGA"         },
+		{ 20300, 48, 58, true,  "AGD84 / AMG"         },
+		{ 20200, 48, 58, true,  "AGD66 / AMG"         },
+	};
+
+	for (const Range &r : ranges)
+	{
+		int z = code - r.base;
+		if (z >= r.lo && z <= r.hi)
+		{
+			zone    = z;
+			south   = r.south;
+			crsName = r.name;
+			return true;
+		}
+	}
+	return false;
+}
+
 // OSG's StandardManipulator calls home() on every RESIZE event, which causes
 // the view to jump to the home position when toggling fullscreen.  Override
 // handle() to silently drop RESIZE so the camera stays where the user left it.
@@ -230,10 +263,16 @@ int main( int argc, char **argv )
          "Options:\n"
          "  -texture <file>               Bedslope texture image (overrides auto tile fetch)\n"
          "  -maptiles osm|satellite|none  Map tile source when SWW has UTM zone (default: osm)\n"
-         "  -epsg <int>                   Override/set UTM projection (e.g. 32755 = UTM zone 55S).\n"
-         "                                Accepts EPSG codes 32601-32660 (UTM north) and\n"
-         "                                32701-32760 (UTM south). Enables map tile fetch for\n"
-         "                                SWW files that lack embedded georeferencing.\n"
+         "  -epsg <int>                   Override/set UTM projection (e.g. 32755 = UTM zone 55S,\n"
+         "                                7856 = GDA2020 / MGA zone 56). Accepted codes:\n"
+         "                                  32601-32660  WGS 84 / UTM north zone 1-60\n"
+         "                                  32701-32760  WGS 84 / UTM south zone 1-60\n"
+         "                                  7846-7859    GDA2020 / MGA zone 46-59\n"
+         "                                  28348-28358  GDA94 / MGA zone 48-58\n"
+         "                                  20348-20358  AGD84 / AMG zone 48-58\n"
+         "                                  20248-20258  AGD66 / AMG zone 48-58\n"
+         "                                Enables map tile fetch for SWW files that lack\n"
+         "                                embedded georeferencing.\n"
          "  -scale <float>                Initial vertical exaggeration (default: 1.0)\n"
          "  -tps <float>                  Timesteps per second (default: 10)\n"
          "  -fps <float>                  Max display frame rate (default: 30)\n"
@@ -359,23 +398,22 @@ int main( int argc, char **argv )
    arguments.read("-maptiles", maptiles);
 
    // -epsg overrides (or supplies) the UTM zone embedded in the SWW file.
-   // EPSG 326xx = UTM north zone xx, 327xx = UTM south zone xx.
    int epsgCode = 0;
    if (arguments.read("-epsg", epsgCode) || arguments.read("--epsg", epsgCode))
    {
-      int zone = 0; bool south = false;
-      if (epsgCode >= 32601 && epsgCode <= 32660)      { zone = epsgCode - 32600; south = false; }
-      else if (epsgCode >= 32701 && epsgCode <= 32760) { zone = epsgCode - 32700; south = true;  }
-      if (zone > 0)
+      int zone = 0; bool south = false; const char *crsName = "";
+      if (epsgToUTM(epsgCode, zone, south, crsName))
       {
          sww->setUTMZone(zone);
          sww->setSouthernHemisphere(south);
-         std::cout << "[epsg] zone " << zone << (south ? "S" : "N")
+         std::cout << "[epsg] " << crsName << " zone " << zone << (south ? "S" : "N")
                    << " (EPSG:" << epsgCode << ")\n";
       }
       else
-         std::cerr << "[epsg] unrecognised code " << epsgCode
-                   << " — expected 32601-32660 (N) or 32701-32760 (S)\n";
+         std::cerr << "[epsg] unrecognised code " << epsgCode << " — expected "
+                   << "32601-32660 / 32701-32760 (WGS 84 UTM), "
+                   << "7846-7859 (GDA2020 MGA), 28348-28358 (GDA94 MGA), "
+                   << "20348-20358 (AGD84 AMG) or 20248-20258 (AGD66 AMG)\n";
    }
 
    std::string userTexture;

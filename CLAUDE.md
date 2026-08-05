@@ -104,7 +104,7 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 |-----------|-------------|
 | `-texture <file>` | Apply image/GDAL texture to bedslope (overrides auto tile fetch) |
 | `-maptiles osm\|satellite\|none` | Map tile source when SWW has UTM zone (default: `osm`) |
-| `--epsg <code>` | Override/supply UTM zone (e.g. `32755` = zone 55 South) |
+| `--epsg <code>` | Override/supply UTM zone. WGS 84 UTM `32601`-`32660`/`32701`-`32760`, GDA2020 MGA `7846`-`7859`, GDA94 MGA `28348`-`28358`, AGD84 AMG `20348`-`20358`, AGD66 AMG `20248`-`20258` (e.g. `32755` = zone 55S, `7856` = MGA zone 56) |
 | `-scale <float>` | Initial vertical exaggeration factor (default: 1.0) |
 | `-tps <float>` | Timesteps per second (default: 10) |
 | `-wetdepth <float>` | Depth (m) below which water fades transparent (rain-on-grid) |

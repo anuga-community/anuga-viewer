@@ -112,6 +112,7 @@ void CustomArgumentParser::SetUsage()
 	usage.addCommandLineOption("-cullangle <float angle 0-90>", "Cull triangles steeper than this value");
 	usage.addCommandLineOption("-texture <file>", "Image to use for bedslope topography (overrides auto tile fetch)");
 	usage.addCommandLineOption("-maptiles osm|satellite|none", "Map tile source when SWW has UTM zone (default: osm)");
+	usage.addCommandLineOption("-epsg <int>", "Override/set UTM projection: 32601-32660/32701-32760 (WGS 84 UTM), 7846-7859 (GDA2020 MGA), 28348-28358 (GDA94 MGA), 20348-20358 (AGD84 AMG), 20248-20258 (AGD66 AMG)");
 	usage.addCommandLineOption("-speedmax <float>", "Speed colour scale maximum (m/s)");
 	usage.addCommandLineOption("-momentummax <float>", "Momentum colour scale maximum (m^2/s)");
 	usage.addCommandLineOption("-stagemin <float>", "Stage colour scale minimum elevation (m, default: domain zmin)");
