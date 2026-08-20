@@ -85,6 +85,8 @@ Display
      - Toggle steep-triangle culling
    * - b
      - Toggle backface culling
+   * - B
+     - Toggle transparent background (screenshots become PNG with alpha)
    * - l
      - Toggle lighting
    * - i
@@ -96,7 +98,8 @@ Display
    * - x
      - Reset camera to default position
    * - O
-     - Screenshot
+     - Screenshot, saved in the ``screenshots`` folder (JPEG, or PNG with
+       alpha when the transparent background is on)
    * - Escape
      - Quit
 
@@ -319,6 +322,9 @@ Command-Line Options
      - Directional light position (z is up)
    * - ``-nosky``
      - Disable skybox
+   * - ``-transparent``
+     - Transparent background: no sky, zero-alpha clear colour, screenshots
+       written as PNG with alpha.  Toggle at runtime with ``B``.
    * - ``-movie <dir>``
      - Export frames to directory (use with ``.swm`` input)
    * - ``-- screen <n>``
