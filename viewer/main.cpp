@@ -545,6 +545,7 @@ int main( int argc, char **argv )
 
    // --- initial HUD status line values
 	g_hud->setStatus("recorder", arguments.isSWM() ? "playback" : "paused");
+	g_hud->setStatus("background", transparent_bg ? "transparent (.png)" : "sky (.jpg)");
 	g_hud->setStatus("filename", swwfile);
 	g_hud->setStatus("culling", water->getCulling() ? "on" : "off");
 	g_hud->setStatus("wireframe", "off");
@@ -1106,9 +1107,7 @@ int main( int argc, char **argv )
 			transparent_bg = !transparent_bg;
 			applyBackground( viewer, sky_switch, transparent_bg );
 			capture_op->setTransparent( transparent_bg );
-			g_hud->setStatus("filename", transparent_bg ?
-			                 "background: transparent (screenshots are .png)" :
-			                 "background: sky");
+			g_hud->setStatus("background", transparent_bg ? "transparent (.png)" : "sky (.jpg)");
 		}
 
 		// Toggle sky and update bed texture if we have toggled texturing
