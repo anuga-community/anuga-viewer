@@ -337,10 +337,15 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath,
     std::string cacheDir = getTileCacheDir(src.label);
     makeDirs(cacheDir);
 
+    // A stitched texture plus its georef is self-contained — the raw tile cache is only
+    // needed to build one.  Remember whether we have that pair so a failed re-fetch (an
+    // offline machine, blocked HTTPS) can fall back to it instead of discarding it.
+    bool haveExistingOutput = fileExists(outputPath) && fileExists(georefPath);
+
     // Return early only when the stitched output exists AND every expected tile is
     // in the cache.  A partial download leaves the output looking blank in places;
     // falling through re-fetches only the missing tiles then re-stitches.
-    if (fileExists(outputPath)) {
+    if (haveExistingOutput) {
         bool complete = true;
         char tname[80];
         for (int ty = tyMin; ty <= tyMax && complete; ty++)
@@ -387,6 +392,14 @@ std::string fetchMapTexture(SWWReader* sww, const std::string& outputPath,
     }
     std::cout << "\r[" << src.label << "] tiles done (" << (done - failed) << "/" << done << " ok)"
               << "  \n";
+
+    // Tiles are missing and cannot be fetched.  Re-stitching would only punch grey holes
+    // in a texture we already have, so keep that one.  Delete it to force a rebuild.
+    if (failed > 0 && haveExistingOutput) {
+        std::cerr << "[" << src.label << "] " << failed << " of " << done
+                  << " tiles unavailable — keeping existing texture: " << outputPath << "\n";
+        return outputPath;
+    }
 
     if (failed == done) {
         std::cerr << "[" << src.label << "] All tile fetches failed — aborting.\n";

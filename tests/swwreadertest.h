@@ -44,6 +44,7 @@ class SWWReaderTest : public CppUnit::TestFixture
   CPPUNIT_TEST( testBedslopeIndexArray );
   CPPUNIT_TEST( testBedslopeNormalArray );
   CPPUNIT_TEST( testConnectivity );
+  CPPUNIT_TEST( testEpsgToUTM );
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -57,6 +58,7 @@ public:
   void testBedslopeIndexArray();
   void testBedslopeNormalArray();
   void testConnectivity();
+  void testEpsgToUTM();
 
 
 private:
