@@ -3,7 +3,8 @@
 // Canvas is ORTHO2D_WIDTH x ORTHO2D_HEIGHT (1280 x 1024), origin bottom-left.
 //
 // Left column (x=20, left-aligned, top-down below title):
-//   wireframe, culling, color, wetdepth, data, mode, vscale, grid, recorder
+//   wireframe, culling, color, wetdepth, data, mode, vscale, grid, recorder,
+//   background
 // Filename row (x=20, left-aligned): bottom of screen, stretches freely right.
 //
 // Row spacing 38px.  First row 44px below title baseline (y ≈ 940), filename y=20.
@@ -28,6 +29,7 @@ AnugaHUD::AnugaHUD() :
 	addStatusLine("grid",      "(g) grid",       left, osg::Vec3(LX, TSY - 6*DY, 0));
 	addStatusLine("culling",   "(c) culling",    left, osg::Vec3(LX, TSY - 7*DY, 0));
 	addStatusLine("recorder",  "(1) recorder",   left, osg::Vec3(LX, TSY - 8*DY, 0));
+	addStatusLine("background","(B) background", left, osg::Vec3(LX, TSY - 9*DY, 0));
 
 	// Filename — bottom row, stretches freely right
 	addStatusLine("filename",  "filename",       left, osg::Vec3(LX, FY, 0));

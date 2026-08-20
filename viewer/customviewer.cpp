@@ -28,6 +28,7 @@ void CustomViewer::getUsage(osg::ApplicationUsage& usage) const
 	usage.addKeyboardMouseBinding("b","Toggle backface culling of polygons");
 	usage.addKeyboardMouseBinding("s","Cycle through render performance statistics");
 	usage.addKeyboardMouseBinding("O","Take screenshot, saved in screenshots folder");
+	usage.addKeyboardMouseBinding("B","Toggle transparent background (screenshots become PNG)");
 	usage.addKeyboardMouseBinding("<","Decrease window size (windowed mode only)");
 	usage.addKeyboardMouseBinding(">","Increase window size (windowed mode only)");
 

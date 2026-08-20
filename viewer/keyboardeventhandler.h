@@ -42,6 +42,7 @@ public:
 	virtual bool toggleTexture() { bool v = _toggleTexture; _toggleTexture = false; return v; }
 	virtual bool toggleCentroid() { bool v = _toggleCentroid; _toggleCentroid = false; return v; }
 	virtual bool checkToggleHelp() { bool v = _toggleHelp; _toggleHelp = false; return v; }
+	virtual bool toggleTransparent() { bool v = _toggleTransparent; _toggleTransparent = false; return v; }
 	virtual bool checkWriteFrame() { bool curr = _writeframe; _writeframe = false; return curr;	}
 	virtual bool checkReturnOrigin() { bool curr = _return_origin; _return_origin = false; return curr;	}
 	virtual bool checkMouseClicked() { bool curr = _mouseclicked; _mouseclicked = false; return curr;	}
@@ -94,6 +95,7 @@ private:
 	bool _toggleTexture;	/**< true = toggle landscape/colour mode */
 	bool _toggleCentroid;	/**< true = toggle vertex/centroid data source */
 	bool _toggleHelp;		/**< true = toggle help panel */
+	bool _toggleTransparent;	/**< true = toggle transparent background */
 };
 
 #endif  // KEYBOARDEVENTHANDLER_H

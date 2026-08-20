@@ -117,6 +117,7 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 | `-alphamin`/`-alphamax` | Water transparency limits |
 | `-lightpos x,y,z` | Directional light position |
 | `-nosky` | Disable skybox |
+| `-transparent` | Transparent background: no sky, zero-alpha clear colour, screenshots written as PNG with alpha. Toggle at runtime with `B`. |
 | `-movie <dir>` | Export frames to directory (with `.swm` input) |
 | `-- screen <n>` | Select display screen (OSG standard) |
 
@@ -137,6 +138,7 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 | `l` | Toggle lighting |
 | `t` | Cycle view mode: landscape → colour (osm) → colour |
 | `b` | Toggle backface culling |
+| `B` | Toggle transparent background (screenshots switch between `.jpg` and `.png`) |
 | `c` | Toggle steep-triangle culling |
 | `x` | Reset camera to default position |
 | `r` | Reset animation to timestep 0 |
