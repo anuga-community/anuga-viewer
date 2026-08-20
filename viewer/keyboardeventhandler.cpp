@@ -40,6 +40,7 @@ KeyboardEventHandler::KeyboardEventHandler( int nTimesteps, float tps)	:
    _toggleTexture  = false;
    _toggleCentroid = false;
    _toggleHelp     = false;
+   _toggleTransparent = false;
 }
 
 
@@ -64,6 +65,7 @@ void KeyboardEventHandler::getAppUsage(osg::ApplicationUsage& usage)
     usage.addKeyboardMouseBinding(",/.","Pan colour scale range left/right (stage modes)");
     usage.addKeyboardMouseBinding("t","Toggle landscape / colour mode");
     usage.addKeyboardMouseBinding("q","Toggle vertex / centroid data source (if centroid data present)");
+    usage.addKeyboardMouseBinding("B","Toggle transparent background (screenshots are written as PNG with alpha)");
     usage.addKeyboardMouseBinding("Shift+arrows","Pan camera");
     usage.addKeyboardMouseBinding("Escape","Quit the application");
 }
@@ -276,6 +278,10 @@ bool KeyboardEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 
 				case 'h':
 					_toggleHelp = true;
+					return true;
+
+				case 'B':
+					_toggleTransparent = true;
 					return true;
 
 				case '1':

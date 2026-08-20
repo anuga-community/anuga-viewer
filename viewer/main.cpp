@@ -20,6 +20,7 @@
 #include <osgDB/FileNameUtils>
 #include <osgDB/FileUtils>
 #include <osgDB/ReadFile>
+#include <osgDB/WriteFile>
 #include <osgViewer/ViewerEventHandlers>
 #include <osgText/Text>
 
@@ -40,6 +41,8 @@
 #include <watersurface.h>
 #include <customargumentparser.h>
 
+#include <sstream>
+#include <osg/DisplaySettings>
 #include "skybox.h"
 #include "anugahud.h"
 #include "linegraph.h"
@@ -159,6 +162,78 @@ public:
 
 
 
+/**
+ * Write captured frames, choosing the format to match the background.
+ *
+ * Once the framebuffer carries an alpha channel OSG captures GL_RGBA, and the
+ * JPEG writer refuses that outright -- it produces a zero-byte file and no
+ * error.  So for opaque runs the alpha is dropped here and the frame is still
+ * written as JPEG; only transparent runs need PNG.
+ */
+class WriteFrame : public osgViewer::ScreenCaptureHandler::CaptureOperation
+{
+public:
+   WriteFrame(const std::string& dir) : _dir(dir), _index(0), _transparent(false) {}
+
+   void setTransparent(bool t) { _transparent = t; }
+
+   virtual void operator () (const osg::Image& image, const unsigned int context_id)
+   {
+      osg::ref_ptr<const osg::Image> out = &image;
+
+      if( !_transparent && image.getPixelFormat() == GL_RGBA )
+      {
+         osg::ref_ptr<osg::Image> rgb = new osg::Image;
+         rgb->allocateImage( image.s(), image.t(), 1, GL_RGB, GL_UNSIGNED_BYTE );
+         for( int row = 0; row < image.t(); ++row )
+         {
+            const unsigned char* src = image.data( 0, row );
+            unsigned char* dst = rgb->data( 0, row );
+            for( int col = 0; col < image.s(); ++col, src += 4, dst += 3 )
+            {
+               dst[0] = src[0];  dst[1] = src[1];  dst[2] = src[2];
+            }
+         }
+         out = rgb.get();
+      }
+
+      std::stringstream name;
+      name << _dir << "/frame_" << context_id << "_" << _index++
+           << (_transparent ? ".png" : ".jpg");
+
+      if( osgDB::writeImageFile( *out, name.str() ) )
+         std::cout << "Saved " << name.str() << std::endl;
+      else
+         std::cout << "Failed to write " << name.str() << std::endl;
+   }
+
+private:
+   std::string _dir;
+   unsigned int _index;
+   bool _transparent;
+};
+
+
+/**
+ * Apply the background state: transparent means a zero-alpha clear colour and
+ * the skybox switched off, opaque restores both.
+ */
+static void applyBackground(CustomViewer& viewer, osg::Switch * sky_switch,
+                            bool transparent)
+{
+   if (transparent)
+   {
+      viewer.getCamera()->setClearColor( osg::Vec4(0.0f, 0.0f, 0.0f, 0.0f) );
+      if (sky_switch) sky_switch->setAllChildrenOff();
+   }
+   else
+   {
+      viewer.getCamera()->setClearColor( osg::Vec4(DEF_BACKGROUND_COLOUR) );
+      if (sky_switch) sky_switch->setAllChildrenOn();
+   }
+}
+
+
 int main( int argc, char **argv )
 {
 #ifdef _WIN32
@@ -180,6 +255,12 @@ int main( int argc, char **argv )
    // this custom version detects if the last argument is a macro file
    // and modifies the argument list accordingly so the following code works ...
    CustomArgumentParser arguments( &argc, argv );
+
+   // A transparent background needs an alpha channel in the framebuffer, and
+   // that has to be asked for before any graphics context is created.  Without
+   // it the clear colour's alpha is discarded and every captured pixel comes
+   // back opaque, silently.
+   osg::DisplaySettings::instance()->setMinimumNumAlphaBits(8);
 
    // construct the viewer.
    CustomViewer viewer(arguments);
@@ -216,9 +297,16 @@ int main( int argc, char **argv )
 	  loop = true;  // playback in none macro mode should loop (otherwise you don't get a chance to save)
    }
 
+   // Transparent background: no sky, a fully transparent clear colour, and
+   // screenshots written as PNG since JPEG cannot carry an alpha channel.
+   // The 'B' key toggles it at runtime.
+   bool transparent_bg = arguments.read("-transparent");
+
    // setup screenshot location
    osgDB::makeDirectory( moviedir );
-   cap_handler->setCaptureOperation(new osgViewer::ScreenCaptureHandler::WriteToFile(moviedir+"/frame", "jpg", osgViewer::ScreenCaptureHandler::WriteToFile::SEQUENTIAL_NUMBER));
+   osg::ref_ptr<WriteFrame> capture_op = new WriteFrame( moviedir );
+   capture_op->setTransparent( transparent_bg );
+   cap_handler->setCaptureOperation( capture_op.get() );
 
    // Compact viewer help — show our options and key bindings without OSG boilerplate
    if( arguments.read("-help") || arguments.read("--help") || arguments.read("-h") )
@@ -257,6 +345,9 @@ int main( int argc, char **argv )
          "  -cullangle <float 0-90>       Cull triangles steeper than this angle\n"
          "  -lightpos x,y,z              Directional light position (default: 1,1,1)\n"
          "  -nosky                        Disable skybox\n"
+         "  -transparent                  Transparent background: no sky, zero-alpha clear\n"
+         "                                colour, screenshots written as PNG with alpha.\n"
+         "                                Toggle at runtime with B.\n"
          "  -movie <dir>                  Export frames to directory (use with .swm)\n"
          "  -loop                         Loop .swm playback\n"
          "  -version                      Print revision number\n"
@@ -273,6 +364,7 @@ int main( int argc, char **argv )
          "  a / A          Decrease / increase shallow-water opacity threshold\n"
          "  z / Z          Decrease / increase vertical exaggeration by 50%\n"
          "  t              Cycle view mode: landscape → colour (osm) → colour (satellite)\n"
+         "  B              Toggle transparent background (screenshots become PNG)\n"
          "  q              Cycle data source: vertex → centroid → faceted\n"
          "  w              Cycle wireframe modes\n"
          "  g              Cycle grid / colour bar overlay\n"
@@ -561,6 +653,9 @@ int main( int argc, char **argv )
 		sky_switch->setAllChildrenOn();
 		rootnode->addChild(sky_switch);
 	}
+
+	// -transparent starts with the sky off and a zero-alpha clear colour.
+	applyBackground( viewer, sky_switch, transparent_bg );
 
    // add model to viewer.
    viewer.setSceneData(rootnode);
@@ -1004,6 +1099,18 @@ int main( int argc, char **argv )
 			cap_handler->captureNextFrame(viewer);
 		}
 
+		// 'B' toggles the transparent background.  The capture format follows
+		// it, because alpha only survives in PNG.
+		if( event_handler->toggleTransparent() )
+		{
+			transparent_bg = !transparent_bg;
+			applyBackground( viewer, sky_switch, transparent_bg );
+			capture_op->setTransparent( transparent_bg );
+			g_hud->setStatus("filename", transparent_bg ?
+			                 "background: transparent (screenshots are .png)" :
+			                 "background: sky");
+		}
+
 		// Toggle sky and update bed texture if we have toggled texturing
 		bool tex_enabled = ssm->getTextureEnabled();
 		static bool tex_enabled_last = tex_enabled;
@@ -1011,7 +1118,9 @@ int main( int argc, char **argv )
 		{
 			if (tex_enabled)
 			{
-				sky_switch->setAllChildrenOn();
+				// Not while the background is transparent: the sky would come
+				// back on underneath it and the alpha would be for nothing.
+				if (!transparent_bg) sky_switch->setAllChildrenOn();
 				bedslope->onRefreshTextured(true);
 			}
 			else
