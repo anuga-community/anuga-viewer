@@ -2,6 +2,55 @@ Release Notes
 =============
 
 
+v0.7.0 — 2026-08-20
+---------------------
+
+New Features
+~~~~~~~~~~~~
+
+**Transparent background** (``-transparent``, ``B`` key)
+
+  Switches the skybox off, sets a zero-alpha clear colour, and writes
+  screenshots as PNG carrying a real alpha channel.  The ``B`` key toggles it
+  at runtime; the HUD gains a ``(B) background`` row showing the current mode
+  and the extension the next screenshot will take.
+
+  Previously a screenshot came out on the dark skybox and had to be keyed out
+  afterwards, which is lossy: the sky is a navy gradient rather than flat
+  black, the model's own shadowed mounds are just as dark and are eaten where
+  they touch the image border, and the counters of glyphs like ``0`` are
+  enclosed sky that no flood fill reaches.
+
+  Note that semi-transparent water stays semi-transparent — alpha around 214
+  across the surface — because there is no longer a sky behind it to blend
+  with.  Composited onto a light background the water reads lighter than it
+  does on screen.  That is self-consistent, but it is a change in appearance
+  rather than only of backdrop.
+
+**Projection from the SWW file**
+
+  The projection is now resolved from the SWW's own ``epsg`` attribute when it
+  has one, so files that carry their projection no longer need it supplied by
+  hand.  ``-epsg`` additionally accepts Australian MGA/AMG codes (28348-28358,
+  20348-20358).
+
+Bug Fixes
+~~~~~~~~~
+
+**Map texture lost when tiles cannot be fetched**
+
+  An unreachable tile server caused the existing map texture to be discarded,
+  leaving the model untextured.  A good texture is now kept, so offline use
+  degrades gracefully.
+
+Changes
+~~~~~~~
+
+**Build artefacts ignored**
+
+  Dependency files and AppImage build output are no longer tracked.
+
+
 v0.6.1 — 2026-06-16
 ---------------------
 
