@@ -20,8 +20,9 @@ project = 'ANUGA viewer'
 copyright = 'Commonwealth of Australia (Geoscience Australia) and the Australian National University 2004-Now'
 author =  'Stephen Roberts, Ole Nielsen, Gareth Davies'
 
-# The full version, including alpha/beta/rc tags
-release = '0.5.6'
+# The full version, including alpha/beta/rc tags.
+# Keep this in step with the most recent tag in docs/source/release_notes.rst.
+release = '0.7.0'
 
 
 # -- General configuration ---------------------------------------------------
