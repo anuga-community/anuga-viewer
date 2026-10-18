@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <osgDB/FileNameUtils>
+#include <osgDB/FileUtils>
 
 
 #define MAX_LINE_LENGTH 200
@@ -18,8 +19,54 @@
 using namespace osg;
 
 
+// Locate a .sww path stored in a macro.  Relative paths are taken relative to
+// the macro file, so a macro and its data can be moved together.  Failing
+// that, look for the file by name next to the macro (a macro copied to another
+// machine), and lastly leave the path as stored, i.e. relative to the current
+// directory or absolute.
+static std::string resolveStoredSWW(const std::string& stored, const std::string& swmfile)
+{
+   std::string swmdir = osgDB::getFilePath(swmfile);
+   if( swmdir.empty() )
+      swmdir = ".";
+
+   if( osgDB::isAbsolutePath(stored) )
+   {
+      if( osgDB::fileExists(stored) )
+         return stored;
+   }
+   else
+   {
+      std::string candidate = osgDB::concatPaths(swmdir, stored);
+      if( osgDB::fileExists(candidate) )
+         return candidate;
+   }
+
+   std::string beside = osgDB::concatPaths(swmdir, osgDB::getSimpleFileName(stored));
+   if( osgDB::fileExists(beside) )
+      return beside;
+
+   return stored;
+}
+
+
+// The path to store for a .sww in a macro written to the current directory:
+// relative when the file lies beneath it, otherwise absolute.
+static std::string portableSWWPath(const std::string& path)
+{
+   std::string cwd  = osgDB::convertFileNameToUnixStyle(osgDB::getRealPath(osgDB::getCurrentWorkingDirectory()));
+   std::string full = osgDB::convertFileNameToUnixStyle(osgDB::getRealPath(path));
+   std::string prefix = cwd + "/";
+   if( full.compare(0, prefix.size(), prefix) == 0 )
+      return full.substr(prefix.size());
+   return full;
+}
+
+
 CustomArgumentParser::CustomArgumentParser(int* argc, char **argv) : ArgumentParser(argc, argv)
 {
+
+   _nargs = 0;
 
    // last argument is either .sww or .swm filename
    _filename = new std::string(argv[*argc-1]);
@@ -52,12 +99,22 @@ CustomArgumentParser::CustomArgumentParser(int* argc, char **argv) : ArgumentPar
          for( int i=0; i<*argc-1; i++ )
             newargv[i] = argv[i];
 
-         // now fill in the stored argv[] from the macro file
+         // now fill in the stored argv[] from the macro file, keeping copies
+         // so that saving again during playback writes the same arguments.
          for( int i=0; i<_nargs; i++ )
          {
             f.getline(str,MAX_LINE_LENGTH);
-            char *s = new char[strlen(str)+1];
-            strcpy(s,str);
+            std::string arg(str);
+            if( !arg.empty() && arg[arg.size()-1] == '\r' )
+               arg.erase(arg.size()-1);
+
+            // the last stored argument is the .sww file
+            if( i == _nargs-1 )
+               arg = resolveStoredSWW(arg, *_filename);
+
+            _vargs.push_back(arg);
+            char *s = new char[arg.size()+1];
+            strcpy(s,arg.c_str());
             newargv[*argc-1+i] = s;
          }
 
@@ -106,7 +163,8 @@ void CustomArgumentParser::SetUsage()
 	usage.addCommandLineOption("-alphamin <float 0-1>", "Transparency value at hmin");
 	usage.addCommandLineOption("-alphamax <float 0-1>", "Maximum transparency clamp value");
 	usage.addCommandLineOption("-lightpos <float>,<float>,<float>", "x,y,z of bedslope directional light (z is up, default is 1, 1, 1)");
-	usage.addCommandLineOption("-movie <dirname>", "Save numbered images to named directory and quit");
+	usage.addCommandLineOption("-window <W>x<H>", "Window size in pixels, e.g. 1280x720 (also the -movie frame size)");
+	usage.addCommandLineOption("-movie <dirname>","Save numbered images to named directory and quit");
 	usage.addCommandLineOption("-loop", "Repeated (looped) playback of .swm files");
 	usage.addCommandLineOption("-nosky", "Omit background sky");
 	usage.addCommandLineOption("-transparent", "Transparent background; screenshots written as PNG with alpha (toggle with B)");
@@ -125,7 +183,8 @@ void CustomArgumentParser::write(std::ostream& s)
 {
    s << "# SWM CLP " << _nargs << std::endl;
 
+   // the last argument is the .sww file
    for( int i=0; i < _nargs; i++ )
-      s << _vargs[i] << std::endl;
+      s << (i == _nargs-1 ? portableSWWPath(_vargs[i]) : _vargs[i]) << std::endl;
 
 }

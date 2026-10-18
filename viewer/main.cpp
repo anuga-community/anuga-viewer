@@ -302,6 +302,18 @@ int main( int argc, char **argv )
    // The 'B' key toggles it at runtime.
    bool transparent_bg = arguments.read("-transparent");
 
+   // Window size, e.g. -window 1920x1080.  Also sets the size of -movie frames.
+   unsigned int winW = 0, winH = 0;
+   std::string winstr;
+   if( arguments.read("-window", winstr) )
+   {
+	  if( sscanf(winstr.c_str(), "%ux%u", &winW, &winH) != 2 || winW == 0 || winH == 0 )
+	  {
+		 std::cout << "Bad -window value '" << winstr << "', expected WIDTHxHEIGHT (e.g. 1280x720)" << std::endl;
+		 return 1;
+	  }
+   }
+
    // setup screenshot location
    osgDB::makeDirectory( moviedir );
    osg::ref_ptr<WriteFrame> capture_op = new WriteFrame( moviedir );
@@ -348,6 +360,8 @@ int main( int argc, char **argv )
          "  -transparent                  Transparent background: no sky, zero-alpha clear\n"
          "                                colour, screenshots written as PNG with alpha.\n"
          "                                Toggle at runtime with B.\n"
+         "  -window <W>x<H>               Window size in pixels, e.g. 1280x720 (default:\n"
+         "                                3/4 of the screen). Also the -movie frame size.\n"
          "  -movie <dir>                  Export frames to directory (use with .swm)\n"
          "  -loop                         Loop .swm playback\n"
          "  -version                      Print revision number\n"
@@ -711,13 +725,30 @@ int main( int argc, char **argv )
 	// level, which some WMs don't decorate until the user toggles fullscreen.
 	// The user can still press 'f' to go fullscreen on screen 0.
 	{
+		// Measure the screen named by $DISPLAY.  ScreenIdentifier(0) on its own
+		// means display :0, which under a virtual X server (Xvfb on :99, say) is
+		// a different X server, or none at all on a headless node.
+		osg::GraphicsContext::ScreenIdentifier si;
+		si.readDISPLAY();
+		si.setUndefinedScreenDetailsToDefaultScreen();
+
 		unsigned int sw = 1024, sh = 768;
 		osg::GraphicsContext::WindowingSystemInterface* wsi =
 			osg::GraphicsContext::getWindowingSystemInterface();
 		if (wsi)
-			wsi->getScreenResolution(osg::GraphicsContext::ScreenIdentifier(0), sw, sh);
+			wsi->getScreenResolution(si, sw, sh);
 		unsigned int w = sw * 3 / 4, h = sh * 3 / 4;
-		viewer.setUpViewInWindow((sw - w) / 2, (sh - h) / 2, w, h, 0);
+		if (winW > 0)
+		{
+			w = winW;
+			h = winH;
+			if (w > sw || h > sh)
+				std::cout << "Warning: -window " << w << "x" << h << " is larger than the "
+				          << sw << "x" << sh << " screen" << std::endl;
+		}
+		int x = w < sw ? (sw - w) / 2 : 0;
+		int y = h < sh ? (sh - h) / 2 : 0;
+		viewer.setUpViewInWindow(x, y, w, h, si.screenNum);
 	}
 	// Single-threaded: draw happens on the main thread in sync with the geometry
 	// update.  Multi-threaded mode causes the draw thread to read vertex arrays

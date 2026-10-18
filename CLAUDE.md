@@ -118,6 +118,7 @@ CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`tou
 | `-lightpos x,y,z` | Directional light position |
 | `-nosky` | Disable skybox |
 | `-transparent` | Transparent background: no sky, zero-alpha clear colour, screenshots written as PNG with alpha. Toggle at runtime with `B`. |
+| `-window <W>x<H>` | Window size in pixels (default: 3/4 of the screen); also the `-movie` frame size |
 | `-movie <dir>` | Export frames to directory (with `.swm` input) |
 | `-- screen <n>` | Select display screen (OSG standard) |
 
