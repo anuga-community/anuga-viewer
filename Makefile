@@ -48,10 +48,10 @@ dmg:
 	    bash distros/bundle-macos.sh $(BREW_PREFIX)
 
 # -----------------------------------------------------------------------
-# Windows NSIS installer — run from an MSYS2 MINGW64 shell on Windows.
-# Requires: pacman -S mingw-w64-x86_64-{gcc,OpenSceneGraph,netcdf,curl}
+# Windows NSIS installer — run from an MSYS2 UCRT64 shell on Windows.
+# Requires: pacman -S mingw-w64-ucrt-x86_64-{gcc,OpenSceneGraph,netcdf,curl}
 #           choco install nsis
 nsis:
-	$(MAKE) OSGHOME=/mingw64
+	$(MAKE) OSGHOME=$(MINGW_PREFIX)
 	bash distros/bundle-windows.sh
 

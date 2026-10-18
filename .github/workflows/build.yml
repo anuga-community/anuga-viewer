@@ -172,7 +172,7 @@ jobs:
           path: 'anuga-viewer-macos.dmg'
 
   # -----------------------------------------------------------------------
-  # Windows — produces a self-contained zip via MSYS2/MinGW
+  # Windows — produces a self-contained installer via MSYS2 (UCRT64)
   # -----------------------------------------------------------------------
   build-windows:
     runs-on: windows-latest
@@ -184,25 +184,25 @@ jobs:
 
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
           install: >-
             make
             zip
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-OpenSceneGraph
-            mingw-w64-x86_64-netcdf
-            mingw-w64-x86_64-curl
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-OpenSceneGraph
+            mingw-w64-ucrt-x86_64-netcdf
+            mingw-w64-ucrt-x86_64-curl
 
       - name: Build
-        run: make OSGHOME=/mingw64
+        run: make OSGHOME=$MINGW_PREFIX
 
       - name: Locate OSG plugins
         run: |
           echo "=== osgPlugins directories ==="
-          find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null || true
+          find $MINGW_PREFIX -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null || true
           echo "=== Contents of osgPlugins dir ==="
-          find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null \
+          find $MINGW_PREFIX -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null \
             | head -1 | xargs ls 2>/dev/null | head -20 || echo "(empty or not found)"
 
       - name: Install NSIS
