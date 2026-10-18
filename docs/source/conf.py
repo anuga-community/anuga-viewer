@@ -22,7 +22,7 @@ author =  'Stephen Roberts, Ole Nielsen, Gareth Davies'
 
 # The full version, including alpha/beta/rc tags.
 # Keep this in step with the most recent tag in docs/source/release_notes.rst.
-release = '0.7.0'
+release = '0.7.1'
 
 
 # -- General configuration ---------------------------------------------------

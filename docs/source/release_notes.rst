@@ -2,8 +2,8 @@ Release Notes
 =============
 
 
-Unreleased
-----------
+v0.7.1 — 2026-10-18
+---------------------
 
 New Features
 ~~~~~~~~~~~~
@@ -26,6 +26,13 @@ Bug Fixes
   than the current one, and failing that the ``.sww`` is looked for by name
   next to the macro.  Saving again during playback now writes the original
   arguments instead of reading past the end of an empty list.
+
+Build
+~~~~~
+
+- The Windows installer is now built in the MSYS2 UCRT64 environment.  MSYS2
+  no longer packages OpenSceneGraph for MINGW64, which had broken the Windows
+  build.
 
 
 v0.7.0 — 2026-08-20
