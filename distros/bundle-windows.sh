@@ -1,7 +1,7 @@
 #!/bin/bash
 # Bundle ANUGA Viewer into a self-contained Windows directory and build
-# an NSIS installer.  Run from MSYS2 MINGW64 shell, or called by "make nsis".
-# Requires: MSYS2 packages mingw-w64-x86_64-{gcc,OpenSceneGraph,netcdf,curl}
+# an NSIS installer.  Run from an MSYS2 UCRT64 shell, or called by "make nsis".
+# Requires: MSYS2 packages mingw-w64-ucrt-x86_64-{gcc,OpenSceneGraph,netcdf,curl}
 #           NSIS installed via: choco install nsis
 set -e
 
@@ -9,6 +9,8 @@ VERSION="${1:-dev}"
 CURDIR="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$CURDIR/dist/anuga-viewer"
 NSIS="${NSIS:-C:/Program Files (x86)/NSIS/makensis.exe}"
+# MSYS2 environment prefix, e.g. /ucrt64; set by the MSYS2 shell
+PREFIX="${MINGW_PREFIX:-/ucrt64}"
 
 echo "=== Building bundle in $DIST ==="
 rm -rf "$DIST"
@@ -21,7 +23,7 @@ cp "$CURDIR/bin/images/envmap.jpg"    "$DIST/images/"
 cp "$CURDIR/bin/libswwreader.dll"     "$DIST/" 2>/dev/null || true
 
 # OSG plugins — whitelist only what anuga-viewer needs
-PLUGIN_DIR=$(find /mingw64 -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
+PLUGIN_DIR=$(find "$PREFIX" -maxdepth 6 -type d -name 'osgPlugins*' 2>/dev/null | head -1)
 if [ -n "$PLUGIN_DIR" ]; then
     DEST_PLUGINS="$DIST/$(basename "$PLUGIN_DIR")"
     mkdir -p "$DEST_PLUGINS"
@@ -37,13 +39,13 @@ else
     echo "WARNING: no osgPlugins directory found"
 fi
 
-# Iteratively bundle all MinGW DLL dependencies until no new ones are added
+# Iteratively bundle all MSYS2 environment DLL dependencies until no new ones are added
 echo "=== Bundling DLLs ==="
 for i in 1 2 3 4 5; do
     BEFORE=$(find "$DIST" -name "*.dll" | wc -l)
     find "$DIST" \( -name "*.dll" -o -name "*.exe" \) \
         | xargs ldd 2>/dev/null \
-        | grep -i mingw64 | awk '{print $3}' | sort -u \
+        | grep -i "$PREFIX/" | awk '{print $3}' | sort -u \
         | xargs -I{} cp -n "{}" "$DIST/" 2>/dev/null || true
     AFTER=$(find "$DIST" -name "*.dll" | wc -l)
     echo "  pass $i: $BEFORE -> $AFTER DLLs"
@@ -55,8 +57,8 @@ mkdir -p "$DIST/etc/fonts"
 echo '<fontconfig></fontconfig>' > "$DIST/etc/fonts/fonts.conf"
 
 # CA certificate bundle for libcurl HTTPS verification
-for f in /mingw64/ssl/certs/ca-bundle.crt \
-          /mingw64/etc/ssl/certs/ca-bundle.crt \
+for f in "$PREFIX/ssl/certs/ca-bundle.crt" \
+          "$PREFIX/etc/ssl/certs/ca-bundle.crt" \
           /usr/ssl/certs/ca-bundle.crt; do
     [ -f "$f" ] && cp "$f" "$DIST/ca-bundle.crt" && echo "CA bundle: $f" && break
 done
