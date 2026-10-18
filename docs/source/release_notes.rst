@@ -2,6 +2,32 @@ Release Notes
 =============
 
 
+Unreleased
+----------
+
+New Features
+~~~~~~~~~~~~
+
+**Window size** (``-window <W>x<H>``)
+
+  Sets the window size in pixels, and with it the size of ``-movie`` frames.
+  Without it the window is 3/4 of the screen, as before.
+
+Bug Fixes
+~~~~~~~~~
+
+- The default window size is now measured on the screen named by ``DISPLAY``.
+  It was always measured on display ``:0``, so under a virtual X server such
+  as Xvfb the window was sized for a different screen and opened partly
+  off-screen.
+- ``.swm`` macros no longer tie playback to the absolute path of the ``.sww``.
+  A ``.sww`` beneath the directory the macro is saved in is stored relative to
+  the macro, relative paths are resolved against the macro's directory rather
+  than the current one, and failing that the ``.sww`` is looked for by name
+  next to the macro.  Saving again during playback now writes the original
+  arguments instead of reading past the end of an empty list.
+
+
 v0.7.0 — 2026-08-20
 ---------------------
 

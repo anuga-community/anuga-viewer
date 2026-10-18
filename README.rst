@@ -270,6 +270,9 @@ Command-Line Options
 | ``-transparent``             | Transparent background; screenshots written  |
 |                              | as PNG with alpha (toggle with ``B``)        |
 +------------------------------+----------------------------------------------+
+| ``-window <W>x<H>``          | Window size in pixels, e.g. ``1280x720``;    |
+|                              | also sets the ``-movie`` frame size          |
++------------------------------+----------------------------------------------+
 | ``-movie <dir>``             | Export frames to directory (with ``.swm``)   |
 +------------------------------+----------------------------------------------+
 | ``-- screen <n>``            | Select display screen (OSG standard)         |
@@ -288,7 +291,17 @@ How to Make a Movie
 
 3. Stitch frames into a video with ffmpeg::
 
-      ffmpeg -framerate 25 -i myframes/frame_%d_%d.jpg output.mp4
+      ffmpeg -framerate 25 -i myframes/frame_0_%d.jpg output.mp4
+
+The macro records the command line, including the ``.sww`` file.  When that
+file lies beneath the directory the macro was saved in, its path is stored
+relative to the macro, so the two can be moved or copied together.  On
+playback the viewer also looks for the ``.sww`` by name next to the macro.
+
+Frames can be exported on a machine without a display, such as a remote
+server or HPC node, using a virtual X server and software OpenGL::
+
+      xvfb-run -s "-screen 0 1920x1080x24" anuga_viewer -window 1920x1080 -movie myframes movie.swm
 
 
 Troubleshooting
