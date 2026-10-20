@@ -135,6 +135,26 @@ Values are interpolated from the corners of the triangle containing the
 location, as ANUGA's own gauge tools do.  Only x and y matter.  File >
 Save Data writes the chart's table as CSV.
 
+Web viewer
+----------
+
+``web/sww_web.py`` is a sketch of a browser viewer built with trame_.  It
+reuses the reader's file code with plain VTK, so it does not need ParaView::
+
+    pip install vtk netCDF4 trame trame-vtk trame-vuetify trame-plotly plotly
+    python paraview/web/sww_web.py run.sww --port 8080
+
+and open http://localhost:8080.  The server reads the file and renders, and
+the browser only receives images, so a large file on a remote machine can
+be viewed through ``ssh -L 8080:localhost:8080 host``.  It shows the bed
+and water with a time slider and Play; the side panel sets the quantity the
+water is coloured by, the colour map and scale maximum, the depth below
+which water is hidden, and the vertical scale, and plots a timeseries at a
+picked point.  It has been tried only with the VTK in ParaView's conda
+package.
+
+.. _trame: https://kitware.github.io/trame/
+
 Testing
 -------
 
