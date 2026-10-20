@@ -1,0 +1,30 @@
+#!/bin/bash
+# Start ParaView with the ANUGA .sww reader loaded.  Given a file, open it
+# with a ready-made view (paraview/scripts/view_sww.py).
+#
+# Usage: anuga-paraview [file.sww]
+# Set PARAVIEW to use a paraview other than the one on the PATH.
+
+if [ $# -gt 1 ]; then
+    echo "usage: $(basename "$0") [file.sww]" >&2
+    exit 1
+fi
+if [ $# -eq 1 ] && [ ! -f "$1" ]; then
+    echo "$(basename "$0"): no such file: $1" >&2
+    exit 1
+fi
+
+here="$(cd "$(dirname "$0")" && pwd)"
+export PV_PLUGIN_PATH="$here${PV_PLUGIN_PATH:+:$PV_PLUGIN_PATH}"
+
+# ParaView can hang at startup under Wayland; run it through XWayland.
+if [ "$XDG_SESSION_TYPE" = wayland ] && [ -z "$QT_QPA_PLATFORM" ]; then
+    export QT_QPA_PLATFORM=xcb
+fi
+
+if [ $# -eq 0 ]; then
+    exec "${PARAVIEW:-paraview}"
+fi
+
+export ANUGA_SWW_FILE="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+exec "${PARAVIEW:-paraview}" --script="$here/scripts/view_sww.py"

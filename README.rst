@@ -304,6 +304,14 @@ server or HPC node, using a virtual X server and software OpenGL::
       xvfb-run -s "-screen 0 1920x1080x24" anuga_viewer -window 1920x1080 -movie myframes movie.swm
 
 
+Viewing SWW Files in ParaView
+-----------------------------
+
+``paraview/sww_reader.py`` is a prototype ParaView plugin that opens ``.sww``
+files, with the terrain and water surface as separate outputs.  See
+``paraview/README.rst``.
+
+
 Troubleshooting
 ---------------
 

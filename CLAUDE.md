@@ -101,6 +101,10 @@ The main loop drives timestep advance (real-time or playback), recording, and pe
 
 CppUnit tests for `SWWReader` (`swwreadertest.cpp`) and `FileChangedCheck` (`touchedfiletest.cpp`). Run with `make test` from the top-level or `tests/` directory. The test binary is `tests/tests`.
 
+### `paraview/`
+
+Prototype ParaView plugin, independent of the C++ code. `sww_reader.py` reads an SWW with `netCDF4` (or `scipy`) into two `vtkPolyData` outputs, `Bed` (z = elevation) and `Water` (z = stage, dry triangles dropped), carrying every point/cell variable plus derived depth, speed, momentum and velocity. The same file defines the `ANUGATimeseries` filter, which reads a location's timeseries straight from the file (the reader tags its outputs with `SWWFileName`/`SWWOffset` field data for this). `paraview/anuga-paraview [file.sww]` launches ParaView with the reader loaded and, given a file, the ready-made view in `paraview/scripts/view_sww.py`. Only the plugin may sit directly in `paraview/`: ParaView loads every `.py` in a `PV_PLUGIN_PATH` directory, so scripts and tests live in subdirectories. `paraview/web/sww_web.py file.sww` is a sketch of a browser viewer built with trame on plain VTK, reusing `SWWFile` and `_surface` from the plugin. Test with `pvpython paraview/tests/test_sww_reader.py`; see `paraview/README.rst`.
+
 ## Key Command-Line Parameters
 
 | Parameter | Description |
