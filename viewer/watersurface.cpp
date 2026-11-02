@@ -104,9 +104,19 @@ void WaterSurface::onRefreshData()
 		if (facetedColors.valid() && idx.valid() && srcVerts.valid())
 		{
 			size_t ntri = idx->size() / 3;
-			osg::ref_ptr<osg::Vec3Array> fv = new osg::Vec3Array(3 * ntri);
-			osg::ref_ptr<osg::Vec3Array> fn = new osg::Vec3Array(3 * ntri);
-			osg::ref_ptr<osg::Vec4Array> fc = new osg::Vec4Array(3 * ntri);
+			// kept between frames: they total 40 bytes per triangle corner
+			if (!_facetedVertices.valid())
+			{
+				_facetedVertices = new osg::Vec3Array;
+				_facetedNormals  = new osg::Vec3Array;
+				_facetedColors   = new osg::Vec4Array;
+			}
+			osg::Vec3Array* fv = _facetedVertices.get();
+			osg::Vec3Array* fn = _facetedNormals.get();
+			osg::Vec4Array* fc = _facetedColors.get();
+			fv->resize(3 * ntri);
+			fn->resize(3 * ntri);
+			fc->resize(3 * ntri);
 
 			for (size_t it = 0; it < ntri; it++)
 			{
@@ -128,11 +138,15 @@ void WaterSurface::onRefreshData()
 				(*fc)[3*it+0] = c;   (*fc)[3*it+1] = c;   (*fc)[3*it+2] = c;
 			}
 
-			_geom->setVertexArray(fv.get());
+			fv->dirty();
+			fn->dirty();
+			fc->dirty();
+
+			_geom->setVertexArray(fv);
 			_geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::TRIANGLES, 0, 3*ntri));
-			_geom->setColorArray(fc.get());
+			_geom->setColorArray(fc);
 			_geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
-			_geom->setNormalArray(fn.get());
+			_geom->setNormalArray(fn);
 			_geom->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
 		}
 
@@ -143,6 +157,10 @@ void WaterSurface::onRefreshData()
 	else
 	{
 		// Shared-vertex indexed geometry — default path
+		_facetedVertices = NULL;   // no longer needed, and the largest arrays we have
+		_facetedNormals  = NULL;
+		_facetedColors   = NULL;
+
 		osg::ref_ptr<osg::Vec3Array> vertices      = _sww->getStageVertexArray();
 		osg::ref_ptr<osg::Vec3Array> vertexnormals = _sww->getStageVertexNormalArray();
 		osg::ref_ptr<osg::Vec4Array> colors        = _sww->getStageColorArray();

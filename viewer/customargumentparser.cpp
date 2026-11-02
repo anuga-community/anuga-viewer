@@ -167,6 +167,7 @@ void CustomArgumentParser::SetUsage()
 	usage.addCommandLineOption("-movie <dirname>","Save numbered images to named directory and quit");
 	usage.addCommandLineOption("-loop", "Repeated (looped) playback of .swm files");
 	usage.addCommandLineOption("-nosky", "Omit background sky");
+	usage.addCommandLineOption("-force", "Load even if the file looks too large for free memory");
 	usage.addCommandLineOption("-transparent", "Transparent background; screenshots written as PNG with alpha (toggle with B)");
 	usage.addCommandLineOption("-cullangle <float angle 0-90>", "Cull triangles steeper than this value");
 	usage.addCommandLineOption("-texture <file>", "Image to use for bedslope topography (overrides auto tile fetch)");

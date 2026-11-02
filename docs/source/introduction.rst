@@ -322,6 +322,8 @@ Command-Line Options
      - Directional light position (z is up)
    * - ``-nosky``
      - Disable skybox
+   * - ``-force``
+     - Load even if the file looks too large for free memory
    * - ``-transparent``
      - Transparent background: no sky, zero-alpha clear colour, screenshots
        written as PNG with alpha.  Toggle at runtime with ``B``.

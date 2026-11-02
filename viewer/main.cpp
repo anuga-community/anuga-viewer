@@ -362,6 +362,7 @@ int main( int argc, char **argv )
          "                                Toggle at runtime with B.\n"
          "  -window <W>x<H>               Window size in pixels, e.g. 1280x720 (default:\n"
          "                                3/4 of the screen). Also the -movie frame size.\n"
+         "  -force                        Load even if the file looks too large for free memory\n"
          "  -movie <dir>                  Export frames to directory (use with .swm)\n"
          "  -loop                         Loop .swm playback\n"
          "  -version                      Print revision number\n"
@@ -423,6 +424,28 @@ int main( int argc, char **argv )
 	  std::cout << "Require last argument be an .sww/.swm file ... quitting" << std::endl;
 	  return 1; 
    }
+
+   // Check before loading.  A mesh that doesn't fit doesn't fail cleanly: the machine
+   // swaps until the desktop locks up, and GPU buffers on an integrated GPU come out of
+   // the same RAM, so per-process limits don't catch it.
+   {
+	  const bool force = arguments.read("-force");
+	  const unsigned long long need = SWWReader::estimateLoadBytes(swwfile);
+	  const unsigned long long avail = SWWReader::availableMemoryBytes();
+	  if (need > 0 && avail > 0 && need > avail)
+	  {
+		 const double GB = 1024.0 * 1024.0 * 1024.0;
+		 std::cout << swwfile << " needs about " << need / GB << " GB of memory to display but only "
+		           << avail / GB << " GB is available." << std::endl;
+		 if (!force)
+		 {
+			std::cout << "Not loading it, because running out of memory can freeze the whole machine.\n"
+			          << "Close other programs and try again, or use -force to load it anyway." << std::endl;
+			return 1;
+		 }
+	  }
+   }
+
    SWWReader *sww = new SWWReader(swwfile);
    if (sww->isValid() == false)
    {
@@ -973,6 +996,15 @@ int main( int argc, char **argv )
 			{
 				SWWReader::DataMode dm = sww->getDataMode();
 				dm = (SWWReader::DataMode)((dm + 1) % SWWReader::DM_NUM_OF);
+				if (dm == SWWReader::DM_CENTROID_FACETED)
+				{
+					const unsigned long long avail = SWWReader::availableMemoryBytes();
+					if (avail > 0 && sww->facetedExtraBytes() > avail)
+					{
+						std::cout << "Skipping faceted mode: not enough memory for this mesh." << std::endl;
+						dm = (SWWReader::DataMode)((dm + 1) % SWWReader::DM_NUM_OF);
+					}
+				}
 				sww->setDataMode(dm);
 				water->forceRefresh();
 				const char* labels[] = {"vertex", "centroid", "faceted"};

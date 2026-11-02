@@ -2,6 +2,24 @@ Release Notes
 =============
 
 
+Unreleased
+----------
+
+Bug Fixes
+~~~~~~~~~
+
+- Large meshes no longer exhaust the machine's memory.  Stepping through frames
+  used to build a new display list per frame faster than the old ones were
+  released: GPU memory grew by about 180 MB/s on a 4M-triangle mesh, and on an
+  integrated GPU that comes out of system RAM until the desktop locks up.  The
+  mesh now uses vertex buffers, updated in place, so GPU memory stays flat.
+- Peak process memory is about 25% lower: triangle connectivity is stored
+  compactly, and bedslope normals and centroids are built only on request.
+- Before loading, the viewer estimates the memory a file needs and refuses if
+  that is more than is available (Linux).  Use ``-force`` to load it anyway.
+  The ``q`` key skips faceted mode when there isn't enough memory for it.
+
+
 v0.7.1 — 2026-10-18
 ---------------------
 

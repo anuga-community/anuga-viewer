@@ -39,6 +39,12 @@ protected:
 	void onRefreshData();
 
 
+private:
+
+   // deindexed geometry for the faceted data mode, reused between frames
+   osg::ref_ptr<osg::Vec3Array> _facetedVertices;
+   osg::ref_ptr<osg::Vec3Array> _facetedNormals;
+   osg::ref_ptr<osg::Vec4Array> _facetedColors;
 };
 
 

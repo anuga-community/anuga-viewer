@@ -28,7 +28,12 @@ MeshObject::MeshObject(std::string aName) :
 	_node->addDrawable(_geom);
 	_node->setStateSet(_stateset);
 
-    _geom->setUseDisplayList( true );
+    // Vertex buffers, not display lists.  A display list is a driver-side copy of
+    // the whole mesh, rebuilt for every new frame, and the old ones are released
+    // more slowly than a large mesh makes new ones.  On an integrated GPU they come
+    // straight out of system RAM, unseen by process RSS, until the machine locks up.
+    _geom->setUseDisplayList( false );
+    _geom->setUseVertexBufferObjects( true );
 }
 
 

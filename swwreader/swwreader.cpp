@@ -113,6 +113,19 @@ inline float Math_InvSqrtFast(float x)
 	 return x*(1.5f - xhalf*x*x); // Newton method for closer approximation
 }
 
+// Empty an array for refilling, keeping its storage.  These arrays hold one value
+// per point or per triangle and are rebuilt for every frame: allocating new ones
+// each time doubles the peak on a large mesh and gives the GPU a new buffer per frame.
+template <class ArrayT>
+static void recycleArray(osg::ref_ptr<ArrayT>& array, size_t capacity)
+{
+	if (!array.valid())
+		array = new ArrayT;
+	array->clear();
+	array->reserve(capacity);
+}
+
+
 inline void Math_NormalizeFast(osg::Vec3 & aVec)
 {
 	aVec *= Math_InvSqrtFast(aVec*aVec);
@@ -387,8 +400,7 @@ bool SWWReader::loadBedslopeVertexArray(unsigned int aIndex)
 
 	// bedslope vertex array, shifting and scaling vertices to unit cube
 	// centred about the origin
-	_bedslopevertices = new osg::Vec3Array;
-	_bedslopevertices->reserve(_npoints);
+	recycleArray(_bedslopevertices, _npoints);
 
 	for (unsigned int iv=0; iv < _npoints; iv++)
 	{
@@ -398,29 +410,94 @@ bool SWWReader::loadBedslopeVertexArray(unsigned int aIndex)
 	}
 
 	// calculate bedslope primitive normal and centroid arrays
+	// the per-triangle arrays depend on these vertices, so rebuild them on next request
+	_bedslopenormals = NULL;
+	_bedslopecentroids = NULL;
+
+	for (unsigned int iv=0; iv < _nvolumes; iv++)
+	{
+		if ((_pvolumes[3*iv+0] >= _npoints) || (_pvolumes[3*iv+1] >= _npoints) || (_pvolumes[3*iv+2] >= _npoints))
+		{
+			// data out of bounds
+			_status.push_back( nc_close(_ncid) );
+			return false;
+		}
+	}
+
+	_status.push_back( nc_close(_ncid) );
+
+	if (_statusHasError())
+	{
+		return false;
+	}
+
+	_bedslopevertices->dirty();
+
+	return true;
+}
+
+
+// Measured peaks on synthetic meshes of 4M and 16M triangles while stepping through frames.
+static const unsigned long long LOAD_BYTES_PER_TRIANGLE    = 125;
+static const unsigned long long FACETED_BYTES_PER_TRIANGLE = 200;
+static const unsigned long long LOAD_BYTES_BASE            = 200ULL * 1024 * 1024;
+
+
+unsigned long long SWWReader::estimateLoadBytes(const std::string& filename)
+{
+	int ncid, dimid;
+	size_t nvolumes = 0;
+	if (nc_open(filename.c_str(), NC_NOWRITE, &ncid) != NC_NOERR)
+		return 0;
+
+	int status = nc_inq_dimid(ncid, "number_of_volumes", &dimid);
+	if (status == NC_NOERR)
+		status = nc_inq_dimlen(ncid, dimid, &nvolumes);
+	nc_close(ncid);
+
+	if (status != NC_NOERR)
+		return 0;
+	return LOAD_BYTES_BASE + LOAD_BYTES_PER_TRIANGLE * nvolumes;
+}
+
+
+unsigned long long SWWReader::availableMemoryBytes()
+{
+	unsigned long long kb = 0;
+	std::ifstream meminfo("/proc/meminfo");
+	std::string key;
+	while (meminfo >> key)
+	{
+		if (key == "MemAvailable:")
+		{
+			meminfo >> kb;
+			break;
+		}
+		meminfo.ignore(256, '\n');
+	}
+	return kb * 1024;
+}
+
+
+unsigned long long SWWReader::facetedExtraBytes() const
+{
+	return FACETED_BYTES_PER_TRIANGLE * _nvolumes;
+}
+
+
+void SWWReader::computeBedslopePrimitiveArrays()
+{
 	_bedslopenormals = new osg::Vec3Array;
 	_bedslopecentroids = new osg::Vec3Array;
-
 	_bedslopenormals->reserve(_nvolumes);
 	_bedslopecentroids->reserve(_nvolumes);
 
 	osg::Vec3 v1, v2, v3, side1, side2, nrm;
 	for (unsigned int iv=0; iv < _nvolumes; iv++)
 	{
-		unsigned int v1index = _pvolumes[3*iv+0];
-		unsigned int v2index = _pvolumes[3*iv+1];
-		unsigned int v3index = _pvolumes[3*iv+2];
-
-		if ((v1index >= _npoints) || (v2index >= _npoints) || (v3index >= _npoints))
-		{
-			// data out of bounds
-			_status.push_back( nc_close(_ncid) );
-			return false;
-		}
-
-		v1 = _bedslopevertices->at(v1index);
-		v2 = _bedslopevertices->at(v2index);
-		v3 = _bedslopevertices->at(v3index);
+		v1 = _bedslopevertices->at(_pvolumes[3*iv+0]);
+		v2 = _bedslopevertices->at(_pvolumes[3*iv+1]);
+		v3 = _bedslopevertices->at(_pvolumes[3*iv+2]);
 
 		side1 = v2 - v1;
 		side2 = v3 - v2;
@@ -433,16 +510,22 @@ bool SWWReader::loadBedslopeVertexArray(unsigned int aIndex)
 		_bedslopenormals->push_back( nrm );
 		_bedslopecentroids->push_back( (v1+v2+v3)/3.0 );
 	}
-
-	_status.push_back( nc_close(_ncid) );
-
-	if (_statusHasError())
-	{
-		return false;
-	}
+}
 
 
-	return true;
+osg::ref_ptr<osg::Vec3Array> SWWReader::getBedslopeNormalArray()
+{
+	if (!_bedslopenormals.valid() && _bedslopevertices.valid())
+		computeBedslopePrimitiveArrays();
+	return _bedslopenormals;
+}
+
+
+osg::ref_ptr<osg::Vec3Array> SWWReader::getBedslopeCentroidArray()
+{
+	if (!_bedslopecentroids.valid() && _bedslopevertices.valid())
+		computeBedslopePrimitiveArrays();
+	return _bedslopecentroids;
 }
 
 
@@ -515,8 +598,7 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 	const float* z_p     = (useCentroid && _pz_cv) ? _pz_cv : _pz;
 
 	// load stage vertex array, scaling and shifting vertices to lie in the unit cube
-	_stagevertices = new osg::Vec3Array;
-	_stagevertices->reserve(_npoints);
+	recycleArray(_stagevertices, _npoints);
 
 	ColorMode cm0 = _state.colorMode;
 	bool isMaxMode = (cm0 == CM_MAX_DEPTH || cm0 == CM_MAX_SPEED ||
@@ -530,8 +612,7 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 	}
 
 	// stage index, per primitive normal and centroid arrays
-	_stageprimitivenormals = new osg::Vec3Array;
-	_stageprimitivenormals->reserve(_nvolumes);
+	recycleArray(_stageprimitivenormals, _nvolumes);
 	osg::Vec3 v1b, v2b, v3b;
 	osg::Vec3 v1s, v2s, v3s;
 	osg::Vec3 side1, side2, nrm;
@@ -574,8 +655,7 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 	//                clamped to [0, alphamax], where height is in model units.
 	float alpha, height, alphascale;
 	alphascale = (_state.alphamax - _state.alphamin) / (_state.heightmax - _state.heightmin);
-	_stagecolors = new osg::Vec4Array;
-	_stagecolors->reserve(_npoints);
+	recycleArray(_stagecolors, _npoints);
 	for (iv=0; iv < _npoints; iv++)
 	{
 		float depth_m = stage_p[iv] - z_p[iv];
@@ -586,11 +666,12 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 		float depth_for_alpha = depth_m;
 		if (useCentroid && _pstage_c && _pz_c)
 		{
-			const triangle_list& tris = _connectivity[iv];
-			if (!tris.empty())
+			const unsigned int* tris = _connectivityTriangles.data() + _connectivityOffsets[iv];
+			const size_t ntris = _connectivityOffsets[iv+1] - _connectivityOffsets[iv];
+			if (ntris > 0)
 			{
 				float min_d = _pstage_c[tris[0]] - _pz_c[tris[0]];
-				for (size_t j = 1; j < tris.size(); j++)
+				for (size_t j = 1; j < ntris; j++)
 				{
 					float d = _pstage_c[tris[j]] - _pz_c[tris[j]];
 					if (d < min_d) min_d = d;
@@ -699,7 +780,7 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 	// Build per-triangle flat colours for DM_CENTROID_FACETED mode
 	if (_dataMode == DM_CENTROID_FACETED && _hasCentroidData && _pstage_c && _pz_c)
 	{
-		_faceted_stagecolors = new osg::Vec4Array;
+		recycleArray(_faceted_stagecolors, _nvolumes);
 		_faceted_stagecolors->resize(_nvolumes);
 
 		ColorMode cm = _state.colorMode;
@@ -802,18 +883,17 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 
 	// per-vertex normals calculated as average of primitive normals
 	// from contributing triangles
-	_stagevertexnormals = new osg::Vec3Array;
-	_stagevertexnormals->reserve(_npoints);
+	recycleArray(_stagevertexnormals, _npoints);
 
 	int num_shared_triangles, triangle_index;
 	for (iv=0; iv < _npoints; iv++)
 	{
 		nrm.set(0,0,0);
-		num_shared_triangles = _connectivity.at(iv).size();	// There may be 2-7 triangles sharing a vertex
+		num_shared_triangles = (int)(_connectivityOffsets[iv+1] - _connectivityOffsets[iv]);	// There may be 2-7 triangles sharing a vertex
 
 		for (int i=0; i<num_shared_triangles; i++ )
 		{
-			triangle_index = _connectivity.at(iv).at(i);
+			triangle_index = _connectivityTriangles[_connectivityOffsets[iv] + i];
 			nrm += _stageprimitivenormals->at(triangle_index);
 		}
 
@@ -823,6 +903,11 @@ bool SWWReader::loadStageVertexArray(unsigned int index)
 
 		_stagevertexnormals->push_back(nrm);
 	}
+
+	// the arrays were refilled in place, so their vertex buffers need re-uploading
+	_stagevertices->dirty();
+	_stagevertexnormals->dirty();
+	_stagecolors->dirty();
 
 	PROFILE_END
 
@@ -834,8 +919,8 @@ void SWWReader::expandCentroidsToVertices(const float* src, float* dst)
 {
 	for (size_t iv = 0; iv < _npoints; iv++)
 	{
-		const triangle_list& tris = _connectivity[iv];
-		int n = (int)tris.size();
+		const unsigned int* tris = _connectivityTriangles.data() + _connectivityOffsets[iv];
+		int n = (int)(_connectivityOffsets[iv+1] - _connectivityOffsets[iv]);
 		if (n == 0) { dst[iv] = 0.0f; continue; }
 		float sum = 0.0f;
 		for (int k = 0; k < n; k++)
@@ -1359,26 +1444,33 @@ bool SWWReader::load()
 
 	// compute triangle connectivity, a list (indexed by vertex number) 
 	// of lists (indices of triangles sharing this vertex)
-	_connectivity = std::vector<triangle_list>(_npoints);
-	for (iv=0; iv < _nvolumes; iv++)
+	// First count the triangles at each vertex, then fill each vertex's range.
+	_connectivityOffsets.assign(_npoints + 1, 0);
+	for (iv=0; iv < _nvolumes*_nvertices; iv++)
 	{
-		v1index = _pvolumes[3*iv+0];
-		v2index = _pvolumes[3*iv+1];
-		v3index = _pvolumes[3*iv+2];
+		if (_pvolumes[iv] < _npoints)
+			_connectivityOffsets[_pvolumes[iv] + 1]++;
+	}
+	for (iv=0; iv < _npoints; iv++)
+		_connectivityOffsets[iv + 1] += _connectivityOffsets[iv];
 
-		if (v1index<_npoints)
+	_connectivityTriangles.resize(_connectivityOffsets[_npoints]);
+	{
+		std::vector<size_t> next(_connectivityOffsets.begin(), _connectivityOffsets.end() - 1);
+		for (iv=0; iv < _nvolumes; iv++)
 		{
-			_connectivity.at(v1index).push_back(iv);
-		}
+			v1index = _pvolumes[3*iv+0];
+			v2index = _pvolumes[3*iv+1];
+			v3index = _pvolumes[3*iv+2];
 
-		if (v2index<_npoints)
-		{
-			_connectivity.at(v2index).push_back(iv);
-		}
+			if (v1index<_npoints)
+				_connectivityTriangles[next[v1index]++] = iv;
 
-		if (v3index<_npoints)
-		{
-			_connectivity.at(v3index).push_back(iv);
+			if (v2index<_npoints)
+				_connectivityTriangles[next[v2index]++] = iv;
+
+			if (v3index<_npoints)
+				_connectivityTriangles[next[v3index]++] = iv;
 		}
 	}
 
@@ -1444,7 +1536,7 @@ bool SWWReader::tryLoadCentroidMaxima()
 	nc_close(ncid);
 
 	// Expand centroid values to per-vertex by averaging over the triangles
-	// that share each vertex (uses _connectivity built just before this call).
+	// that share each vertex (uses the connectivity built just before this call).
 	_pmaxstage    = new float[_npoints]();
 	_pmaxdepth    = new float[_npoints]();
 	_pmaxspeed    = new float[_npoints]();
