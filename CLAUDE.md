@@ -121,6 +121,7 @@ The ParaView reader and the trame browser viewer that were in `paraview/` now li
 | `-alphamin`/`-alphamax` | Water transparency limits |
 | `-lightpos x,y,z` | Directional light position |
 | `-nosky` | Disable skybox |
+| `-force` | Load even if the file looks too large for free memory |
 | `-transparent` | Transparent background: no sky, zero-alpha clear colour, screenshots written as PNG with alpha. Toggle at runtime with `B`. |
 | `-window <W>x<H>` | Window size in pixels (default: 3/4 of the screen); also the `-movie` frame size |
 | `-movie <dir>` | Export frames to directory (with `.swm` input) |

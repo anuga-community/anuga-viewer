@@ -115,6 +115,17 @@ void SWWReaderTest::testBedslopeIndexArray()
 
 
 
+void SWWReaderTest::testEstimateLoadBytes()
+{
+    // unreadable file: no estimate, rather than a number that looks real
+    CPPUNIT_ASSERT_EQUAL( SWWReader::estimateLoadBytes("no_such_file.sww"), 0ULL );
+
+    // readable file: more than the bare minimum, and more for faceted mode too
+    CPPUNIT_ASSERT( SWWReader::estimateLoadBytes(_sww->getSWWFilename()) > 0ULL );
+    CPPUNIT_ASSERT( _sww->facetedExtraBytes() > 0ULL );
+}
+
+
 void SWWReaderTest::testConnectivity()
 {
     CPPUNIT_ASSERT( _sww->isValid() );

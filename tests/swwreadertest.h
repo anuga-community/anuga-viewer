@@ -38,6 +38,7 @@ class SWWReaderTest : public CppUnit::TestFixture
 {
   CPPUNIT_TEST_SUITE( SWWReaderTest );
   CPPUNIT_TEST( testValid );
+  CPPUNIT_TEST( testEstimateLoadBytes );
   CPPUNIT_TEST( testNumberOfVertices );
   CPPUNIT_TEST( testTime );
   CPPUNIT_TEST( testBedslopeVertexArray );
@@ -52,6 +53,7 @@ public:
   void tearDown();
 
   void testValid();
+  void testEstimateLoadBytes();
   void testNumberOfVertices();
   void testTime();
   void testBedslopeVertexArray();

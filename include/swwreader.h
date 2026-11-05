@@ -77,9 +77,19 @@ public:
 
     // bedslope
     virtual osg::ref_ptr<osg::Vec3Array> getBedslopeVertexArray() {return _bedslopevertices;}
-    virtual osg::ref_ptr<osg::Vec3Array> getBedslopeNormalArray() {return _bedslopenormals;}
+    /** Estimated memory, in bytes, to open and display an SWW file, GPU buffers included;
+     *  0 if the file cannot be read.  Reads only the header, so it is safe on any size. */
+    static unsigned long long estimateLoadBytes(const std::string& filename);
+
+    /** Memory the system can give us now, in bytes; 0 if this platform can't say. */
+    static unsigned long long availableMemoryBytes();
+
+    /** Extra memory, in bytes, that the faceted data mode needs on top of the others. */
+    unsigned long long facetedExtraBytes() const;
+
+    virtual osg::ref_ptr<osg::Vec3Array> getBedslopeNormalArray();
     virtual osg::ref_ptr<osg::DrawElementsUInt> getBedslopeIndexArray() {return _bedslopeindices;}
-    virtual osg::ref_ptr<osg::Vec3Array> getBedslopeCentroidArray() {return _bedslopecentroids;}
+    virtual osg::ref_ptr<osg::Vec3Array> getBedslopeCentroidArray();
     virtual osg::ref_ptr<osg::Vec2Array> getBedslopeTextureCoords();
 
     virtual bool hasBedslopeTexture() {return (_state.bedslopetexturefilename != NULL);}
@@ -164,7 +174,11 @@ public:
 
     virtual void setVScale(float v) { _vscale = v; }
     
-    virtual triangle_list getConnectivity(unsigned int index) {return _connectivity.at(index);}
+    virtual triangle_list getConnectivity(unsigned int index)
+    {
+        return triangle_list(_connectivityTriangles.begin() + _connectivityOffsets.at(index),
+                             _connectivityTriangles.begin() + _connectivityOffsets.at(index + 1));
+    }
 
     const std::string getSwollenDir() {return *(_state.swollendirectory);}
     virtual void setSwollenDir(const std::string path) {_state.swollendirectory = new std::string(path);}
@@ -364,7 +378,14 @@ protected:
 	
 	// triangle connectivity, list (indexed by vertex number) of 
 	// lists (indices of triangles sharing this vertex)
-	std::vector<triangle_list> _connectivity;
+	// Triangles sharing each vertex, in compressed sparse row form: those of vertex iv
+	// are _connectivityTriangles[_connectivityOffsets[iv] .. _connectivityOffsets[iv+1]).
+	// One vector per vertex costs about 3x as much on a large mesh.
+	std::vector<size_t> _connectivityOffsets;
+	std::vector<unsigned int> _connectivityTriangles;
+
+	// Built on request: per-triangle bedslope normals and centroids, 24 bytes a triangle.
+	void computeBedslopePrimitiveArrays();
 	
 	FileChangedCheck _fileChanged;	/**< Monitor this file for disk changes. */
 };
